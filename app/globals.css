@@ -11,8 +11,6 @@
   --accent: #5c7cfa;
   --accent-strong: #4263eb;
   --accent-foreground: #ffffff;
-
-  /* Legacy variables used on landing page */
   --text-main: #16161f;
   --text-muted: #868e96;
   --primary: #5c7cfa;
@@ -25,7 +23,7 @@
   --font-mono: var(--font-geist-mono);
 }
 
-/* Fix logo image aspect ratio warning */
+/* Fix for logo*/
 img[src="/logo.png"] {
   width: auto;
   height: auto;

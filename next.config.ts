@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  serverExternalPackages: ['@neondatabase/auth'],
+  experimental: {
+    esmExternals: 'loose',
+    authInterrupts: false
+  },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "api.dicebear.com" },
@@ -9,9 +14,6 @@ const nextConfig: NextConfig = {
     dangerouslyAllowSVG: true,
     contentDispositionType: 'attachment',
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
-  },
-  experimental: {
-    authInterrupts: false
   },
   async headers() {
     return [
