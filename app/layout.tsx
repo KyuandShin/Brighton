@@ -8,6 +8,8 @@ export const metadata: Metadata = {
   description: "Tutor Website built with Next.js and Neon Auth",
   icons: {
     icon: "/logo.png",
+    shortcut: "/logo.png",
+    apple: "/logo.png",
   },
 };
 
@@ -18,7 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="antialiased bg-[#fdfcfb] min-h-screen">
+      <body className="antialiased min-h-screen">
         <AuthUIProvider authClient={authClient as any}>
           {children}
         </AuthUIProvider>

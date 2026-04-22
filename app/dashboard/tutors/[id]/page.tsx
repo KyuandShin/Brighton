@@ -137,7 +137,11 @@ export default function TutorProfilePage() {
       }
 
       setShowToast(true);
-      setTimeout(() => setShowToast(false), 5000);
+      // Redirect to classes page after a short delay so the user sees their new booking
+      setTimeout(() => {
+        setShowToast(false);
+        router.push('/dashboard/classes');
+      }, 2000);
     } catch (err: any) {
       setBookingError(err.message ?? 'Unexpected error.');
     } finally {

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma';
+import { sendEmail } from '@/lib/email';
 
 export async function PATCH(
   request: Request,
@@ -8,10 +9,8 @@ export async function PATCH(
 ) {
   const params = await context.params;
   try {
-    const session = await auth.getSession();
-
-    // @ts-expect-error - Neon Auth typing issue
-    const userId = session?.user?.id || session?.id;
+    const { data } = await auth.getSession();
+    const userId = data?.user?.id;
     
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -34,8 +33,32 @@ export async function PATCH(
 
     const updatedTutor = await prisma.tutor.update({
       where: { id: params.id },
-      data: { verificationStatus }
+      data: { verificationStatus },
+      include: { user: true }
     });
+
+    // Sync User verification status with tutor status
+    await prisma.user.update({
+      where: { id: updatedTutor.userId },
+      data: { isVerified: verificationStatus === 'APPROVED' }
+    });
+
+    // Send approval email
+    if (verificationStatus === 'APPROVED') {
+      await sendEmail({
+        to: updatedTutor.user.email,
+        subject: "✅ Your tutor application has been approved!",
+        html: `
+          <div style="font-family: system-ui, sans-serif; max-width: 500px; margin: 40px auto; padding: 32px; background: white; border-radius: 16px;">
+            <h2 style="color: #5c7cfa; font-weight: 900;">Application Approved!</h2>
+            <p>Hi ${updatedTutor.user.name},</p>
+            <p>Great news! Your tutor application has been reviewed and approved.</p>
+            <p>You can now login to your account and start accepting students.</p>
+            <p style="margin-top: 32px; font-size: 12px; color: #868e96;">Brighton Academic</p>
+          </div>
+        `
+      });
+    }
 
     return NextResponse.json(updatedTutor);
   } catch (error) {
@@ -50,10 +73,8 @@ export async function DELETE(
 ) {
   const params = await context.params;
   try {
-    const session = await auth.getSession();
-
-    // @ts-expect-error - Neon Auth typing issue
-    const userId = session?.user?.id || session?.id;
+    const { data } = await auth.getSession();
+    const userId = data?.user?.id;
     
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

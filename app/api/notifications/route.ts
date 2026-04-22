@@ -5,11 +5,11 @@ import { prisma } from '@/lib/prisma';
 // GET /api/notifications — fetch all notifications for logged-in user
 export async function GET() {
   try {
-    const { data: session } = await auth.getSession();
-    if (!session?.user?.id) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    const { data } = await auth.getSession();
+    if (!data?.user?.id) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
 
     const notifications = await prisma.notification.findMany({
-      where: { userId: session.user.id },
+      where: { userId: data.user.id },
       orderBy: { createdAt: 'desc' },
       take: 30,
     });
@@ -23,11 +23,11 @@ export async function GET() {
 // PATCH /api/notifications — mark all as read
 export async function PATCH() {
   try {
-    const { data: session } = await auth.getSession();
-    if (!session?.user?.id) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    const { data: patchData } = await auth.getSession();
+    if (!patchData?.user?.id) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
 
     await prisma.notification.updateMany({
-      where: { userId: session.user.id, isRead: false },
+      where: { userId: patchData.user.id, isRead: false },
       data: { isRead: true },
     });
 

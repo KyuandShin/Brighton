@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Calendar as CalendarIcon, Clock, Video, User, 
-  ChevronRight, Sparkles, X, MapPin, BookOpen, ExternalLink 
+  ChevronRight, Sparkles, X, MapPin, BookOpen, ExternalLink, Users
 } from 'lucide-react';
 import Link from 'next/link';
+import { useCurrentUser } from '@/lib/hooks/useCurrentUser';
 
 interface ScheduleItem {
     id: string;
@@ -14,57 +15,95 @@ interface ScheduleItem {
     teacher: string;
     time: string;
     date: string;
+    rawDate: string; // ISO string for date comparisons
     meetLink: string;
     topic: string;
     color: string;
     iconColor: string;
 }
 
-const MOCK_SCHEDULE: ScheduleItem[] = [
-    {
-        id: '1',
-        subject: 'Mathematics',
-        teacher: 'Dr. Aris Smith',
-        time: '10:00 AM - 11:00 AM',
-        date: 'Today, April 20',
-        meetLink: 'https://meet.google.com/abc-defg-hij',
-        topic: 'Introduction to Quadratic Equations',
-        color: 'bg-[#d0ebff]',
-        iconColor: 'text-[#1971c2]'
-    },
-    {
-        id: '2',
-        subject: 'General Science',
-        teacher: 'Prof. Maria Clara',
-        time: '2:00 PM - 3:00 PM',
-        date: 'Today, April 20',
-        meetLink: 'https://meet.google.com/xyz-pqrs-uvw',
-        topic: 'The Solar System and Beyond',
-        color: 'bg-[#d3f9d8]',
-        iconColor: 'text-[#2b8a3e]'
-    },
-    {
-        id: '3',
-        subject: 'English Grammar',
-        teacher: 'Ms. Lea Salonga',
-        time: '9:00 AM - 10:00 AM',
-        date: 'Tomorrow, April 21',
-        meetLink: 'https://meet.google.com/jkl-mno-pqr',
-        topic: 'Advanced Sentence Structures',
-        color: 'bg-[#ffd6e8]',
-        iconColor: 'text-[#d6336c]'
-    }
+const COLORS = [
+  { color: 'bg-[#d0ebff]', iconColor: 'text-[#1971c2]' },
+  { color: 'bg-[#d3f9d8]', iconColor: 'text-[#2b8a3e]' },
+  { color: 'bg-[#ffd6e8]', iconColor: 'text-[#d6336c]' },
+  { color: 'bg-[#fff3bf]', iconColor: 'text-[#f08c00]' },
+  { color: 'bg-[#e5dbff]', iconColor: 'text-[#7048e8]' },
 ];
 
 export default function DashboardPage() {
+  const { user, loading: userLoading } = useCurrentUser();
+  const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedClass, setSelectedSelectedClass] = useState<ScheduleItem | null>(null);
+
+  useEffect(() => {
+    // Wait until useCurrentUser has resolved (user will be non-null when authenticated)
+    if (userLoading) return;
+    // If user failed to load or is not logged in, stop the skeleton
+    if (!user) { setLoading(false); return; }
+
+    const fetchBookings = async () => {
+      try {
+        const res = await fetch('/api/bookings');
+        if (!res.ok) {
+          console.error('Failed to fetch bookings:', res.status);
+          return;
+        }
+        const data = await res.json();
+        if (!Array.isArray(data)) return;
+
+        const formattedSchedule = data.map((booking: any, index: number) => {
+          const sessionDate = new Date(booking.date);
+          const formattedDate = sessionDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+          const formattedTime = sessionDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+          // Use tutor headline as the session topic, tutor name as teacher
+          const tutorName = booking.tutor?.user?.name || 'Tutor';
+          const tutorHeadline = booking.tutor?.headline || 'Tutoring Session';
+
+          return {
+            id: booking.id,
+            subject: tutorHeadline,       // shows in the pill badge
+            teacher: tutorName,
+            time: formattedTime || 'TBD',
+            date: formattedDate || 'Scheduled',
+            rawDate: booking.date,         // ISO string for accurate date checks
+            meetLink: booking.meetLink || '',
+            topic: `Session with ${tutorName}`,
+            ...COLORS[index % COLORS.length]
+          };
+        });
+
+        setSchedule(formattedSchedule);
+      } catch (error) {
+        console.error('Failed to load schedule:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBookings();
+  }, [user, userLoading]); // re-run once user resolves
+
+  // Check if a booking's raw ISO date falls on today
+  const isToday = (isoString: string) => {
+    const today = new Date();
+    const itemDate = new Date(isoString);
+    return itemDate.toDateString() === today.toDateString();
+  };
+  
+  const todaysClasses = schedule.filter((item) => isToday(item.rawDate));
 
   return (
     <div className="space-y-12">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="space-y-1">
-          <h2 className="text-3xl font-black tracking-tight text-[#2c3e50]">Welcome Home, <span className="text-[#748ffc]">Sean!</span> 👋</h2>
-          <p className="text-[#7f8c8d] font-bold text-xs uppercase tracking-widest">You have 2 sessions scheduled for today.</p>
+          <h2 className="text-3xl font-black tracking-tight text-[#2c3e50]">Welcome Home, <span className="text-[#748ffc]">{user?.name?.split(' ')[0] || 'User'}!</span> 👋</h2>
+          <p className="text-[#7f8c8d] font-bold text-xs uppercase tracking-widest">
+            {loading ? 'Loading schedule...' : 
+             todaysClasses.length === 0 ? 'No sessions scheduled for today.' :
+             `You have ${todaysClasses.length} session${todaysClasses.length > 1 ? 's' : ''} scheduled for today.`}
+          </p>
         </div>
         <Link href="/dashboard/test" className="px-6 py-3 bg-[#fff3bf] text-[#f08c00] rounded-xl font-black text-[10px] uppercase tracking-[0.15em] shadow-lg shadow-[#fff3bf]/40 hover:scale-105 transition-all flex items-center gap-2">
           <Sparkles size={14} /> Retake AI Assessment
@@ -83,7 +122,31 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {MOCK_SCHEDULE.map((item) => (
+            {loading ? (
+              // Loading skeletons
+              [1,2,3].map((i) => (
+                <div key={i} className="bg-gray-100 p-8 rounded-[40px] animate-pulse h-[300px]" />
+              ))
+            ) : schedule.length === 0 ? (
+              <div className="col-span-full flex flex-col items-center justify-center py-16 text-center space-y-6">
+                <div className="w-20 h-20 bg-[#f8f9fa] rounded-3xl flex items-center justify-center">
+                  <CalendarIcon size={32} className="text-[#adb5bd]" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-xl font-black text-[#2c3e50]">No scheduled classes yet</h3>
+                  <p className="text-sm text-[#7f8c8d] max-w-md">
+                    Browse available tutors and book your first session to get started with your learning journey.
+                  </p>
+                </div>
+                <Link 
+                  href="/dashboard/tutors" 
+                  className="px-6 py-3 bg-[#748ffc] text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-[#5c7cfa] transition-all flex items-center gap-2"
+                >
+                  <Users size={14} /> Find Tutors
+                </Link>
+              </div>
+            ) : (
+              schedule.map((item) => (
                 <motion.div 
                     key={item.id}
                     whileHover={{ y: -5 }}
@@ -121,7 +184,8 @@ export default function DashboardPage() {
                         </div>
                     </div>
                 </motion.div>
-            ))}
+              ))
+            )}
         </div>
       </section>
 

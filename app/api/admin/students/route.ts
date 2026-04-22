@@ -4,10 +4,8 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET() {
   try {
-    const session = await auth.getSession();
-
-    // @ts-expect-error - Neon Auth typing issue
-    const userId = session?.user?.id || session?.id;
+    const { data } = await auth.getSession();
+    const userId = data?.user?.id;
     
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

@@ -8,11 +8,9 @@ export async function DELETE(
 ) {
   const params = await context.params;
   try {
-    const session = await auth.getSession();
+    const { data } = await auth.getSession();
+    const userId = data?.user?.id;
 
-    // @ts-expect-error - Neon Auth typing issue
-    const userId = session?.user?.id || session?.id;
-    
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
