@@ -1,9 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ['@neondatabase/auth'],
+  transpilePackages: ['@neondatabase/auth'],
   experimental: {
-    esmExternals: 'loose',
     authInterrupts: false
   },
   images: {
