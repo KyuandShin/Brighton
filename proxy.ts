@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { neonAuthMiddleware } from "@neondatabase/auth/next/server";
 
 export default async function proxy(request: NextRequest) {
-    const { auth } = await import("@/lib/auth/server");
-    
     const { pathname } = request.nextUrl;
 
     // 1. Allow public access to /login, /signup, and landing page /
@@ -17,5 +16,5 @@ export default async function proxy(request: NextRequest) {
     }
 
     // 2. Protect all other routes (like /dashboard)
-    return auth.middleware({ loginUrl: '/login' })(request);
+    return neonAuthMiddleware({ loginUrl: '/login' })(request);
 }
