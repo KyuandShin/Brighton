@@ -5,21 +5,21 @@ import { prisma } from '@/lib/prisma';
 // PATCH /api/profile — update user + student/tutor profile fields
 export async function PATCH(req: NextRequest) {
   try {
-    const { data: session } = await auth.getSession();
-    if (!session?.user?.id) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    const { data } = await auth.getSession();
+    if (!data?.user?.id) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
 
     const body = await req.json();
     const { name, age, schoolName, schoolLevel, headline, bio, pricingPerHour } = body;
 
     const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
+      where: { id: data.user.id },
       include: { studentProfile: true, tutorProfile: true },
     });
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
     // Update base user
     await prisma.user.update({
-      where: { id: session.user.id },
+      where: { id: data.user.id },
       data: { ...(name ? { name } : {}) },
     });
 
@@ -47,7 +47,7 @@ export async function PATCH(req: NextRequest) {
 
     // Return updated user
     const updated = await prisma.user.findUnique({
-      where: { id: session.user.id },
+      where: { id: data.user.id },
       include: {
         studentProfile: true,
         tutorProfile: { include: { subjects: { include: { subject: true } }, availability: true } },

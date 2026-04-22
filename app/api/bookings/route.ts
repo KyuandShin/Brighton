@@ -5,13 +5,13 @@ import { sendEmail, bookingConfirmationStudent, bookingNotificationTutor } from 
 
 export async function GET(req: NextRequest) {
   try {
-    const { data: session } = await auth.getSession();
-    if (!session?.user?.id) {
+    const { data } = await auth.getSession();
+    if (!data?.user?.id) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
     const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
+      where: { id: data.user.id },
       include: { studentProfile: true, tutorProfile: true },
     });
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
@@ -51,8 +51,8 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { data: session } = await auth.getSession();
-    if (!session?.user?.id) {
+    const { data: postData } = await auth.getSession();
+    if (!postData?.user?.id) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
 
     // Load student
     const studentUser = await prisma.user.findUnique({
-      where: { id: session.user.id },
+      where: { id: postData.user.id },
       include: { studentProfile: true },
     });
     if (!studentUser?.studentProfile) {
@@ -96,8 +96,17 @@ export async function POST(req: NextRequest) {
       where: { id: booking.id },
       data: { meetLink },
       include: {
-        tutor: { include: { user: { select: { name: true, email: true } } } },
-        student: { include: { user: { select: { name: true, email: true } } } },
+        tutor: { 
+          select: { 
+            headline: true,
+            user: { select: { name: true, image: true, email: true } } 
+          } 
+        },
+        student: { 
+          include: { 
+            user: { select: { name: true, image: true, email: true } } 
+          } 
+        },
       },
     });
 

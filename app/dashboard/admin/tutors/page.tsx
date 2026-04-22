@@ -30,30 +30,45 @@ export default function AdminTutorsPage() {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  const [error, setError] = useState('');
+
   useEffect(() => {
     fetch('/api/admin/tutors')
-      .then((r) => r.json())
-      .then((data) => {
-        if (Array.isArray(data)) setTutors(data);
+      .then((r) => {
+        if (!r.ok) throw new Error('Failed to load tutors');
+        return r.json();
       })
-      .catch(console.error)
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setTutors(data);
+        } else {
+          setError('Invalid data received from server');
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        setError(err.message);
+      })
       .finally(() => setLoading(false));
   }, []);
 
   const updateStatus = async (tutorId: string, status: 'APPROVED' | 'REJECTED') => {
     setUpdatingId(tutorId);
     try {
-      await fetch(`/api/admin/tutors/${tutorId}`, {
+      const res = await fetch(`/api/admin/tutors/${tutorId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ verificationStatus: status })
       });
       
+      if (!res.ok) throw new Error('Update failed');
+
       setTutors(prev => prev.map(t => 
         t.id === tutorId ? { ...t, verificationStatus: status } : t
       ));
     } catch (err) {
       console.error(err);
+      alert('Failed to update status');
     } finally {
       setUpdatingId(null);
     }
@@ -64,13 +79,16 @@ export default function AdminTutorsPage() {
     
     setDeletingId(tutorId);
     try {
-      await fetch(`/api/admin/tutors/${tutorId}`, {
+      const res = await fetch(`/api/admin/tutors/${tutorId}`, {
         method: 'DELETE',
       });
       
+      if (!res.ok) throw new Error('Delete failed');
+
       setTutors(prev => prev.filter(t => t.id !== tutorId));
     } catch (err) {
       console.error(err);
+      alert('Failed to delete tutor');
     } finally {
       setDeletingId(null);
     }
@@ -79,8 +97,8 @@ export default function AdminTutorsPage() {
   const filtered = tutors.filter(t => {
     const matchFilter = filter === 'ALL' || t.verificationStatus === filter;
     const matchSearch = search === '' || 
-      t.user.name?.toLowerCase().includes(search.toLowerCase()) ||
-      t.user.email.toLowerCase().includes(search.toLowerCase());
+      (t.user.name || '').toLowerCase().includes(search.toLowerCase()) ||
+      (t.user.email || '').toLowerCase().includes(search.toLowerCase());
     return matchFilter && matchSearch;
   });
 

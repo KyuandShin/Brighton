@@ -9,13 +9,14 @@ import { prisma } from '@/lib/prisma';
 export async function GET(req: NextRequest) {
   try {
     // Authenticate and retrieve session data using Neon Auth
-    const { data: session } = await auth.getSession();
+    const { data } = await auth.getSession();
 
-    if (!session?.user?.id) {
+    if (!data?.user?.id) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    const userId = session.user.id;
+    const userId = data.user.id;
+    const session = data;
 
     // Query database for complete profile including related profile models
     const user = await prisma.user.findUnique({

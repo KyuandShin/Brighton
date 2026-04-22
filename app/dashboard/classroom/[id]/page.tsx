@@ -21,7 +21,8 @@ export default function ClassroomPage() {
   const [showLoader, setShowLoader] = useState(true);
   const [error, setError] = useState('');
 
-  const roomName = `brighton-${id}`;
+  // Clean room name - Jitsi requires valid URL-safe names without spaces or special characters
+  const roomName = `brighton-${id}`.replace(/[^a-zA-Z0-9-_]/g, '-').toLowerCase();
 
   // ── Step 1: load external_api.js ────────────────────────────────────
   useEffect(() => {
@@ -75,7 +76,24 @@ export default function ClassroomPage() {
           prejoinPageEnabled: true,
           disableDeepLinking: true,
           defaultLanguage: 'en',
-          p2p: { enabled: true },
+          p2p: { 
+            enabled: true,
+            disableH264: true,
+            preferH264: false
+          },
+          disableAudioLevels: true,
+          enableNoAudioDetection: false,
+          enableNoisyMicDetection: false,
+          resolution: 720,
+          constraints: {
+            video: {
+              height: {
+                ideal: 720,
+                max: 720,
+                min: 180
+              }
+            }
+          }
         },
         interfaceConfigOverwrite: {
           SHOW_JITSI_WATERMARK: false,
@@ -89,6 +107,22 @@ export default function ClassroomPage() {
 
       apiRef.current.addEventListener('videoConferenceJoined', () => setShowLoader(false));
       apiRef.current.addEventListener('readyToClose', () => router.push('/dashboard'));
+      
+      // Handle Jitsi connection errors and failures
+      apiRef.current.addEventListener('videoConferenceFailed', (error: any) => {
+        console.error('Jitsi conference failed:', error);
+        setError(`Connection failed: ${error?.error?.message || 'Could not connect to the meeting. Please try again.'}`);
+      });
+      
+      apiRef.current.addEventListener('connectionFailed', (error: any) => {
+        console.error('Jitsi connection failed:', error);
+        setError('Could not establish connection to classroom. Check your internet and try again.');
+      });
+      
+      apiRef.current.addEventListener('error', (error: any) => {
+        console.error('Jitsi error:', error);
+        setError(error?.message || 'An error occurred while joining the meeting.');
+      });
       // Fallback — hide loader after 8s regardless
       const t = setTimeout(() => setShowLoader(false), 8000);
       return () => {
