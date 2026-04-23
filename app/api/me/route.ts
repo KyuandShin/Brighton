@@ -50,16 +50,14 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Block unverified tutors
+    // Return tutor verification status in user object instead of blocking request
+    // This allows successful authentication while frontend handles pending state appropriately
     if (user.role === 'TUTOR' && user.tutorProfile?.verificationStatus !== 'APPROVED') {
-      return NextResponse.json(
-        {
-          error: 'TUTOR_PENDING',
-          message:
-            'Your tutor account is pending verification. You will be notified once approved.',
-        },
-        { status: 403 }
-      );
+      return NextResponse.json({
+        ...user,
+        verificationStatus: user.tutorProfile?.verificationStatus,
+        verificationMessage: 'Your tutor account is pending verification. You will be notified once approved.'
+      });
     }
 
     return NextResponse.json(user);
