@@ -1,4 +1,4 @@
-// @ts-ignore
-import { authApiHandler } from '@neondatabase/auth/next/server';
+import { auth } from '@/lib/auth/server';
 
-export const { GET, POST, PUT, PATCH, DELETE } = authApiHandler();
+// @ts-expect-error - handler exports all HTTP methods in Neon Auth beta
+export const { GET, POST, PUT, PATCH, DELETE } = auth;
