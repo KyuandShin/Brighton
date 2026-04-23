@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   experimental: {
     // authInterrupts: true
   },
+  output: 'standalone',
+  trustHostHeader: true,
+  trailingSlash: false,
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "api.dicebear.com" },
