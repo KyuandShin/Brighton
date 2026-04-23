@@ -7,6 +7,8 @@ const nextConfig: NextConfig = {
   },
   output: 'standalone',
   trailingSlash: false,
+  // Required for Neon Auth to validate host headers correctly behind Vercel's reverse proxy
+  trustHostHeader: true,
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "api.dicebear.com" },
