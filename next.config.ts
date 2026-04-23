@@ -6,7 +6,6 @@ const nextConfig: NextConfig = {
     // authInterrupts: true
   },
   output: 'standalone',
-  trustHostHeader: true,
   trailingSlash: false,
   images: {
     remotePatterns: [
