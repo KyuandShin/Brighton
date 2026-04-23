@@ -74,6 +74,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     window.location.href = '/';
   };
 
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!loading && !user && error !== 'TUTOR_PENDING') {
+      window.location.href = '/login';
+    }
+  }, [user, loading, error]);
+
   // Tutor pending screen
   if (error === 'TUTOR_PENDING') {
     return (
@@ -100,12 +107,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const displayName = user?.name ?? user?.email ?? 'Account';
   const initials = loading ? '…' : getInitials(user?.name ?? user?.email);
   const isAdmin = user?.role === 'ADMIN';
-
-  useEffect(() => {
-    if (!loading && !user && error !== 'TUTOR_PENDING') {
-      window.location.href = '/login';
-    }
-  }, [user, loading, error]);
 
   if (loading) {
     return (
