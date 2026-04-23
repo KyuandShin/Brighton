@@ -101,8 +101,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const initials = loading ? '…' : getInitials(user?.name ?? user?.email);
   const isAdmin = user?.role === 'ADMIN';
 
-  if (!loading && !user && error !== 'TUTOR_PENDING') {
-    router.push('/login');
+  useEffect(() => {
+    if (!loading && !user && error !== 'TUTOR_PENDING') {
+      window.location.href = '/login';
+    }
+  }, [user, loading, error]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#fafbff] flex items-center justify-center">
+        <div className="animate-pulse text-[#748ffc] text-sm font-bold uppercase tracking-widest">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!user && error !== 'TUTOR_PENDING') {
     return null;
   }
 
