@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma';
+import { headers } from 'next/headers';
 
 /**
  * Fetches the authenticated user's profile data from the database.
@@ -9,7 +10,10 @@ import { prisma } from '@/lib/prisma';
 export async function GET(req: NextRequest) {
   try {
     // Authenticate and retrieve session data using Neon Auth
-    const { data } = await auth.getSession();
+    // We must pass headers in Next.js 15 to allow the library to read cookies
+    const { data } = await auth.getSession({
+      headers: await headers()
+    });
 
     if (!data?.user?.id) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
