@@ -9,6 +9,7 @@ export default async function proxy(request: NextRequest) {
         pathname === "/" || 
         pathname.startsWith("/login") || 
         pathname.startsWith("/signup") ||
+        pathname.startsWith("/api/auth") || // Important for auth routes
         pathname.startsWith("/_next") || // Important for static files
         pathname.includes(".") // For images/favicon
     ) {
