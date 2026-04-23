@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma';
-import { headers } from 'next/headers';
 
 /**
  * Fetches the authenticated user's profile data from the database.
@@ -10,10 +9,10 @@ import { headers } from 'next/headers';
 export async function GET(req: NextRequest) {
   try {
     // Authenticate and retrieve session data using Neon Auth
-    // In Next.js 15 headers must be passed inside fetchOptions
+    // Fix for Next.js 15: properly pass request headers instead of using headers()
     const { data } = await auth.getSession({
       fetchOptions: {
-        headers: await headers()
+        headers: req.headers
       }
     });
 
