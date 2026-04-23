@@ -10,9 +10,11 @@ import { headers } from 'next/headers';
 export async function GET(req: NextRequest) {
   try {
     // Authenticate and retrieve session data using Neon Auth
-    // We must pass headers in Next.js 15 to allow the library to read cookies
+    // In Next.js 15 headers must be passed inside fetchOptions
     const { data } = await auth.getSession({
-      headers: await headers()
+      fetchOptions: {
+        headers: await headers()
+      }
     });
 
     if (!data?.user?.id) {
