@@ -10,7 +10,7 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
-    "@neondatabase/auth": "0.1.0-beta.21",
+    "@neondatabase/auth": "^0.2.0-beta.1",
     "@neondatabase/neon-js": "0.1.0-beta.21",
     "@prisma/adapter-pg": "^7.7.0",
     "@prisma/client": "^7.7.0",
