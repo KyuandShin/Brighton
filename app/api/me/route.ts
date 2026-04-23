@@ -10,18 +10,25 @@ export async function GET(req: NextRequest) {
   try {
     // Authenticate and retrieve session data using Neon Auth
     // CRITICAL FIX: Pass request headers so auth can find the session token
-    const { data } = await auth.getSession({
+    const { data: session, error } = await auth.getSession({
       fetchOptions: {
         headers: req.headers
       }
     });
 
-    if (!data?.user?.id) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    if (error || !session?.user?.id) {
+      // Disable auto-retry for this endpoint by returning proper cache headers
+      // Prevents React Query / Next.js from infinitely retrying on 401
+      return NextResponse.json({ error: 'Not authenticated' }, { 
+        status: 401,
+        headers: {
+          'Cache-Control': 'no-store, max-age=0',
+          'Retry-After': '0'
+        }
+      });
     }
 
-    const userId = data.user.id;
-    const session = data;
+    const userId = session.user.id;
 
     // Query database for complete profile including related profile models
     const user = await prisma.user.findUnique({
@@ -58,13 +65,25 @@ export async function GET(req: NextRequest) {
           message:
             'Your tutor account is pending verification. You will be notified once approved.',
         },
-        { status: 403 }
+        { 
+          status: 403,
+          headers: {
+            'Cache-Control': 'no-store, max-age=0',
+            'Retry-After': '0'
+          }
+        }
       );
     }
 
     return NextResponse.json(user);
   } catch (err: any) {
     console.error('[GET /api/me]', err);
-    return NextResponse.json({ error: err.message ?? 'Server error' }, { status: 500 });
+    return NextResponse.json({ error: err.message ?? 'Server error' }, { 
+      status: 500,
+      headers: {
+        'Cache-Control': 'no-store, max-age=0',
+        'Retry-After': '0'
+      }
+    });
   }
 }
