@@ -9,7 +9,7 @@ import { prisma } from '@/lib/prisma';
 export async function GET(req: NextRequest) {
   try {
     // Authenticate and retrieve session data using Neon Auth
-    // Fix for Next.js 15: properly pass request headers instead of using headers()
+    // CRITICAL FIX: Pass request headers so auth can find the session token
     const { data } = await auth.getSession({
       fetchOptions: {
         headers: req.headers
@@ -50,14 +50,16 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Return tutor verification status in user object instead of blocking request
-    // This allows successful authentication while frontend handles pending state appropriately
+    // Block unverified tutors
     if (user.role === 'TUTOR' && user.tutorProfile?.verificationStatus !== 'APPROVED') {
-      return NextResponse.json({
-        ...user,
-        verificationStatus: user.tutorProfile?.verificationStatus,
-        verificationMessage: 'Your tutor account is pending verification. You will be notified once approved.'
-      });
+      return NextResponse.json(
+        {
+          error: 'TUTOR_PENDING',
+          message:
+            'Your tutor account is pending verification. You will be notified once approved.',
+        },
+        { status: 403 }
+      );
     }
 
     return NextResponse.json(user);
