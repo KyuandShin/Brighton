@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   transpilePackages: ['@neondatabase/auth'],
   experimental: {
-    authInterrupts: false
+    authInterrupts: true
   },
   images: {
     remotePatterns: [
