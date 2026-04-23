@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   transpilePackages: ['@neondatabase/auth'],
   experimental: {
-    authInterrupts: true
+    // authInterrupts: true
   },
   images: {
     remotePatterns: [
@@ -14,6 +14,7 @@ const nextConfig: NextConfig = {
     contentDispositionType: 'attachment',
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
+  /*
   async headers() {
     return [
       {
@@ -37,6 +38,7 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  */
 };
 
 export default nextConfig;
