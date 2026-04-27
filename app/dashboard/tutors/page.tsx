@@ -85,7 +85,7 @@ export default function TutorsPage() {
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
           <Search
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-[#adb5bd]"
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted"
             size={16}
           />
           <input
@@ -93,10 +93,10 @@ export default function TutorsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by name, subject..."
-            className="w-full bg-white border-2 border-[#f1f3f5] rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-text-main focus:outline-none focus:border-primary transition-all placeholder:text-[#adb5bd]"
+            className="w-full bg-white border-2 border-border rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-text-main focus:outline-none focus:border-primary transition-all placeholder:text-text-muted/50"
           />
         </div>
-        <div className="flex gap-2 p-1.5 bg-[#f8f9fa] rounded-2xl border border-[#f1f3f5]">
+        <div className="flex gap-2 p-1.5 bg-p-purple/50 rounded-2xl border border-border">
           {(['ALL', 'ELEMENTARY', 'HIGH_SCHOOL'] as const).map((lvl) => (
             <button
               key={lvl}
@@ -104,7 +104,7 @@ export default function TutorsPage() {
               className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
                 levelFilter === lvl
                   ? 'bg-white text-primary shadow-md'
-                  : 'text-[#adb5bd] hover:text-text-main'
+                  : 'text-text-muted hover:text-text-main'
               }`}
             >
               {lvl === 'HIGH_SCHOOL' ? 'High School' : lvl === 'ELEMENTARY' ? 'Elementary' : 'All'}
@@ -116,13 +116,13 @@ export default function TutorsPage() {
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-[#f8f9fa] rounded-[40px] h-72 animate-pulse" />
+            <div key={i} className="bg-surface-elevated rounded-[40px] h-72 animate-pulse" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
         <div className="bg-white border-2 border-dashed border-border rounded-[40px] p-16 text-center space-y-3">
-          <GraduationCap size={40} className="mx-auto text-[#adb5bd]" />
-          <p className="text-sm font-black uppercase tracking-widest text-[#adb5bd]">
+          <GraduationCap size={40} className="mx-auto text-text-muted" />
+          <p className="text-sm font-black uppercase tracking-widest text-text-muted">
             No tutors found
           </p>
           <button
@@ -136,14 +136,14 @@ export default function TutorsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {filtered.map((tutor) => (
             <Link key={tutor.id} href={`/dashboard/tutors/${tutor.id}`}>
-              <div className="bg-white border-2 border-[#f1f3f5] rounded-[40px] p-8 space-y-6 hover:border-primary/30 transition-all group hover:shadow-xl cursor-pointer">
+              <div className="bg-white border-2 border-border rounded-[40px] p-8 space-y-6 hover:border-primary/40 transition-all group hover:shadow-[0_16px_40px_rgba(147,51,234,0.12)] cursor-pointer">
                 <div className="flex items-center gap-5">
                   <div className="relative w-20 h-20 shrink-0">
                     <Image
                       src={tutor.image}
                       alt={tutor.name}
                       fill
-                      className="rounded-3xl bg-[#f8f9fa] border-2 border-white shadow-sm object-cover"
+                      className="rounded-3xl bg-p-purple/30 border-2 border-white shadow-sm object-cover"
                     />
                   </div>
                   <div className="space-y-1 min-w-0">
@@ -168,27 +168,27 @@ export default function TutorsPage() {
                   {tutor.subjects.slice(0, 4).map((s) => (
                     <span
                       key={s}
-                      className="px-3 py-1 bg-[#f8f9fa] rounded-full text-[9px] font-black uppercase tracking-widest text-primary border border-[#f1f3f5]"
+                      className="px-3 py-1 bg-p-purple rounded-full text-[9px] font-black uppercase tracking-widest text-primary border border-border"
                     >
                       {s}
                     </span>
                   ))}
                   {tutor.subjects.length > 4 && (
-                    <span className="px-3 py-1 bg-[#f8f9fa] rounded-full text-[9px] font-black uppercase tracking-widest text-[#adb5bd] border border-[#f1f3f5]">
+                    <span className="px-3 py-1 bg-p-pink rounded-full text-[9px] font-black uppercase tracking-widest text-text-muted border border-border">
                       +{tutor.subjects.length - 4}
                     </span>
                   )}
                 </div>
 
-                <div className="pt-5 border-t border-[#f1f3f5] flex justify-between items-center">
+                <div className="pt-5 border-t border-border flex justify-between items-center">
                   <div>
-                    <p className="text-[9px] font-black uppercase tracking-widest text-[#adb5bd]">Rate</p>
+                    <p className="text-[9px] font-black uppercase tracking-widest text-text-muted">Rate</p>
                     <p className="text-lg font-black text-text-main">
                       ${tutor.price}
-                      <span className="text-[10px] text-[#adb5bd]">/hr</span>
+                      <span className="text-[10px] text-text-muted">/hr</span>
                     </p>
                   </div>
-                  <div className="w-10 h-10 bg-[#f8f9fa] rounded-2xl flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
+                  <div className="w-10 h-10 bg-p-purple rounded-2xl flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all text-text-muted">
                     <ChevronRight size={18} />
                   </div>
                 </div>

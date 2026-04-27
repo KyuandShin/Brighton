@@ -5,7 +5,11 @@ import { sendEmail, bookingConfirmationStudent, bookingNotificationTutor } from 
 
 export async function GET(req: NextRequest) {
   try {
-    const { data } = await auth.getSession();
+    const { data } = await auth.getSession({
+      fetchOptions: {
+        headers: req.headers
+      }
+    });
     if (!data?.user?.id) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
@@ -51,7 +55,11 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { data: postData } = await auth.getSession();
+    const { data: postData } = await auth.getSession({
+      fetchOptions: {
+        headers: req.headers
+      }
+    });
     if (!postData?.user?.id) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }

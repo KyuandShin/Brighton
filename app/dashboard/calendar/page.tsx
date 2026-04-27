@@ -70,20 +70,20 @@ export default function CalendarPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Calendar Grid */}
-        <div className="lg:col-span-2 bg-white border-2 border-[#f1f3f5] rounded-[40px] p-8 space-y-6">
+        <div className="lg:col-span-2 bg-white border-2 border-border rounded-[40px] p-8 space-y-6">
           <div className="flex justify-between items-center">
-            <button onClick={() => setViewDate(new Date(year, month - 1, 1))} className="p-3 bg-[#f8f9fa] rounded-2xl hover:bg-border transition-all text-text-muted">
+          <button onClick={() => setViewDate(new Date(year, month - 1, 1))} className="p-3 bg-p-purple rounded-2xl hover:bg-primary hover:text-white transition-all text-text-muted">
               <ChevronLeft size={18} />
             </button>
             <h3 className="text-xl font-black tracking-tight text-text-main">{MONTHS[month]} {year}</h3>
-            <button onClick={() => setViewDate(new Date(year, month + 1, 1))} className="p-3 bg-[#f8f9fa] rounded-2xl hover:bg-border transition-all text-text-muted">
+            <button onClick={() => setViewDate(new Date(year, month + 1, 1))} className="p-3 bg-p-purple rounded-2xl hover:bg-primary hover:text-white transition-all text-text-muted">
               <ChevronRight size={18} />
             </button>
           </div>
 
           <div className="grid grid-cols-7 gap-1">
             {WEEKDAYS.map((d) => (
-              <div key={d} className="text-center text-[9px] font-black uppercase tracking-widest text-[#adb5bd] py-2">{d}</div>
+              <div key={d} className="text-center text-[9px] font-black uppercase tracking-widest text-text-muted py-2">{d}</div>
             ))}
           </div>
 
@@ -104,7 +104,7 @@ export default function CalendarPage() {
                   className={`relative aspect-square flex flex-col items-center justify-center rounded-2xl transition-all text-sm font-black
                     ${sel ? 'bg-primary text-white shadow-lg shadow-primary/30' : ''}
                     ${todayDay && !sel ? 'bg-primary/10 text-primary border-2 border-primary/30' : ''}
-                    ${!todayDay && !sel ? 'hover:bg-[#f8f9fa] text-text-main' : ''}
+                    ${!todayDay && !sel ? 'hover:bg-surface-elevated text-text-main' : ''}
                   `}
                 >
                   {date.getDate()}
@@ -122,9 +122,9 @@ export default function CalendarPage() {
         </div>
 
         {/* Day Detail Panel */}
-        <div className="bg-white border-2 border-[#f1f3f5] rounded-[40px] p-8 space-y-6">
+        <div className="bg-white border-2 border-border rounded-[40px] p-8 space-y-6">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-[#adb5bd] mb-1">Selected Day</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-text-muted mb-1">Selected Day</p>
             <h3 className="text-xl font-black text-text-main tracking-tight">
               {selectedDay
                 ? selectedDay.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
@@ -134,17 +134,17 @@ export default function CalendarPage() {
 
           {loading ? (
             <div className="space-y-3">
-              {[1, 2].map((i) => <div key={i} className="h-24 bg-[#f8f9fa] rounded-2xl animate-pulse" />)}
+              {[1, 2].map((i) => <div key={i} className="h-24 bg-surface-elevated rounded-2xl animate-pulse" />)}
             </div>
           ) : !selectedDay ? (
             <div className="flex flex-col items-center justify-center py-12 text-center space-y-3">
-              <BookOpen size={32} className="text-border" />
-              <p className="text-[10px] font-black uppercase tracking-widest text-[#adb5bd]">Select a day</p>
+              <BookOpen size={32} className="text-text-muted/40" />
+              <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">Select a day</p>
             </div>
           ) : selectedDayBookings.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center space-y-3">
-              <Sparkles size={32} className="text-border" />
-              <p className="text-[10px] font-black uppercase tracking-widest text-[#adb5bd]">No sessions this day</p>
+              <Sparkles size={32} className="text-text-muted/40" />
+              <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">No sessions this day</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -158,7 +158,7 @@ export default function CalendarPage() {
                     key={booking.id}
                     whileHover={{ scale: 1.02 }}
                     onClick={() => setSelectedBooking(booking)}
-                    className="p-5 bg-[#f8f9fa] rounded-2xl border-2 border-[#f1f3f5] hover:border-primary/30 cursor-pointer space-y-3 transition-all"
+                    className="p-5 bg-p-purple/30 rounded-2xl border-2 border-border hover:border-primary/40 cursor-pointer space-y-3 transition-all"
                   >
                     <div className="flex justify-between items-center">
                       <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary">
@@ -198,7 +198,7 @@ export default function CalendarPage() {
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="w-full max-w-md bg-white rounded-[40px] shadow-[0_40px_100px_rgba(0,0,0,0.1)] border border-[#f1f3f5] overflow-hidden relative z-10"
+              className="w-full max-w-md bg-white rounded-[40px] shadow-[0_40px_100px_rgba(147,51,234,0.12)] border border-border overflow-hidden relative z-10"
             >
               <div className="h-28 bg-p-blue relative">
                 <button onClick={() => setSelectedBooking(null)} className="absolute top-5 right-5 p-2 bg-white/50 hover:bg-white rounded-full transition-all">
@@ -221,14 +221,14 @@ export default function CalendarPage() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="p-4 bg-[#f8f9fa] rounded-2xl">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-[#adb5bd] mb-1">Date</p>
+                  <div className="p-4 bg-surface-elevated rounded-2xl">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-text-muted mb-1">Date</p>
                     <p className="text-xs font-black text-text-main">
                       {new Date(selectedBooking.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </p>
                   </div>
-                  <div className="p-4 bg-[#f8f9fa] rounded-2xl">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-[#adb5bd] mb-1">Time</p>
+                  <div className="p-4 bg-surface-elevated rounded-2xl">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-text-muted mb-1">Time</p>
                     <p className="text-xs font-black text-text-main">
                       {new Date(selectedBooking.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                     </p>
@@ -250,7 +250,7 @@ export default function CalendarPage() {
                     <ChevronRight size={16} className="opacity-60 group-hover:opacity-100" />
                   </button>
                 ) : (
-                  <div className="p-4 bg-[#f8f9fa] rounded-2xl text-center text-[10px] font-black uppercase tracking-widest text-[#adb5bd]">
+                  <div className="p-4 bg-surface-elevated rounded-2xl text-center text-[10px] font-black uppercase tracking-widest text-text-muted">
                     Classroom not yet available
                   </div>
                 )}

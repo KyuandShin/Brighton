@@ -27,7 +27,7 @@ export default function SignupPage() {
     }
   }, [user, userLoading, router]);
 
-  const handleSignup = async (e: React.SubmitEvent<HTMLFormElement>) => {
+  const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setError('');
@@ -124,13 +124,13 @@ export default function SignupPage() {
         {/* Role Picker */}
         <div className="flex flex-col gap-3">
           <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted ml-1">Path Selection</label>
-          <div className="grid grid-cols-2 gap-3 p-1.5 bg-[#f8f9fa] rounded-[20px] border border-[#f1f3f5]">
+          <div className="grid grid-cols-2 gap-3 p-1.5 bg-p-purple/50 rounded-[20px] border border-border">
             <button type="button" onClick={() => setRole('STUDENT')}
-              className={`flex items-center justify-center gap-2 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${role === 'STUDENT' ? 'bg-white text-primary shadow-md' : 'text-[#adb5bd] hover:text-text-main'}`}>
+              className={`flex items-center justify-center gap-2 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${role === 'STUDENT' ? 'bg-white text-primary shadow-md' : 'text-text-muted hover:text-text-main'}`}>
               <User size={14} /> Student
             </button>
             <button type="button" onClick={() => setRole('TUTOR')}
-              className={`flex items-center justify-center gap-2 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${role === 'TUTOR' ? 'bg-white text-primary shadow-md' : 'text-[#adb5bd] hover:text-text-main'}`}>
+              className={`flex items-center justify-center gap-2 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${role === 'TUTOR' ? 'bg-white text-primary shadow-md' : 'text-text-muted hover:text-text-main'}`}>
               <GraduationCap size={14} /> Tutor
             </button>
           </div>
@@ -148,18 +148,18 @@ export default function SignupPage() {
               <div className="flex flex-col gap-2">
                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted ml-1">Full Name</label>
                 <div className="relative">
-                  <UserCircle className="absolute left-4 top-1/2 -translate-y-1/2 text-[#adb5bd]" size={16} />
+                <UserCircle className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
                   <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)}
-                    className="w-full bg-[#f8f9fa] border border-[#f1f3f5] rounded-2xl pl-12 pr-4 py-4 text-sm font-bold focus:outline-none focus:border-primary transition-all"
+                    className="w-full bg-surface-elevated border border-border rounded-2xl pl-12 pr-4 py-4 text-sm font-bold focus:outline-none focus:border-primary transition-all"
                     placeholder="Full Name" required />
                 </div>
               </div>
               <div className="flex flex-col gap-2">
                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted ml-1">Age</label>
                 <div className="relative">
-                  <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-[#adb5bd]" size={16} />
+                <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
                   <input type="number" value={age} onChange={(e) => setAge(e.target.value)}
-                    className="w-full bg-[#f8f9fa] border border-[#f1f3f5] rounded-2xl pl-12 pr-4 py-4 text-sm font-bold focus:outline-none focus:border-primary transition-all"
+                    className="w-full bg-surface-elevated border border-border rounded-2xl pl-12 pr-4 py-4 text-sm font-bold focus:outline-none focus:border-primary transition-all"
                     placeholder="Age" required min="5" max="100" />
                 </div>
               </div>
@@ -168,9 +168,9 @@ export default function SignupPage() {
             <div className="flex flex-col gap-2">
               <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted ml-1">Current School</label>
               <div className="relative">
-                <School className="absolute left-4 top-1/2 -translate-y-1/2 text-[#adb5bd]" size={16} />
+                <School className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
                 <input type="text" value={schoolName} onChange={(e) => setSchoolName(e.target.value)}
-                  className="w-full bg-[#f8f9fa] border border-[#f1f3f5] rounded-2xl pl-12 pr-4 py-4 text-sm font-bold focus:outline-none focus:border-primary transition-all"
+                  className="w-full bg-surface-elevated border border-border rounded-2xl pl-12 pr-4 py-4 text-sm font-bold focus:outline-none focus:border-primary transition-all"
                   placeholder="School Name" required />
               </div>
             </div>
@@ -180,11 +180,11 @@ export default function SignupPage() {
               <div className="relative">
                 <Sparkles className="absolute left-4 top-1/2 -translate-y-1/2 text-primary" size={16} />
                 <select value={schoolLevel} onChange={(e) => setSchoolLevel(e.target.value as any)}
-                  className="w-full bg-[#f8f9fa] border border-[#f1f3f5] rounded-2xl pl-12 pr-10 py-4 text-[10px] font-black uppercase tracking-widest text-text-main focus:outline-none focus:border-primary transition-all appearance-none cursor-pointer">
+                  className="w-full bg-surface-elevated border border-border rounded-2xl pl-12 pr-10 py-4 text-[10px] font-black uppercase tracking-widest text-text-main focus:outline-none focus:border-primary transition-all appearance-none cursor-pointer">
                   <option value="ELEMENTARY">Elementary School</option>
                   <option value="HIGH_SCHOOL">High School</option>
                 </select>
-                <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 text-[#adb5bd] rotate-90" size={14} />
+                <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted rotate-90" size={14} />
               </div>
             </div>
 
@@ -205,9 +205,9 @@ export default function SignupPage() {
         <div className="flex flex-col gap-3">
           <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted ml-1">Account Email</label>
           <div className="relative group">
-            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-[#adb5bd] group-focus-within:text-primary transition-colors" size={16} />
+            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-primary transition-colors" size={16} />
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-[#f8f9fa] border border-[#f1f3f5] rounded-2xl pl-12 pr-4 py-4 text-sm font-bold focus:outline-none focus:border-primary transition-all"
+              className="w-full bg-surface-elevated border border-border rounded-2xl pl-12 pr-4 py-4 text-sm font-bold focus:outline-none focus:border-primary transition-all"
               placeholder="student@academic.com" required />
           </div>
         </div>
@@ -215,15 +215,15 @@ export default function SignupPage() {
         <div className="flex flex-col gap-3">
           <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted ml-1">Secure Password</label>
           <div className="relative group">
-            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-[#adb5bd] group-focus-within:text-primary transition-colors" size={16} />
+            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-primary transition-colors" size={16} />
             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-[#f8f9fa] border border-[#f1f3f5] rounded-2xl pl-12 pr-4 py-4 text-sm font-bold focus:outline-none focus:border-primary transition-all"
+              className="w-full bg-surface-elevated border border-border rounded-2xl pl-12 pr-4 py-4 text-sm font-bold focus:outline-none focus:border-primary transition-all"
               placeholder="••••••••" required minLength={8} />
           </div>
         </div>
 
         <button type="submit" disabled={loading}
-          className="bg-primary hover:bg-[#5c7cfa] text-white font-black text-xs uppercase tracking-[0.2em] py-5 rounded-2xl mt-4 transition-all shadow-xl shadow-primary/20 disabled:opacity-50 flex items-center justify-center gap-2">
+          className="bg-primary hover:bg-accent-strong text-white font-black text-xs uppercase tracking-[0.2em] py-5 rounded-2xl mt-4 transition-all shadow-xl shadow-primary/20 disabled:opacity-50 flex items-center justify-center gap-2">
           {loading
             ? 'Initializing...'
             : role === 'TUTOR' ? 'Proceed to Onboarding' : 'Complete Registration'}

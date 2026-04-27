@@ -6,7 +6,3 @@ export const auth = createNeonAuth({
     secret: process.env.NEON_AUTH_COOKIE_SECRET!,
   },
 });
-
-export function getAuthHandlers() {
-  return auth.handler();
-}

@@ -68,8 +68,8 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <div className="space-y-6 animate-pulse">
-        <div className="h-40 bg-[#f8f9fa] rounded-[40px]" />
-        <div className="h-64 bg-[#f8f9fa] rounded-[40px]" />
+        <div className="h-40 bg-surface-elevated rounded-[40px]" />
+        <div className="h-64 bg-surface-elevated rounded-[40px]" />
       </div>
     );
   }
@@ -102,7 +102,7 @@ export default function ProfilePage() {
       </header>
 
       {/* Avatar + Role Card */}
-      <div className="bg-white border-2 border-[#f1f3f5] rounded-[40px] p-8 flex flex-col sm:flex-row items-center sm:items-start gap-8">
+      <div className="bg-white border-2 border-border rounded-[40px] p-8 flex flex-col sm:flex-row items-center sm:items-start gap-8">
         <div className="shrink-0 relative group">
           {profileImage ? (
             <img 
@@ -130,13 +130,13 @@ export default function ProfilePage() {
           <p className="text-text-muted font-bold text-sm">{user.email}</p>
           <div className="flex items-center gap-2 justify-center sm:justify-start flex-wrap">
             <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-              isStudent ? 'bg-p-blue text-[#1971c2]' : 'bg-p-green text-[#2b8a3e]'
+              isStudent ? 'bg-p-purple text-purple-700' : 'bg-p-mint text-teal-700'
             }`}>
               {isStudent ? <User size={11} /> : <GraduationCap size={11} />}
               {user.role}
             </span>
             {isTutor && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-[#e5dbff] text-[#7048e8]">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-p-purple text-purple-700">
                 <ShieldCheck size={11} /> Verified
               </span>
             )}
@@ -148,7 +148,7 @@ export default function ProfilePage() {
           className={`shrink-0 flex items-center gap-2 px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all ${
             editing
               ? 'bg-primary text-white shadow-lg shadow-primary/20'
-              : 'bg-[#f8f9fa] border-2 border-[#f1f3f5] text-text-muted hover:border-primary hover:text-primary'
+              : 'bg-surface-elevated border-2 border-border text-text-muted hover:border-primary hover:text-primary'
           }`}
         >
           {saving ? (
@@ -174,7 +174,7 @@ export default function ProfilePage() {
       )}
 
       {/* Info Grid */}
-      <div className="bg-white border-2 border-[#f1f3f5] rounded-[40px] p-8 space-y-6">
+      <div className="bg-white border-2 border-border rounded-[40px] p-8 space-y-6">
         <h4 className="text-sm font-black uppercase tracking-widest text-text-main flex items-center gap-2">
           <User size={16} className="text-primary" /> Personal Information
         </h4>
@@ -212,20 +212,20 @@ export default function ProfilePage() {
                 onChange={(v) => setForm({ ...form, schoolName: v })}
               />
               <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-black uppercase tracking-[0.15em] text-[#adb5bd] ml-1 flex items-center gap-2">
+                <label className="text-[10px] font-black uppercase tracking-[0.15em] text-text-muted ml-1 flex items-center gap-2">
                   <BookOpen size={12} /> Academic Level
                 </label>
                 {editing ? (
                   <select
                     value={form.schoolLevel}
                     onChange={(e) => setForm({ ...form, schoolLevel: e.target.value })}
-                    className="bg-[#f8f9fa] border-2 border-primary/30 rounded-2xl px-4 py-3 text-sm font-bold text-text-main focus:outline-none focus:border-primary transition-all"
+                    className="bg-surface-elevated border-2 border-primary/30 rounded-2xl px-4 py-3 text-sm font-bold text-text-main focus:outline-none focus:border-primary transition-all"
                   >
                     <option value="ELEMENTARY">Elementary School</option>
                     <option value="HIGH_SCHOOL">High School</option>
                   </select>
                 ) : (
-                  <div className="bg-[#f8f9fa] border-2 border-[#f1f3f5] rounded-2xl px-4 py-3 text-sm font-bold text-text-main">
+                  <div className="bg-surface-elevated border-2 border-border rounded-2xl px-4 py-3 text-sm font-bold text-text-main">
                     {form.schoolLevel === 'ELEMENTARY' ? 'Elementary School' : form.schoolLevel === 'HIGH_SCHOOL' ? 'High School' : '—'}
                   </div>
                 )}
@@ -251,7 +251,7 @@ export default function ProfilePage() {
                 onChange={(v) => setForm({ ...form, pricingPerHour: v })}
               />
               <div className="sm:col-span-2 flex flex-col gap-2">
-                <label className="text-[10px] font-black uppercase tracking-[0.15em] text-[#adb5bd] ml-1 flex items-center gap-2">
+                <label className="text-[10px] font-black uppercase tracking-[0.15em] text-text-muted ml-1 flex items-center gap-2">
                   <FileText size={12} /> Bio
                 </label>
                 {editing ? (
@@ -259,11 +259,11 @@ export default function ProfilePage() {
                     value={form.bio}
                     onChange={(e) => setForm({ ...form, bio: e.target.value })}
                     rows={4}
-                    className="bg-[#f8f9fa] border-2 border-primary/30 rounded-2xl px-4 py-3 text-sm font-bold text-text-main focus:outline-none focus:border-primary transition-all resize-none"
+                    className="bg-surface-elevated border-2 border-primary/30 rounded-2xl px-4 py-3 text-sm font-bold text-text-main focus:outline-none focus:border-primary transition-all resize-none"
                   />
                 ) : (
-                  <div className="bg-[#f8f9fa] border-2 border-[#f1f3f5] rounded-2xl px-4 py-3 text-sm font-bold text-text-muted leading-relaxed min-h-20">
-                    {form.bio || <span className="text-[#adb5bd]">No bio yet</span>}
+                  <div className="bg-surface-elevated border-2 border-border rounded-2xl px-4 py-3 text-sm font-bold text-text-muted leading-relaxed min-h-20">
+                    {form.bio || <span className="text-text-muted/50">No bio yet</span>}
                   </div>
                 )}
               </div>
@@ -272,17 +272,17 @@ export default function ProfilePage() {
         </div>
 
         {editing && (
-          <div className="flex gap-3 pt-2 border-t border-[#f1f3f5]">
+          <div className="flex gap-3 pt-2 border-t border-border">
             <button
               onClick={handleSave}
               disabled={saving}
-              className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-[#5c7cfa] transition-all shadow-lg shadow-primary/20 disabled:opacity-50"
+              className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-accent-strong transition-all shadow-lg shadow-primary/20 disabled:opacity-50"
             >
               <Check size={14} /> {saving ? 'Saving...' : 'Save Changes'}
             </button>
             <button
               onClick={() => setEditing(false)}
-              className="flex items-center gap-2 px-6 py-3 bg-[#f8f9fa] border-2 border-[#f1f3f5] text-text-muted rounded-2xl font-black text-[10px] uppercase tracking-widest hover:border-red-200 hover:text-red-400 transition-all"
+              className="flex items-center gap-2 px-6 py-3 bg-surface-elevated border-2 border-border text-text-muted rounded-2xl font-black text-[10px] uppercase tracking-widest hover:border-red-200 hover:text-red-400 transition-all"
             >
               <X size={14} /> Cancel
             </button>
@@ -291,19 +291,19 @@ export default function ProfilePage() {
       </div>
 
       {/* Account Info */}
-      <div className="bg-white border-2 border-[#f1f3f5] rounded-[40px] p-8 space-y-4">
+      <div className="bg-white border-2 border-border rounded-[40px] p-8 space-y-4">
         <h4 className="text-sm font-black uppercase tracking-widest text-text-main flex items-center gap-2">
           <ShieldCheck size={16} className="text-primary" /> Account
         </h4>
         <div className="grid grid-cols-2 gap-4">
-          <div className="p-4 bg-[#f8f9fa] rounded-2xl space-y-1">
-            <p className="text-[9px] font-black uppercase tracking-widest text-[#adb5bd]">Member Since</p>
+          <div className="p-4 bg-surface-elevated rounded-2xl space-y-1">
+            <p className="text-[9px] font-black uppercase tracking-widest text-text-muted">Member Since</p>
             <p className="text-sm font-black text-text-main">
               {new Date(user.createdAt ?? Date.now()).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
             </p>
           </div>
-          <div className="p-4 bg-[#f8f9fa] rounded-2xl space-y-1">
-            <p className="text-[9px] font-black uppercase tracking-widest text-[#adb5bd]">Account Status</p>
+          <div className="p-4 bg-surface-elevated rounded-2xl space-y-1">
+            <p className="text-[9px] font-black uppercase tracking-widest text-text-muted">Account Status</p>
             <p className="text-sm font-black text-[#27ae60]">Active</p>
           </div>
         </div>
@@ -318,7 +318,7 @@ function Field({ label, value, icon: Icon, editing, onChange, type = 'text' }: {
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <label className="text-[10px] font-black uppercase tracking-[0.15em] text-[#adb5bd] ml-1 flex items-center gap-2">
+      <label className="text-[10px] font-black uppercase tracking-[0.15em] text-text-muted ml-1 flex items-center gap-2">
         <Icon size={12} /> {label}
       </label>
       {editing && onChange ? (
@@ -326,11 +326,11 @@ function Field({ label, value, icon: Icon, editing, onChange, type = 'text' }: {
           type={type}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="bg-[#f8f9fa] border-2 border-primary/30 rounded-2xl px-4 py-3 text-sm font-bold text-text-main focus:outline-none focus:border-primary transition-all"
+          className="bg-surface-elevated border-2 border-primary/30 rounded-2xl px-4 py-3 text-sm font-bold text-text-main focus:outline-none focus:border-primary transition-all"
         />
       ) : (
-        <div className="bg-[#f8f9fa] border-2 border-[#f1f3f5] rounded-2xl px-4 py-3 text-sm font-bold text-text-main">
-          {value || <span className="text-[#adb5bd] font-normal">—</span>}
+        <div className="bg-surface-elevated border-2 border-border rounded-2xl px-4 py-3 text-sm font-bold text-text-main">
+          {value || <span className="text-text-muted/50 font-normal">—</span>}
         </div>
       )}
     </div>

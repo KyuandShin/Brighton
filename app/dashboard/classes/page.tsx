@@ -17,10 +17,10 @@ interface Booking {
 }
 
 const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string; icon: any }> = {
-  CONFIRMED: { label: 'Confirmed', bg: 'bg-[#d3f9d8]', text: 'text-[#2b8a3e]', icon: CheckCircle },
-  PENDING:   { label: 'Pending',   bg: 'bg-[#fff3bf]', text: 'text-[#f08c00]', icon: AlertCircle },
-  COMPLETED: { label: 'Completed', bg: 'bg-[#e5dbff]', text: 'text-[#7048e8]', icon: CheckCircle },
-  CANCELLED: { label: 'Cancelled', bg: 'bg-[#ffe3e3]', text: 'text-[#e03131]', icon: XCircle },
+  CONFIRMED: { label: 'Confirmed', bg: 'bg-p-mint',   text: 'text-teal-700',   icon: CheckCircle },
+  PENDING:   { label: 'Pending',   bg: 'bg-p-yellow', text: 'text-amber-700',  icon: AlertCircle },
+  COMPLETED: { label: 'Completed', bg: 'bg-p-purple', text: 'text-purple-700', icon: CheckCircle },
+  CANCELLED: { label: 'Cancelled', bg: 'bg-p-rose',   text: 'text-rose-700',   icon: XCircle },
 };
 
 export default function ClassesPage() {
@@ -57,13 +57,13 @@ export default function ClassesPage() {
         </p>
       </header>
 
-      <div className="flex gap-2 p-1.5 bg-[#f8f9fa] rounded-2xl w-fit border border-[#f1f3f5]">
+      <div className="flex gap-2 p-1.5 bg-p-purple/50 rounded-2xl w-fit border border-border">
         {(['ALL', 'UPCOMING', 'PAST'] as const).map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
             className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-              filter === f ? 'bg-white text-primary shadow-md' : 'text-[#adb5bd] hover:text-text-main'
+              filter === f ? 'bg-white text-primary shadow-md' : 'text-text-muted hover:text-text-main'
             }`}
           >
             {f}
@@ -73,12 +73,12 @@ export default function ClassesPage() {
 
       {loading ? (
         <div className="space-y-4">
-          {[1, 2, 3].map((i) => <div key={i} className="h-28 bg-[#f8f9fa] rounded-[28px] animate-pulse" />)}
+          {[1, 2, 3].map((i) => <div key={i} className="h-28 bg-surface-elevated rounded-[28px] animate-pulse" />)}
         </div>
       ) : filtered.length === 0 ? (
         <div className="bg-white border-2 border-dashed border-border rounded-[40px] p-16 text-center space-y-4">
-          <BookOpen size={40} className="mx-auto text-[#adb5bd]" />
-          <p className="text-sm font-black uppercase tracking-widest text-[#adb5bd]">
+          <BookOpen size={40} className="mx-auto text-text-muted" />
+          <p className="text-sm font-black uppercase tracking-widest text-text-muted">
             No {filter.toLowerCase()} sessions
           </p>
           {filter !== 'PAST' && (
@@ -107,10 +107,10 @@ export default function ClassesPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
-                className={`bg-white border-2 border-[#f1f3f5] rounded-[28px] p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 hover:border-primary/20 transition-all ${isPast ? 'opacity-60' : ''}`}
+                className={`bg-white border-2 border-border rounded-[28px] p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 hover:border-primary/30 transition-all ${isPast ? 'opacity-60' : ''}`}
               >
                 <div className="flex items-center gap-5">
-                  <div className="w-14 h-14 bg-[#f8f9fa] rounded-2xl flex items-center justify-center shrink-0">
+                  <div className="w-14 h-14 bg-p-purple rounded-2xl flex items-center justify-center shrink-0">
                     <Video size={22} className="text-primary" />
                   </div>
                   <div className="space-y-1">
@@ -137,7 +137,7 @@ export default function ClassesPage() {
                   {booking.meetLink && !isPast && (
                     <button
                       onClick={() => router.push(booking.meetLink!)}
-                      className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-[#5c7cfa] transition-all shadow-md shadow-primary/20"
+                      className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-accent-strong transition-all shadow-md shadow-primary/20"
                     >
                       <Video size={12} /> Enter Classroom
                     </button>

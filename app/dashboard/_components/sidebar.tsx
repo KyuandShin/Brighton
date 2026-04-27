@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Home, BookOpen, Users, Calendar, Settings, LogOut, Shield, UserCheck } from 'lucide-react';
 import { useCurrentUser } from '@/lib/hooks/useCurrentUser';
+import { authClient } from '@/lib/auth/client';
 
 const navItems = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
@@ -87,7 +88,13 @@ export function Sidebar() {
       </nav>
 
       <div className="p-4 border-t border-[#1e2d3d]">
-        <button className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-sm font-bold text-[#9fadbd] hover:bg-red-500/10 hover:text-red-500 transition-all">
+        <button 
+          onClick={async () => {
+            await authClient.signOut();
+            window.location.href = '/';
+          }}
+          className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-sm font-bold text-[#9fadbd] hover:bg-red-500/10 hover:text-red-500 transition-all"
+        >
           <LogOut size={18} />
           <span>Logout</span>
         </button>

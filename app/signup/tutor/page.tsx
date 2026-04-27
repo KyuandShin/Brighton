@@ -152,9 +152,9 @@ function TutorSignupContent() {
   if (submitted) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-8">
-        <div className="max-w-md w-full bg-white rounded-[40px] border border-[#f1f3f5] shadow-xl p-12 text-center space-y-6">
-          <div className="w-20 h-20 bg-p-green rounded-3xl flex items-center justify-center mx-auto">
-            <Check size={40} className="text-[#27ae60]" strokeWidth={3} />
+        <div className="max-w-md w-full bg-white rounded-[40px] border border-border shadow-[0_30px_80px_rgba(147,51,234,0.1)] p-12 text-center space-y-6">
+          <div className="w-20 h-20 bg-p-mint rounded-3xl flex items-center justify-center mx-auto">
+            <Check size={40} className="text-teal-700" strokeWidth={3} />
           </div>
           <h2 className="text-3xl font-black text-text-main tracking-tight">Application Submitted!</h2>
           <p className="text-sm font-bold text-text-muted uppercase tracking-wider leading-relaxed">
@@ -166,7 +166,7 @@ function TutorSignupContent() {
               You cannot log in until your account is verified by an administrator.
             </p>
           </div>
-          <Link href="/login" className="block w-full py-4 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20 hover:bg-[#5c7cfa] transition-all">
+          <Link href="/login" className="block w-full py-4 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20 hover:bg-accent-strong transition-all">
             Back to Login
           </Link>
         </div>
@@ -183,7 +183,7 @@ function TutorSignupContent() {
       <div className="w-full max-w-4xl relative z-10">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-4 mb-12 justify-center">
-          <div className="w-12 h-12 rounded-2xl bg-white border border-[#f1f3f5] shadow-sm flex items-center justify-center">
+          <div className="w-12 h-12 rounded-2xl bg-white border border-border shadow-sm flex items-center justify-center">
             <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
           </div>
           <span className="text-sm font-black tracking-[0.3em] uppercase text-text-main">Brighton</span>
@@ -191,7 +191,7 @@ function TutorSignupContent() {
 
         {/* Progress bar */}
         <div className="flex justify-between mb-16 relative px-4">
-          <div className="absolute top-5 left-0 w-full h-1 bg-[#f1f3f5] z-0 rounded-full" />
+          <div className="absolute top-5 left-0 w-full h-1 bg-border z-0 rounded-full" />
           <div
             className="absolute top-5 left-0 h-1 bg-primary z-0 rounded-full transition-all duration-700"
             style={{ width: `${(currentStep / (STEPS.length - 1)) * 100}%` }}
@@ -201,11 +201,11 @@ function TutorSignupContent() {
               <div className={`w-10 h-10 rounded-2xl flex items-center justify-center border-4 transition-all duration-500 shadow-sm ${
                 idx < currentStep  ? 'bg-primary border-primary text-white' :
                 idx === currentStep ? 'bg-white border-primary text-primary' :
-                                      'bg-white border-[#f1f3f5] text-[#adb5bd]'
+                                      'bg-white border-border text-text-muted'
               }`}>
                 {idx < currentStep ? <Check size={18} strokeWidth={4} /> : <span className="text-xs font-black">{idx + 1}</span>}
               </div>
-              <span className={`text-[9px] font-black uppercase tracking-widest hidden lg:block ${idx <= currentStep ? 'text-primary' : 'text-[#adb5bd]'}`}>
+              <span className={`text-[9px] font-black uppercase tracking-widest hidden lg:block ${idx <= currentStep ? 'text-primary' : 'text-text-muted'}`}>
                 {step}
               </span>
             </div>
@@ -213,7 +213,7 @@ function TutorSignupContent() {
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-[40px] shadow-[0_30px_100px_rgba(0,0,0,0.04)] p-12 md:p-16 border border-[#f1f3f5]">
+        <div className="bg-white rounded-[40px] shadow-[0_30px_100px_rgba(147,51,234,0.07)] p-12 md:p-16 border border-border">
           <div className="mb-12 space-y-2">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-p-green text-[#27ae60] rounded-full text-[8px] font-black uppercase tracking-widest">
               <Sparkles size={10} /> Step {currentStep + 1} of {STEPS.length}
@@ -243,11 +243,11 @@ function TutorSignupContent() {
           </div>
 
           {/* Navigation */}
-          <div className="flex justify-between mt-16 pt-10 border-t border-[#f1f3f5]">
+          <div className="flex justify-between mt-16 pt-10 border-t border-border">
             <button
               onClick={prevStep}
               disabled={currentStep === 0}
-              className="flex items-center gap-3 px-8 py-4 rounded-xl font-bold text-xs uppercase tracking-widest text-text-muted hover:bg-[#f8f9fa] transition-all disabled:opacity-0 disabled:pointer-events-none"
+              className="flex items-center gap-3 px-8 py-4 rounded-xl font-bold text-xs uppercase tracking-widest text-text-muted hover:bg-surface-elevated transition-all disabled:opacity-0 disabled:pointer-events-none"
             >
               <ChevronLeft size={16} /> Back
             </button>
@@ -256,7 +256,7 @@ function TutorSignupContent() {
               <button
                 onClick={nextStep}
                 disabled={loading}
-                className="flex items-center gap-3 px-10 py-4 bg-primary text-white font-black rounded-xl hover:bg-[#5c7cfa] transition-all shadow-xl shadow-primary/20 text-xs uppercase tracking-widest disabled:opacity-50"
+                className="flex items-center gap-3 px-10 py-4 bg-primary text-white font-black rounded-xl hover:bg-accent-strong transition-all shadow-xl shadow-primary/20 text-xs uppercase tracking-widest disabled:opacity-50"
               >
                 {loading ? <Loader2 className="animate-spin" size={16} /> : 'Continue'} 
                 {!loading && <ChevronRight size={16} />}
@@ -746,7 +746,7 @@ function Field({ label, value, onChange, placeholder, type = 'text', icon: Icon 
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className={`w-full bg-[#f8f9fa] border border-[#f1f3f5] rounded-2xl ${Icon ? 'pl-14' : 'px-6'} py-5 text-sm font-bold text-text-main focus:outline-none focus:border-primary transition-all placeholder:text-[#adb5bd]/40`}
+          className={`w-full bg-surface-elevated border border-border rounded-2xl ${Icon ? 'pl-14' : 'px-6'} py-5 text-sm font-bold text-text-main focus:outline-none focus:border-primary transition-all placeholder:text-text-muted/40`}
         />
       </div>
     </div>
