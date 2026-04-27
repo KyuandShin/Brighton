@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { authClient } from '@/lib/auth/client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Lock, ChevronRight, AlertCircle, Eye, EyeOff } from 'lucide-react';
 
-export default function ResetPasswordPage() {
+function ResetPasswordContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
@@ -109,5 +109,20 @@ export default function ResetPasswordPage() {
         </form>
       )}
     </div>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex flex-col gap-6">
+        <div className="text-center space-y-1">
+          <h2 className="text-3xl font-black tracking-tight text-text-main">New Password</h2>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Loading...</p>
+        </div>
+      </div>
+    }>
+      <ResetPasswordContent />
+    </Suspense>
   );
 }
