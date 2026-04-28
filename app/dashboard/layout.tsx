@@ -69,8 +69,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   };
 
   const handleLogout = async () => {
+    // Fully clear all session data
     await authClient.signOut();
-    window.location.href = '/';
+    
+    // Clear all client side storage
+    localStorage.clear();
+    sessionStorage.clear();
+    
+    // Force full page reload with cache busting
+    window.location.replace('/login?logout=' + Date.now());
   };
 
   useEffect(() => {
@@ -109,10 +116,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex items-center gap-3">
-          <span className="text-2xl" style={{ animation: 'sparkle 1.2s ease-in-out infinite' }}>✦</span>
-          <div className="animate-pulse text-primary text-sm font-bold uppercase tracking-widest">Loading...</div>
-          <span className="text-2xl" style={{ animation: 'sparkle 1.2s ease-in-out infinite 0.4s', color: '#f472b6' }}>✦</span>
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative w-10 h-10">
+            <div className="absolute inset-0 rounded-full border-2 border-p-purple" />
+            <div className="absolute inset-0 rounded-full border-2 border-t-primary border-r-transparent border-b-transparent border-l-transparent animate-spin" />
+          </div>
+          <p className="text-primary text-xs font-black uppercase tracking-widest">Loading...</p>
         </div>
       </div>
     );
@@ -294,7 +303,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </nav>
 
       {/* ── Page Content ─────────────────────────────────────────────── */}
-      <main className="max-w-7xl mx-auto px-6 py-10">{children}</main>
+      <main className="max-w-7xl mx-auto px-6 py-10 pb-24 md:pb-10">{children}</main>
+
+      {/* ── Mobile Bottom Navigation ──────────────────────────────────── */}
+      <nav className="fixed bottom-0 left-0 right-0 h-16 bg-white/95 backdrop-blur-xl border-t border-p-purple z-50 md:hidden flex items-center justify-around px-2">
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = pathname === item.href;
+          return (
+            <Link
+              key={item.name}
+              href={item.href}
+              className={`flex flex-col items-center justify-center h-full w-full transition-all ${
+                isActive ? 'text-primary' : 'text-text-muted'
+              }`}
+            >
+              <Icon size={20} strokeWidth={2.5} />
+              <span className="text-[9px] font-black uppercase tracking-wider mt-1">{item.name}</span>
+            </Link>
+          );
+        })}
+      </nav>
 
       {/* ── Anime Onboarding tutorial ─────────────────────────────────── */}
       {user?.id && <AnimeOnboarding userId={user.id} />}

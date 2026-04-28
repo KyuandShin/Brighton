@@ -46,7 +46,12 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    return NextResponse.json(bookings);
+    return NextResponse.json(bookings, {
+      headers: {
+        'Cache-Control': 'no-store, max-age=0',
+        'Vary': 'Cookie'
+      }
+    });
   } catch (err: any) {
     console.error('[GET /api/bookings]', err);
     return NextResponse.json({ error: err.message ?? 'Server error' }, { status: 500 });

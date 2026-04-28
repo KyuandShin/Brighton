@@ -137,11 +137,7 @@ export default function TutorProfilePage() {
       }
 
       setShowToast(true);
-      // Redirect to classes page after a short delay so the user sees their new booking
-      setTimeout(() => {
-        setShowToast(false);
-        router.push('/dashboard/classes');
-      }, 2000);
+      setTimeout(() => setShowToast(false), 3000);
     } catch (err: any) {
       setBookingError(err.message ?? 'Unexpected error.');
     } finally {
@@ -366,7 +362,11 @@ export default function TutorProfilePage() {
                 </button>
 
                 <button
-                  onClick={() => { setConfirmedBookingId(''); setSelectedDate(''); setSelectedTime(''); }}
+                  onClick={() => { 
+                    setConfirmedBookingId(''); 
+                    setSelectedDate(''); 
+                    setSelectedTime('');
+                  }}
                   className="w-full py-3 text-[10px] font-black uppercase tracking-widest text-[#adb5bd] hover:text-text-main transition-colors"
                 >
                   Book Another Session

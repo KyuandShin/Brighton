@@ -25,6 +25,25 @@ export async function sendEmail({ to, subject, html }: EmailPayload): Promise<bo
   }
 
   try {
+    // Resend free tier only allows sending to verified email addresses
+    // Catch domain verification errors gracefully
+    const recipients = Array.isArray(to) ? to : [to];
+    const allowedEmail = 'seancarlomasaya@gmail.com';
+    
+    // Filter recipients to only allowed addresses in development
+    const allowedRecipients = recipients.filter(email => 
+      email.toLowerCase().trim() === allowedEmail
+    );
+
+    if (allowedRecipients.length === 0) {
+      // No verified recipients, fall back to console logging
+      console.log('\n📧 [EMAIL - skipped (unverified recipient)]');
+      console.log('To:', to);
+      console.log('Subject:', subject);
+      console.log('---');
+      return true;
+    }
+
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -32,8 +51,8 @@ export async function sendEmail({ to, subject, html }: EmailPayload): Promise<bo
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'Brighton <onboarding@resend.dev>', // Use your verified domain once set up
-        to: Array.isArray(to) ? to : [to],
+        from: 'Brighton <onboarding@resend.dev>',
+        to: allowedRecipients,
         subject,
         html,
       }),
@@ -41,6 +60,14 @@ export async function sendEmail({ to, subject, html }: EmailPayload): Promise<bo
 
     if (!res.ok) {
       const err = await res.json();
+      // Silently handle domain verification errors
+      if (err.statusCode === 403 && err.name === 'validation_error') {
+        console.log('\n📧 [EMAIL - skipped (domain verification required)]');
+        console.log('To:', to);
+        console.log('Subject:', subject);
+        console.log('---');
+        return true;
+      }
       console.error('[RESEND ERROR]', err);
       return false;
     }

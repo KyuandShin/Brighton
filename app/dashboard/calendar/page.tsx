@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronLeft, ChevronRight, Video, User, X,
@@ -24,6 +24,7 @@ const MONTHS = ['January','February','March','April','May','June','July','August
 export default function CalendarPage() {
   const { user } = useCurrentUser();
   const router = useRouter();
+  const pathname = usePathname();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [today] = useState(new Date());
@@ -32,12 +33,19 @@ export default function CalendarPage() {
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
 
   useEffect(() => {
-    fetch('/api/bookings')
+    fetch('/api/bookings', { 
+      credentials: 'include',
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    })
       .then((r) => r.json())
       .then((data) => { if (Array.isArray(data)) setBookings(data); })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, []);
+  }, [pathname]);
 
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();

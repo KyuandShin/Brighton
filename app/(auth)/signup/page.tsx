@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { User, GraduationCap, ChevronRight, Mail, Lock, Sparkles, UserCircle, School, Calendar } from 'lucide-react';
+import { User, GraduationCap, ChevronRight, Mail, Lock, Sparkles, UserCircle, School, Calendar, Upload, X } from 'lucide-react';
 import { authClient } from '@/lib/auth/client';
 import { useCurrentUser } from '@/lib/hooks/useCurrentUser';
+import { uploadToCloudinary } from '@/lib/cloudinary';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -20,12 +21,31 @@ export default function SignupPage() {
   const [parentEmail, setParentEmail] = useState('');
   const [loading, setLoading]         = useState(false);
   const [error, setError]             = useState('');
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!userLoading && user) {
       router.push('/dashboard');
     }
   }, [user, userLoading, router]);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploadingImage(true);
+      setError('');
+      const url = await uploadToCloudinary(file);
+      setProfileImage(url);
+    } catch (err: any) {
+      setError(err.message || 'Failed to upload image');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -82,6 +102,7 @@ export default function SignupPage() {
           age,
           parentEmail: parsedAge < 18 ? parentEmail : null,
           schoolLevel,
+          image: profileImage,
         }),
       });
 
@@ -136,9 +157,45 @@ export default function SignupPage() {
           </div>
         )}
 
-        {role === 'STUDENT' && (
-          <div className="flex flex-col gap-5">
-            <div className="grid grid-cols-2 gap-4">
+         {role === 'STUDENT' && (
+           <div className="flex flex-col gap-5">
+             {/* Profile Picture Upload */}
+             <div className="flex flex-col gap-3">
+               <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted ml-1">Profile Picture</label>
+               <div 
+                 onClick={() => fileInputRef.current?.click()}
+                 className="relative cursor-pointer group bg-surface-elevated border-2 border-dashed border-border rounded-2xl p-6 flex flex-col items-center justify-center gap-3 hover:border-primary/50 transition-all"
+               >
+                 {profileImage ? (
+                   <>
+                     <img src={profileImage} alt="Profile" className="w-20 h-20 rounded-full object-cover border-2 border-primary" />
+                     <button 
+                       onClick={(e) => { e.stopPropagation(); setProfileImage(null); }}
+                       className="absolute top-2 right-2 p-1.5 bg-rose-500 rounded-full text-white hover:bg-rose-600 transition-all"
+                     >
+                       <X size={14} />
+                     </button>
+                     <span className="text-[10px] font-black uppercase tracking-wider text-text-muted">Click to change</span>
+                   </>
+                 ) : (
+                   <>
+                     <div className="w-20 h-20 rounded-full bg-p-purple flex items-center justify-center">
+                       <Upload size={24} className="text-primary" />
+                     </div>
+                     <span className="text-[10px] font-black uppercase tracking-wider text-text-muted">Click to upload profile picture</span>
+                   </>
+                 )}
+               </div>
+               <input 
+                 ref={fileInputRef} 
+                 type="file" 
+                 accept="image/*" 
+                 onChange={handleImageUpload} 
+                 className="hidden" 
+               />
+             </div>
+
+             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-2">
                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted ml-1">Full Name</label>
                 <div className="relative">

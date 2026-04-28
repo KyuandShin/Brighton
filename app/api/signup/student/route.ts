@@ -5,7 +5,7 @@ import { auth } from '@/lib/auth/server';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { email, password, fullName, schoolName, age, parentEmail, schoolLevel } = body;
+    const { email, password, fullName, schoolName, age, parentEmail, schoolLevel, image } = body;
 
     if (!email || !password || !fullName || !age || !schoolLevel) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -59,6 +59,7 @@ export async function POST(req: NextRequest) {
       update: {
         name: fullName,
         role: 'STUDENT',
+        image: image ?? null,
         studentProfile: {
           upsert: {
             create: {
@@ -82,6 +83,7 @@ export async function POST(req: NextRequest) {
         name: fullName,
         role: 'STUDENT',
         isVerified: true,
+        image: image ?? null,
         studentProfile: {
           create: {
             schoolLevel: schoolLevel as 'ELEMENTARY' | 'HIGH_SCHOOL',

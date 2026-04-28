@@ -37,29 +37,40 @@ export default function LoginPage() {
   }, []);
 
   useEffect(() => {
-    if (!userLoading && user) {
-        window.location.href = '/dashboard';
-    }
-    // Handle social auth callback return
+    // Handle social auth callback return FIRST before anything else
     if (window.location.search.includes('auth=complete')) {
       afterSignIn();
+      return;
     }
+
+    // DO NOT auto-redirect existing users on login page
+    // Users expect to see login form even if already logged in
   }, [user, userLoading]);
 
   // ── helpers ──────────────────────────────────────────────────────────
   const afterSignIn = async () => {
     try {
+        // Clear any existing error state first
+        setError('');
+        setLoading(true);
+        
         const meRes  = await fetch('/api/me', { credentials: 'include' });
         const meData = await meRes.json();
         if (meRes.status === 403 && meData.error === 'TUTOR_PENDING') {
           setError('Your tutor account is pending verification. You will be notified once approved.');
           await authClient.signOut();
+          setLoading(false);
           return;
         }
-        if (!meRes.ok) { setError(meData.error || 'Login failed. Please try again.'); return; }
+        if (!meRes.ok) { 
+          setError(meData.error || 'Login failed. Please try again.');
+          setLoading(false);
+          return;
+        }
         window.location.href = '/dashboard';
     } catch (err) {
         setError('Login successful, but profile could not be loaded. Please refresh.');
+        setLoading(false);
     }
   };
 
