@@ -91,15 +91,9 @@ export default function SignupPage() {
         return;
       }
 
-      // Auto sign-in after successful registration
-      const { error: signInErr } = await authClient.signIn.email({ email, password });
-      if (signInErr) {
-        // Account created but auto-login failed — send to login page
-        window.location.href = '/login';
-        return;
-      }
-
-      window.location.href = '/dashboard';
+      // Account created successfully - redirect to login page
+      // Avoid immediate auto-signin which causes 403 errors
+      window.location.href = '/login?registered=true';
     } catch {
       setError('An unexpected error occurred');
     } finally {

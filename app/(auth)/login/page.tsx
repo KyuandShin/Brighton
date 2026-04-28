@@ -49,7 +49,7 @@ export default function LoginPage() {
   // ── helpers ──────────────────────────────────────────────────────────
   const afterSignIn = async () => {
     try {
-        const meRes  = await fetch('/api/me');
+        const meRes  = await fetch('/api/me', { credentials: 'include' });
         const meData = await meRes.json();
         if (meRes.status === 403 && meData.error === 'TUTOR_PENDING') {
           setError('Your tutor account is pending verification. You will be notified once approved.');

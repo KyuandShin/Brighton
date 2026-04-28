@@ -22,6 +22,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    let authUserId: string | null = null;
+    
     // 1. Register with Neon Auth
     const { data: authData, error: authError } = await auth.signUp.email({
       email,
@@ -32,12 +34,21 @@ export async function POST(req: NextRequest) {
     if (authError) {
       const msg = authError.message || '';
       if (msg.toLowerCase().includes('already') || msg.toLowerCase().includes('exists')) {
-        return NextResponse.json({ error: 'An account with this email already exists. Please log in instead.' }, { status: 400 });
+        // Attempt to continue registration for existing auth user
+        authUserId = (authError as any)?.userId || (authError as any)?.user?.id || (authError as any)?.data?.id;
+        
+        if (authUserId) {
+          // Proceed to create database profile for existing auth user
+          console.log('[SIGNUP] Auth user already exists, creating database profile:', authUserId);
+        } else {
+          return NextResponse.json({ error: 'An account with this email already exists. Please log in instead.' }, { status: 400 });
+        }
+      } else {
+        return NextResponse.json({ error: msg || 'Registration failed.' }, { status: 400 });
       }
-      return NextResponse.json({ error: msg || 'Registration failed.' }, { status: 400 });
+    } else {
+      authUserId = authData?.user?.id ?? (authData as any)?.id;
     }
-
-    const authUserId: string = authData?.user?.id ?? (authData as any)?.id;
     if (!authUserId) {
       return NextResponse.json({ error: 'Could not retrieve auth user ID' }, { status: 500 });
     }
@@ -83,6 +94,22 @@ export async function POST(req: NextRequest) {
       include: { studentProfile: true },
     });
 
+    // Auto sign-in after successful registration
+    const signInResult = await auth.signIn.email({
+      email,
+      password,
+    });
+
+    if (signInResult.error) {
+      console.warn('[SIGNUP] Registration succeeded but auto sign-in failed', signInResult.error);
+      // Still return success but tell frontend to manually login
+      return NextResponse.json({ 
+        success: true, 
+        requiresManualLogin: true 
+      });
+    }
+
+    // Neon Auth automatically sets session cookies
     return NextResponse.json({ success: true });
   } catch (err: any) {
     console.error('[STUDENT SIGNUP]', err);

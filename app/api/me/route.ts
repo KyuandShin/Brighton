@@ -9,12 +9,8 @@ import { prisma } from '@/lib/prisma';
 export async function GET(req: NextRequest) {
   try {
     // Authenticate and retrieve session data using Neon Auth
-    // CRITICAL FIX: Pass request headers so auth can find the session token
-    const { data: session, error } = await auth.getSession({
-      fetchOptions: {
-        headers: req.headers
-      }
-    });
+    // Neon Auth automatically reads session cookies from Next.js request context
+    const { data: session, error } = await auth.getSession();
 
     if (error || !session?.user?.id) {
       // Disable auto-retry for this endpoint by returning proper cache headers

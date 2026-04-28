@@ -42,7 +42,7 @@ export function useCurrentUser(): UseCurrentUserResult {
   useEffect(() => {
     let cancelled = false;
 
-    fetch('/api/me')
+    fetch('/api/me', { cache: 'no-store', credentials: 'include' })
       .then(async (res) => {
         const data = await res.json();
         if (cancelled) return;
@@ -52,10 +52,10 @@ export function useCurrentUser(): UseCurrentUserResult {
           } else if (res.status === 401) {
             // User is not logged in, just set user to null
             setUser(null);
+            setError(null);
           } else {
             setError(data?.error ?? 'Failed to load user');
           }
-          setUser(null);
         } else {
           setUser(data);
         }
