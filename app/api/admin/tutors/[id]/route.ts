@@ -25,22 +25,36 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { verificationStatus } = body;
+    const { verificationStatus, headline, bio, pricingPerHour, subjects } = body;
 
-    if (!['APPROVED', 'REJECTED'].includes(verificationStatus)) {
-      return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
+    const updateData: any = {};
+
+    // Handle verification status updates
+    if (verificationStatus) {
+      if (!['APPROVED', 'REJECTED'].includes(verificationStatus)) {
+        return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
+      }
+      updateData.verificationStatus = verificationStatus;
     }
+
+    // Handle tutor profile field updates
+    if (headline !== undefined) updateData.headline = headline;
+    if (bio !== undefined) updateData.bio = bio;
+    if (pricingPerHour !== undefined) updateData.pricingPerHour = pricingPerHour;
 
     const updatedTutor = await prisma.tutor.update({
       where: { id: params.id },
-      data: { verificationStatus },
+      data: updateData,
       include: { user: true }
     });
 
     // Sync User verification status with tutor status
     await prisma.user.update({
       where: { id: updatedTutor.userId },
-      data: { isVerified: verificationStatus === 'APPROVED' }
+      data: { 
+        isVerified: verificationStatus === 'APPROVED',
+        role: verificationStatus === 'APPROVED' ? 'TUTOR' : 'STUDENT'
+      }
     });
 
     // Send approval email

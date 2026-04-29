@@ -218,9 +218,12 @@ export default function AdminTutorsPage() {
                     <Eye size={16} />
                   </Link>
 
-                  <button className="p-2.5 bg-p-blue text-blue-600 rounded-xl hover:bg-blue-500 hover:text-white transition-all">
+                  <Link
+                    href={`/dashboard/tutors/${tutor.id}?edit=true`}
+                    className="p-2.5 bg-p-blue text-blue-600 rounded-xl hover:bg-blue-500 hover:text-white transition-all"
+                  >
                     <Edit size={16} />
-                  </button>
+                  </Link>
 
                   <button
                     onClick={() => deleteTutor(tutor.id)}

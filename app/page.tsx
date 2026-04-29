@@ -78,7 +78,7 @@ export default function LandingPage() {
         >
           <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-p-purple border border-border rounded-full text-[9px] font-black uppercase tracking-[0.2em] text-primary">
             <Zap size={10} className="text-amber-400" fill="currentColor" />
-            Intelligent Academic Matching
+            Find the right tutor for you
           </div>
 
           <div className="space-y-5">
@@ -87,7 +87,7 @@ export default function LandingPage() {
               <span className="gradient-text">to master?</span>
             </h2>
             <p className="text-sm font-bold text-text-muted uppercase tracking-widest">
-              AI-Driven Tutoring for Elementary &amp; High School
+              Tutoring Booking System
             </p>
           </div>
 

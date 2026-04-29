@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Users, Edit, Trash2, Eye, Search } from 'lucide-react';
+import Link from 'next/link';
 import Image from 'next/image';
 
 interface StudentAdmin {
@@ -24,6 +25,7 @@ export default function AdminStudentsPage() {
   const [students, setStudents] = useState<StudentAdmin[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/admin/students')
@@ -32,6 +34,21 @@ export default function AdminStudentsPage() {
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
+
+  const deleteStudent = async (studentId: string) => {
+    if (!confirm('Are you sure you want to delete this student? This action cannot be undone.')) return;
+    setDeletingId(studentId);
+    try {
+      const res = await fetch(`/api/admin/students/${studentId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Delete failed');
+      setStudents((prev) => prev.filter((s) => s.id !== studentId));
+    } catch (err) {
+      console.error(err);
+      alert('Failed to delete student');
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const filtered = students.filter((s) =>
     search === '' ||
@@ -112,13 +129,23 @@ export default function AdminStudentsPage() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  <button className="p-2.5 bg-surface-elevated rounded-xl hover:bg-primary hover:text-white transition-all text-text-muted">
+                  <Link
+                    href={`/dashboard/profile?userId=${student.userId}`}
+                    className="p-2.5 bg-surface-elevated rounded-xl hover:bg-primary hover:text-white transition-all text-text-muted"
+                  >
                     <Eye size={16} />
-                  </button>
-                  <button className="p-2.5 bg-p-blue text-blue-600 rounded-xl hover:bg-blue-500 hover:text-white transition-all">
+                  </Link>
+                  <Link
+                    href={`/dashboard/profile?userId=${student.userId}&edit=true`}
+                    className="p-2.5 bg-p-blue text-blue-600 rounded-xl hover:bg-blue-500 hover:text-white transition-all"
+                  >
                     <Edit size={16} />
-                  </button>
-                  <button className="p-2.5 bg-p-rose text-rose-600 rounded-xl hover:bg-rose-500 hover:text-white transition-all">
+                  </Link>
+                  <button
+                    onClick={() => deleteStudent(student.id)}
+                    disabled={deletingId === student.id}
+                    className="p-2.5 bg-p-rose text-rose-600 rounded-xl hover:bg-rose-500 hover:text-white transition-all disabled:opacity-50"
+                  >
                     <Trash2 size={16} />
                   </button>
                 </div>
