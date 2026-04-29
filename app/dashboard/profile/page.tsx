@@ -5,7 +5,7 @@ import { useCurrentUser, getInitials } from '@/lib/hooks/useCurrentUser';
 import {
   User, Mail, School, Calendar, BookOpen,
   Edit3, Check, X, Sparkles, GraduationCap,
-  DollarSign, FileText, ShieldCheck, Camera
+  DollarSign, FileText, ShieldCheck, Camera, Video
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import CameraCapture from '../_components/CameraCapture';
@@ -27,6 +27,9 @@ export default function ProfilePage() {
     headline: '',
     bio: '',
     pricingPerHour: '',
+    introVideoUrl: '',
+    university: '',
+    degree: '',
   });
 
   // Populate form when user loads
@@ -40,6 +43,9 @@ export default function ProfilePage() {
       headline: user.tutorProfile?.headline ?? '',
       bio: user.tutorProfile?.bio ?? '',
       pricingPerHour: user.tutorProfile?.pricingPerHour?.toString() ?? '',
+      introVideoUrl: '',
+      university: '',
+      degree: '',
     });
   }, [user]);
 
@@ -249,6 +255,27 @@ export default function ProfilePage() {
                 editing={editing}
                 type="number"
                 onChange={(v) => setForm({ ...form, pricingPerHour: v })}
+              />
+              <Field
+                label="Introduction Video URL"
+                value={form.introVideoUrl}
+                icon={Video}
+                editing={editing}
+                onChange={(v) => setForm({ ...form, introVideoUrl: v })}
+              />
+              <Field
+                label="University"
+                value={form.university}
+                icon={GraduationCap}
+                editing={editing}
+                onChange={(v) => setForm({ ...form, university: v })}
+              />
+              <Field
+                label="Degree"
+                value={form.degree}
+                icon={FileText}
+                editing={editing}
+                onChange={(v) => setForm({ ...form, degree: v })}
               />
               <div className="sm:col-span-2 flex flex-col gap-2">
                 <label className="text-[10px] font-black uppercase tracking-[0.15em] text-text-muted ml-1 flex items-center gap-2">

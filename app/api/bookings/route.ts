@@ -22,10 +22,23 @@ export async function GET(req: NextRequest) {
 
     let bookings: any[] = [];
 
-    if (user.role === 'STUDENT' && user.studentProfile) {
+    if (user.role === 'ADMIN') {
+      // Admin sees all bookings
+      bookings = await prisma.booking.findMany({
+        include: {
+          student: { include: { user: { select: { name: true, image: true } } } },
+          tutor: { include: { user: { select: { name: true, image: true } } } },
+        },
+        orderBy: { date: 'asc' },
+      });
+    } else if (user.role === 'STUDENT' && user.studentProfile) {
         bookings = await prisma.booking.findMany({
           where: { studentId: user.studentProfile.id },
-          include: {
+          select: {
+            id: true,
+            date: true,
+            meetLink: true,
+            status: true,
             tutor: { 
               select: { 
                 headline: true,
@@ -75,13 +88,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'tutorDbId and date are required' }, { status: 400 });
     }
 
-    // Load student
-    const studentUser = await prisma.user.findUnique({
+    // Allow admins to book tutors for testing
+    let studentUser = await prisma.user.findUnique({
       where: { id: postData.user.id },
       include: { studentProfile: true },
     });
+    
+    // If admin doesn't have student profile, create it temporarily
+    if (studentUser?.role === 'ADMIN' && !studentUser?.studentProfile) {
+      studentUser = await prisma.user.update({
+        where: { id: postData.user.id },
+        data: {
+          studentProfile: {
+            create: {
+              schoolLevel: 'HIGH_SCHOOL'
+            }
+          }
+        },
+        include: { studentProfile: true }
+      });
+    }
+    
     if (!studentUser?.studentProfile) {
-      return NextResponse.json({ error: 'Only students can create bookings' }, { status: 403 });
+      return NextResponse.json({ error: 'Only students and admins can create bookings' }, { status: 403 });
     }
 
     // Load tutor (to get email for notification)

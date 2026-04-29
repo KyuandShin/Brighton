@@ -26,6 +26,9 @@ export async function GET(req: NextRequest) {
 
     const userId = session.user.id;
 
+    // Wait for Neon Auth to finish syncing session to database (race condition fix for OAuth logins)
+    await new Promise(resolve => setTimeout(resolve, 250));
+
     // Query database for complete profile including related profile models
     const user = await prisma.user.findUnique({
       where: { id: userId },

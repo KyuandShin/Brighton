@@ -7,18 +7,19 @@ import { Home, BookOpen, Users, Calendar, Settings, LogOut, Shield, UserCheck } 
 import { useCurrentUser } from '@/lib/hooks/useCurrentUser';
 import { authClient } from '@/lib/auth/client';
 
-const navItems = [
-  { name: 'Dashboard', href: '/dashboard', icon: Home },
-  { name: 'Placement Test', href: '/dashboard/test', icon: BookOpen },
-  { name: 'Find Tutors', href: '/dashboard/tutors', icon: Users },
-  { name: 'My Classes', href: '/dashboard/classes', icon: Calendar },
-  { name: 'Settings', href: '/dashboard/settings', icon: Settings },
-];
-
 export function Sidebar() {
   const pathname = usePathname();
   const { user } = useCurrentUser();
   const isAdmin = user?.role === 'ADMIN';
+  const isStudent = user?.role === 'STUDENT';
+
+  const navItems = [
+    { name: 'Dashboard', href: '/dashboard', icon: Home },
+    { name: 'Placement Test', href: '/dashboard/test', icon: BookOpen },
+    ...(isStudent ? [{ name: 'Find Tutors', href: '/dashboard/tutors', icon: Users }] : []),
+    { name: 'My Classes', href: '/dashboard/classes', icon: Calendar },
+    { name: 'Settings', href: '/dashboard/settings', icon: Settings },
+  ];
 
   return (
     <div className="w-64 bg-[#152232] border-r border-[#1e2d3d] flex flex-col h-screen sticky top-0">
