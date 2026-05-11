@@ -78,7 +78,7 @@ export default function CalendarPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Calendar Grid */}
-        <div className="lg:col-span-2 bg-white border-2 border-border rounded-[40px] p-8 space-y-6">
+        <div className="lg:col-span-2 bg-surface border-2 border-border rounded-[40px] p-8 space-y-6">
           <div className="flex justify-between items-center">
           <button onClick={() => setViewDate(new Date(year, month - 1, 1))} className="p-3 bg-p-purple rounded-2xl hover:bg-primary hover:text-white transition-all text-text-muted">
               <ChevronLeft size={18} />
@@ -130,7 +130,7 @@ export default function CalendarPage() {
         </div>
 
         {/* Day Detail Panel */}
-        <div className="bg-white border-2 border-border rounded-[40px] p-8 space-y-6">
+        <div className="bg-surface border-2 border-border rounded-[40px] p-8 space-y-6">
           <div>
             <p className="text-[10px] font-black uppercase tracking-widest text-text-muted mb-1">Selected Day</p>
             <h3 className="text-xl font-black text-text-main tracking-tight">
@@ -206,7 +206,7 @@ export default function CalendarPage() {
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="w-full max-w-md bg-white rounded-[40px] shadow-[0_40px_100px_rgba(147,51,234,0.12)] border border-border overflow-hidden relative z-10"
+              className="w-full max-w-md bg-surface rounded-[40px] shadow-[0_40px_100px_rgba(147,51,234,0.12)] border border-border overflow-hidden relative z-10"
             >
               <div className="h-28 bg-p-blue relative">
                 <button onClick={() => setSelectedBooking(null)} className="absolute top-5 right-5 p-2 bg-white/50 hover:bg-white rounded-full transition-all">

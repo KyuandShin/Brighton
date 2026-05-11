@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Star, ChevronRight, GraduationCap, Search, ShieldCheck } from 'lucide-react';
+import { useState, useEffect, Suspense } from 'react';
+import { Star, ChevronRight, GraduationCap, Search, ShieldCheck, Filter, TrendingUp, Zap, Heart } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
+import { useSearchParams } from 'next/navigation';
 
 interface TutorFromDB {
   id: string;
@@ -21,13 +22,15 @@ interface TutorFromDB {
   reviewCount: number;
 }
 
+type SortTab = 'all' | 'best' | 'rising';
+
 function normalizeTutor(t: TutorFromDB) {
   return {
     id: t.id,
     name: t.name,
     headline: t.headline ?? 'Tutor',
     subjects: t.subjects,
-    rating: t.rating ?? 5.0,
+    rating: t.rating,
     price: t.pricingPerHour,
     image: t.image ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(t.name)}`,
     bio: t.bio ?? '',
@@ -37,28 +40,79 @@ function normalizeTutor(t: TutorFromDB) {
 }
 
 const CARD_THEMES = [
-  { bannerFrom: '#ede9fe', bannerTo: '#c4b5fd', tagBg: 'bg-p-purple', tagText: 'text-purple-700' },
-  { bannerFrom: '#fce7f3', bannerTo: '#f9a8d4', tagBg: 'bg-p-pink',   tagText: 'text-pink-700'   },
-  { bannerFrom: '#dbeafe', bannerTo: '#93c5fd', tagBg: 'bg-p-blue',   tagText: 'text-blue-700'   },
-  { bannerFrom: '#d1fae5', bannerTo: '#6ee7b7', tagBg: 'bg-p-mint',   tagText: 'text-teal-700'   },
-  { bannerFrom: '#fef9c3', bannerTo: '#fcd34d', tagBg: 'bg-p-yellow', tagText: 'text-amber-700'  },
+  { bannerFrom: '#ede9fe', bannerTo: '#c4b5fd', tagBg: 'bg-p-purple', tagText: 'text-purple-700', bannerDarkFrom: '#2a1a45', bannerDarkTo: '#1e1035' },
+  { bannerFrom: '#fce7f3', bannerTo: '#f9a8d4', tagBg: 'bg-p-pink',   tagText: 'text-pink-700',   bannerDarkFrom: '#3d1f3a', bannerDarkTo: '#2d152a' },
+  { bannerFrom: '#dbeafe', bannerTo: '#93c5fd', tagBg: 'bg-p-blue',   tagText: 'text-blue-700',   bannerDarkFrom: '#1e3a5f', bannerDarkTo: '#152a4a' },
+  { bannerFrom: '#d1fae5', bannerTo: '#6ee7b7', tagBg: 'bg-p-mint',   tagText: 'text-teal-700',   bannerDarkFrom: '#1a3a2e', bannerDarkTo: '#0f2a1e' },
+  { bannerFrom: '#fef9c3', bannerTo: '#fcd34d', tagBg: 'bg-p-yellow', tagText: 'text-amber-700',  bannerDarkFrom: '#3d3520', bannerDarkTo: '#2d2515' },
+  { bannerFrom: '#ffedd5', bannerTo: '#fdba74', tagBg: 'bg-p-peach',  tagText: 'text-orange-700', bannerDarkFrom: '#3d2a1a', bannerDarkTo: '#2d1a0f' },
 ];
 
-export default function TutorsPage() {
+// Philippine K-12 subject categories
+const PH_SUBJECTS = [
+  // Core subjects
+  'Filipino', 'English', 'Mathematics', 'Science',
+  // Science subfields  
+  'Biology', 'Chemistry', 'Physics', 'Integrated Science',
+  // Math subfields
+  'Algebra', 'Geometry', 'Trigonometry', 'Statistics', 'Calculus',
+  // Social Studies
+  'Araling Panlipunan', 'Philippine History', 'Asian Studies', 'World History', 'Economics',
+  // MAPEH
+  'Music', 'Arts', 'Physical Education', 'Health',
+  // EsP
+  'Edukasyon sa Pagpapakatao',
+  // TLE/TVL
+  'ICT', 'Agriculture', 'Home Economics', 'Industrial Arts',
+  // SHS Tracks
+  'STEM', 'ABM', 'HUMSS', 'TVL',
+  // Languages
+  'Filipino - Panitikan', 'English - Literature',
+];
+
+const TABS: { key: SortTab; label: string; icon: typeof Star; desc: string }[] = [
+  { key: 'all',     label: 'All Tutors',    icon: ShieldCheck, desc: 'Browse our full directory' },
+  { key: 'best',    label: 'Best Rated',    icon: Star,        desc: 'Top-rated by students' },
+  { key: 'rising',  label: 'Rising Stars',  icon: TrendingUp,  desc: 'New & trending tutors' },
+];
+
+export default function TutorsPageWrapper() {
+  return (
+    <Suspense fallback={<div className="py-20 text-center"><div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" /></div>}>
+      <TutorsPage />
+    </Suspense>
+  );
+}
+
+function TutorsPage() {
+  const searchParams = useSearchParams();
   const [tutors, setTutors]           = useState<ReturnType<typeof normalizeTutor>[]>([]);
   const [loading, setLoading]         = useState(true);
-  const [search, setSearch]           = useState('');
-  const [levelFilter, setLevelFilter] = useState<'ALL' | 'ELEMENTARY' | 'HIGH_SCHOOL'>('ALL');
+  const [search, setSearch]           = useState(searchParams.get('q') ?? '');
+  const [levelFilter, setLevelFilter] = useState<'ALL' | 'ELEMENTARY' | 'HIGH_SCHOOL'>((searchParams.get('level') as any) ?? 'ALL');
+  const [subjectFilter, setSubjectFilter] = useState('');
+  const [activeTab, setActiveTab]     = useState<SortTab>('all');
+  const [isDark, setIsDark]           = useState(false);
 
   useEffect(() => {
-    fetch('/api/tutors')
+    const checkDark = () => setIsDark(document.documentElement.classList.contains('dark'));
+    checkDark();
+    const observer = new MutationObserver(checkDark);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    setLoading(true);
+    const sortParam = activeTab === 'all' ? '' : `sort=${activeTab}`;
+    fetch(`/api/tutors${sortParam ? `?${sortParam}` : ''}`)
       .then((r) => r.json())
       .then((data: TutorFromDB[]) => {
         if (Array.isArray(data)) setTutors(data.map(normalizeTutor));
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, []);
+  }, [activeTab]);
 
   const filtered = tutors.filter((t) => {
     const matchSearch =
@@ -68,7 +122,10 @@ export default function TutorsPage() {
       (t.headline ?? '').toLowerCase().includes(search.toLowerCase());
     const matchLevel =
       levelFilter === 'ALL' || t.level === levelFilter || t.level === 'BOTH';
-    return matchSearch && matchLevel;
+    const matchSubject =
+      subjectFilter === '' ||
+      t.subjects.some((s) => s.toLowerCase() === subjectFilter.toLowerCase());
+    return matchSearch && matchLevel && matchSubject;
   });
 
   return (
@@ -93,40 +150,117 @@ export default function TutorsPage() {
         </div>
       </header>
 
-      {/* Search + Filter Bar */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name, subject..."
-            className="w-full bg-white border-2 border-border rounded-2xl pl-12 pr-4 py-3.5 text-sm font-bold text-text-main focus:outline-none focus:border-primary transition-all placeholder:text-text-muted/50 shadow-xs"
-          />
-        </div>
-        <div className="flex gap-1.5 p-1.5 bg-p-purple/50 rounded-2xl border border-border">
-          {(['ALL', 'ELEMENTARY', 'HIGH_SCHOOL'] as const).map((lvl) => (
+      {/* Tabs: All | Best Rated | Rising Stars */}
+      <div className="flex gap-1.5 p-1.5 bg-p-purple/30 rounded-2xl border border-border overflow-x-auto">
+        {TABS.map((tab) => {
+          const Icon = tab.icon;
+          return (
             <button
-              key={lvl}
-              onClick={() => setLevelFilter(lvl)}
-              className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                levelFilter === lvl
-                  ? 'bg-white text-primary shadow-sm'
-                  : 'text-text-muted hover:text-text-main'
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${
+                activeTab === tab.key
+                  ? 'bg-surface text-primary shadow-sm'
+                  : 'text-text-muted hover:text-text-main hover:bg-surface/40'
               }`}
             >
-              {lvl === 'HIGH_SCHOOL' ? 'High School' : lvl === 'ELEMENTARY' ? 'Elementary' : 'All'}
+              <Icon size={13} />
+              {tab.label}
+              <span className="hidden sm:inline text-[8px] text-text-muted/60 font-bold normal-case tracking-normal">
+                · {tab.desc}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Search + Filter Bar */}
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by name, subject..."
+              className="w-full bg-surface border-2 border-border rounded-2xl pl-12 pr-4 py-3.5 text-sm font-bold text-text-main focus:outline-none focus:border-primary transition-all placeholder:text-text-muted/50 shadow-xs"
+            />
+          </div>
+          <div className="flex gap-1.5 p-1.5 bg-p-purple/50 rounded-2xl border border-border">
+            {(['ALL', 'ELEMENTARY', 'HIGH_SCHOOL'] as const).map((lvl) => (
+              <button
+                key={lvl}
+                onClick={() => setLevelFilter(lvl)}
+                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                  levelFilter === lvl
+                    ? 'bg-surface text-primary shadow-sm'
+                    : 'text-text-muted hover:text-text-main'
+                }`}
+              >
+                {lvl === 'HIGH_SCHOOL' ? 'High School' : lvl === 'ELEMENTARY' ? 'Elementary' : 'All'}
+              </button>
+            ))}
+          </div>
+        </div>
+        
+        {/* Subject filter */}
+        <div className="flex gap-1.5 flex-wrap">
+          <Filter size={14} className="text-text-muted self-center" />
+          {PH_SUBJECTS.slice(0, 8).map((sub) => (
+            <button
+              key={sub}
+              onClick={() => setSubjectFilter(subjectFilter === sub ? '' : sub)}
+              className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all ${
+                subjectFilter === sub
+                  ? 'bg-primary text-white border-primary'
+                  : 'bg-surface-elevated border-border text-text-muted hover:border-primary hover:text-primary'
+              }`}
+            >
+              {sub}
             </button>
           ))}
+          {PH_SUBJECTS.length > 8 && (
+            <button
+              onClick={() => setSubjectFilter('')}
+              className="px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border border-border text-text-muted hover:border-primary hover:text-primary transition-all bg-surface-elevated"
+            >
+              +{PH_SUBJECTS.length - 8} More
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Tab description */}
+      {activeTab !== 'all' && (
+        <div className={`px-5 py-3 rounded-2xl border flex items-center gap-3 ${
+          activeTab === 'best' 
+            ? 'bg-amber-50 border-amber-200' 
+            : 'bg-emerald-50 border-emerald-200'
+        }`}>
+          {activeTab === 'best' ? (
+            <>
+              <Star size={16} className="text-amber-500 shrink-0" fill="currentColor" />
+              <p className="text-[10px] font-bold text-amber-800 leading-relaxed">
+                <strong className="font-black">Best Rated</strong> — Tutors sorted by highest average rating and most reviews from students.
+              </p>
+            </>
+          ) : (
+            <>
+              <TrendingUp size={16} className="text-emerald-500 shrink-0" />
+              <p className="text-[10px] font-bold text-emerald-800 leading-relaxed">
+                <strong className="font-black">Rising Stars</strong> — Tutors gaining traction with recent positive reviews and new sign-ups.
+              </p>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Grid */}
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-white border-2 border-border rounded-[32px] overflow-hidden animate-pulse">
+              <div key={i} className="bg-surface border-2 border-border rounded-[32px] overflow-hidden animate-pulse">
               <div className="h-24 bg-p-purple/60" />
               <div className="p-6 space-y-3">
                 <div className="h-5 bg-surface-elevated rounded-xl w-2/3" />
@@ -141,7 +275,7 @@ export default function TutorsPage() {
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="bg-white border-2 border-dashed border-border rounded-[40px] p-16 text-center space-y-4">
+        <div className="bg-surface border-2 border-dashed border-border rounded-[40px] p-16 text-center space-y-4">
           <div className="w-16 h-16 bg-p-purple rounded-3xl flex items-center justify-center mx-auto">
             <GraduationCap size={28} className="text-primary" />
           </div>
@@ -164,12 +298,12 @@ export default function TutorsPage() {
                 <motion.div
                   whileHover={{ y: -5, boxShadow: '0 20px 48px rgba(147,51,234,0.14)' }}
                   transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                  className="bg-white border-2 border-border rounded-[32px] overflow-hidden cursor-pointer group"
+                  className="bg-surface border-2 border-border rounded-[32px] overflow-hidden cursor-pointer group relative"
                 >
                   {/* Gradient banner */}
                   <div
                     className="relative h-24"
-                    style={{ background: `linear-gradient(135deg, ${theme.bannerFrom}, ${theme.bannerTo})` }}
+                    style={{ background: `linear-gradient(135deg, ${isDark ? theme.bannerDarkFrom : theme.bannerFrom}, ${isDark ? theme.bannerDarkTo : theme.bannerTo})` }}
                   >
                     {/* Subtle ring decoration */}
                     <div className="absolute -right-6 -top-6 w-28 h-28 rounded-full border-[16px] border-white/20" />
@@ -177,7 +311,7 @@ export default function TutorsPage() {
 
                     {/* Avatar overlapping banner */}
                     <div className="absolute -bottom-8 left-6">
-                      <div className="relative w-16 h-16 rounded-2xl border-4 border-white shadow-md overflow-hidden bg-white">
+                      <div className="relative w-16 h-16 rounded-2xl border-4 border-white shadow-md overflow-hidden bg-surface">
                         <Image
                           src={tutor.image}
                           alt={tutor.name}
@@ -197,9 +331,15 @@ export default function TutorsPage() {
                         <h3 className="font-black text-base text-text-main group-hover:text-primary transition-colors leading-tight line-clamp-1">
                           {tutor.name}
                         </h3>
-                        <div className="flex items-center gap-1 text-[#fcc419] shrink-0">
-                          <Star size={12} fill="currentColor" />
-                          <span className="text-[11px] font-black text-text-main">{tutor.rating.toFixed(1)}</span>
+                        <div className="flex items-center gap-1 shrink-0">
+                          {tutor.rating !== null ? (
+                            <>
+                              <Star size={12} fill="currentColor" className="text-[#fcc419]" />
+                              <span className="text-[11px] font-black text-text-main">{tutor.rating.toFixed(1)}</span>
+                            </>
+                          ) : (
+                            <span className="text-[9px] font-black uppercase tracking-widest text-text-muted px-2 py-0.5 bg-surface-elevated rounded-full">New</span>
+                          )}
                         </div>
                       </div>
                       <p className="text-[10px] font-bold text-text-muted uppercase tracking-tight line-clamp-1">
@@ -248,6 +388,18 @@ export default function TutorsPage() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Badge for Best/Rising */}
+                  {activeTab === 'best' && (
+                    <div className="absolute top-3 right-3 px-2.5 py-1 bg-amber-400 text-white rounded-full text-[8px] font-black uppercase tracking-widest shadow-lg flex items-center gap-1">
+                      <Star size={9} fill="currentColor" /> Top Rated
+                    </div>
+                  )}
+                  {activeTab === 'rising' && (
+                    <div className="absolute top-3 right-3 px-2.5 py-1 bg-emerald-500 text-white rounded-full text-[8px] font-black uppercase tracking-widest shadow-lg flex items-center gap-1">
+                      <Zap size={9} fill="currentColor" /> Rising
+                    </div>
+                  )}
                 </motion.div>
               </Link>
             );

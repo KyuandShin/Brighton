@@ -5,10 +5,21 @@ import { auth } from '@/lib/auth/server';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { email, password, fullName, schoolName, age, parentEmail, schoolLevel, image } = body;
+    const { email, password, fullName, schoolName, age, parentEmail, schoolLevel, image, gradeLevel } = body;
 
     if (!email || !password || !fullName || !age || !schoolLevel) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    // Password strength validation
+    if (password.length < 8) {
+      return NextResponse.json({ error: 'Password must be at least 8 characters long' }, { status: 400 });
+    }
+    if (!/[a-z]/.test(password)) {
+      return NextResponse.json({ error: 'Password must contain at least one lowercase letter' }, { status: 400 });
+    }
+    if (!/[0-9]/.test(password)) {
+      return NextResponse.json({ error: 'Password must contain at least one number' }, { status: 400 });
     }
 
     const parsedAge = parseInt(age);
@@ -53,6 +64,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Could not retrieve auth user ID' }, { status: 500 });
     }
 
+    // Validate and parse grade level
+    const parsedGrade = gradeLevel ? parseInt(gradeLevel) : null;
+
     // 2. Create User + Student profile — save ALL fields including age & schoolName
     await prisma.user.upsert({
       where: { id: authUserId },
@@ -64,12 +78,14 @@ export async function POST(req: NextRequest) {
           upsert: {
             create: {
               schoolLevel: schoolLevel as 'ELEMENTARY' | 'HIGH_SCHOOL',
+              gradeLevel: parsedGrade,
               age: parsedAge,
               schoolName: schoolName ?? null,
               parentEmail: parsedAge < 18 ? (parentEmail ?? null) : null,
             },
             update: {
               schoolLevel: schoolLevel as 'ELEMENTARY' | 'HIGH_SCHOOL',
+              gradeLevel: parsedGrade,
               age: parsedAge,
               schoolName: schoolName ?? null,
               parentEmail: parsedAge < 18 ? (parentEmail ?? null) : null,
@@ -87,6 +103,7 @@ export async function POST(req: NextRequest) {
         studentProfile: {
           create: {
             schoolLevel: schoolLevel as 'ELEMENTARY' | 'HIGH_SCHOOL',
+            gradeLevel: parsedGrade,
             age: parsedAge,
             schoolName: schoolName ?? null,
             parentEmail: parsedAge < 18 ? (parentEmail ?? null) : null,
@@ -113,8 +130,9 @@ export async function POST(req: NextRequest) {
 
     // Neon Auth automatically sets session cookies
     return NextResponse.json({ success: true });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[STUDENT SIGNUP]', err);
-    return NextResponse.json({ error: err.message ?? 'Server error' }, { status: 500 });
+    const message = err instanceof Error ? err.message : 'Server error';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

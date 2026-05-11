@@ -10,7 +10,7 @@ import Link from 'next/link';
 import { uploadToCloudinary } from '@/lib/cloudinary';
 import { ProfilePhoto, ProfileDescription } from './new-steps';
 
-const STEPS = ['General Details', 'Profile Photo', 'Certifications', 'Education', 'Profile Description', 'Video Intro', 'Availability', 'Pricing'];
+const STEPS = ['General Details', 'Subjects', 'Profile Photo', 'Certifications', 'Education', 'Profile Description', 'Video Intro', 'Availability', 'Pricing'];
 const DAYS  = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 interface CertificationData {
@@ -18,6 +18,12 @@ interface CertificationData {
   certificate: string;
   issuedBy: string;
   certificateUrl?: string;
+}
+
+interface TimeSlot {
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
 }
 
 interface TutorFormData {
@@ -31,7 +37,9 @@ interface TutorFormData {
   headline: string;
   price: number;
   availability: number[];
+  availabilitySlots: TimeSlot[];
   certifications: CertificationData[];
+  subjects: string[];
 }
 
 export default function TutorSignupFlow() {
@@ -50,11 +58,13 @@ function TutorSignupContent() {
     password: '', 
     university: '', 
     degree: '',
+    subjects: [],
     videoUrl: '', 
     bio: '', 
     headline: '', 
     price: 20, 
     availability: [],
+    availabilitySlots: [],
     certifications: [],
   });
 
@@ -84,15 +94,18 @@ function TutorSignupContent() {
         if (!formData.headline.trim())    return 'A professional headline is required.';
         if (formData.bio.trim().length < 20) return 'Bio must be at least 20 characters.';
         return '';
-      case 1: return ''; // Profile Photo
-      case 2: return ''; // Certifications are optional
-      case 3: return ''; // Education is optional
-      case 4: return ''; // Profile Description
-      case 5: return ''; // Video intro optional
-      case 6:
+      case 1:
+        if (formData.subjects.length === 0) return 'Please select at least one subject you can teach.';
+        return '';
+      case 2: return ''; // Profile Photo
+      case 3: return ''; // Certifications are optional
+      case 4: return ''; // Education is optional
+      case 5: return ''; // Profile Description
+      case 6: return ''; // Video intro optional
+      case 7:
         if (formData.availability.length === 0) return 'Please select at least one available day.';
         return '';
-      case 7: return ''; // Pricing always valid
+      case 8: return ''; // Pricing always valid
       default: return '';
     }
   };
@@ -233,13 +246,14 @@ function TutorSignupContent() {
           {/* Step content */}
           <div className="min-h-75">
             {currentStep === 0 && <GeneralDetails data={formData} set={setFormData} />}
-            {currentStep === 1 && <ProfilePhoto data={formData} set={setFormData} />}
-            {currentStep === 2 && <CertificationsStep data={formData} set={setFormData} />}
-            {currentStep === 3 && <Education      data={formData} set={setFormData} />}
-            {currentStep === 4 && <ProfileDescription data={formData} set={setFormData} />}
-            {currentStep === 5 && <VideoIntro     data={formData} set={setFormData} />}
-            {currentStep === 6 && <AvailabilitySelector data={formData} set={setFormData} />}
-            {currentStep === 7 && <PricingStep    data={formData} set={setFormData} />}
+            {currentStep === 1 && <SubjectsStep  data={formData} set={setFormData} />}
+            {currentStep === 2 && <ProfilePhoto data={formData} set={setFormData} />}
+            {currentStep === 3 && <CertificationsStep data={formData} set={setFormData} />}
+            {currentStep === 4 && <Education      data={formData} set={setFormData} />}
+            {currentStep === 5 && <ProfileDescription data={formData} set={setFormData} />}
+            {currentStep === 6 && <VideoIntro     data={formData} set={setFormData} />}
+            {currentStep === 7 && <AvailabilitySelector data={formData} set={setFormData} />}
+            {currentStep === 8 && <PricingStep    data={formData} set={setFormData} />}
           </div>
 
           {/* Navigation */}
@@ -292,34 +306,39 @@ interface StepProps {
 function GeneralDetails({ data, set }: StepProps) {
   const [aiGenerating, setAiGenerating] = useState(false);
 
-  const generateBio = () => {
+  const generateBio = async () => {
     setAiGenerating(true);
-    setTimeout(() => {
-      const firstName = data.name.split(' ')[0] || 'Tutor';
-      
-      const bios = [
-        `Hi! I'm ${firstName}, a passionate and experienced educator dedicated to helping students reach their full potential. I specialize in creating engaging, personalized lessons that adapt to each student's unique learning style and goals. With a focus on building confidence and making learning enjoyable, I provide clear explanations, practical examples, and constructive feedback to ensure real progress. Let's work together to achieve your learning objectives!`,
-        
-        `Hello! My name is ${firstName} and I love helping students discover their potential. I believe that every student can succeed with the right guidance and support. My teaching approach is patient, encouraging, and focused on understanding each student's individual needs. I create a comfortable learning environment where questions are welcome, mistakes are seen as opportunities to grow, and progress is celebrated.`,
-        
-        `Greetings! I'm ${firstName}, an enthusiastic educator with a passion for teaching. My goal is to make learning not just effective, but also enjoyable. I use real-world examples, interactive methods, and personalized strategies to help students grasp concepts thoroughly. Whether you're a beginner or looking to advance your skills, I will support you every step of the way on your learning journey.`
-      ];
-      
-      const randomBio = bios[Math.floor(Math.random() * bios.length)];
-      set((d) => ({ ...d, bio: randomBio }));
+    try {
+      const res = await fetch('/api/ai/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'bio', name: data.name }),
+      });
+      const result = await res.json();
+      if (res.ok && result.result) {
+        set((d) => ({ ...d, bio: result.result }));
+      }
+    } catch {
+      // fallback silently
+    } finally {
       setAiGenerating(false);
-    }, 1500);
+    }
   };
 
-  const generateHeadline = () => {
-    const patterns = [
-      `${data.name.split(' ')[0]} | Experienced & Patient Tutor`,
-      `Dedicated Tutor Specializing in Personalized Learning`,
-      `Passionate Educator | Results-Driven Instruction`,
-      `${data.name.split(' ')[0]} | Making Learning Enjoyable & Effective`,
-      `Patient Tutor Committed to Your Success`
-    ];
-    set((d) => ({ ...d, headline: patterns[Math.floor(Math.random() * patterns.length)] }));
+  const generateHeadline = async () => {
+    try {
+      const res = await fetch('/api/ai/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'headline', name: data.name }),
+      });
+      const result = await res.json();
+      if (res.ok && result.result) {
+        set((d) => ({ ...d, headline: result.result }));
+      }
+    } catch {
+      // fallback silently
+    }
   };
 
   return (
@@ -658,18 +677,47 @@ function VideoRecorder({ onUpload }: { onUpload: (url: string) => void }) {
 }
 
 function AvailabilitySelector({ data, set }: StepProps) {
+  const TIME_OPTIONS: string[] = [];
+  for (let h = 6; h <= 22; h++) {
+    TIME_OPTIONS.push(`${h.toString().padStart(2, '0')}:00`);
+    if (h < 22) TIME_OPTIONS.push(`${h.toString().padStart(2, '0')}:30`);
+  }
+
   const toggleDay = (idx: number) => {
     set((d) => {
-      const updated = d.availability.includes(idx)
-        ? d.availability.filter((x) => x !== idx)
-        : [...d.availability, idx];
-      return { ...d, availability: updated };
+      const wasSelected = d.availability.includes(idx);
+      if (wasSelected) {
+        return {
+          ...d,
+          availability: d.availability.filter((x) => x !== idx),
+          availabilitySlots: d.availabilitySlots.filter((s) => s.dayOfWeek !== idx),
+        };
+      }
+      return {
+        ...d,
+        availability: [...d.availability, idx],
+        availabilitySlots: [
+          ...d.availabilitySlots,
+          { dayOfWeek: idx, startTime: '09:00', endTime: '17:00' },
+        ],
+      };
     });
+  };
+
+  const updateSlotTime = (dayIdx: number, field: 'startTime' | 'endTime', value: string) => {
+    set((d) => ({
+      ...d,
+      availabilitySlots: d.availabilitySlots.map((s) =>
+        s.dayOfWeek === dayIdx ? { ...s, [field]: value } : s
+      ),
+    }));
   };
 
   return (
     <div className="space-y-8">
-      <p className="text-xs font-bold text-text-muted uppercase tracking-widest">Select your available days (required — pick at least one):</p>
+      <p className="text-xs font-bold text-text-muted uppercase tracking-widest">Select your available days and time ranges:</p>
+      
+      {/* Day selector */}
       <div className="grid grid-cols-4 md:grid-cols-7 gap-3">
         {DAYS.map((day, idx) => {
           const isSelected = data.availability.includes(idx);
@@ -689,15 +737,137 @@ function AvailabilitySelector({ data, set }: StepProps) {
           );
         })}
       </div>
+
       {data.availability.length > 0 && (
         <p className="text-[10px] font-black uppercase tracking-widest text-[#27ae60]">
           ✓ {data.availability.length} day{data.availability.length > 1 ? 's' : ''} selected
         </p>
       )}
-      <div className="p-5 bg-[#f8f9fa] rounded-2xl border border-[#f1f3f5] flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-text-muted">
-        <Clock size={16} className="text-primary shrink-0" />
-        Default hours: 09:00 – 17:00 &nbsp;(customizable after approval)
+
+      {/* Per-day time range selectors */}
+      {data.availability.length > 0 && (
+        <div className="space-y-4 pt-4 border-t border-border">
+          <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">
+            Set time range for each day:
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {data.availability
+              .sort((a, b) => a - b)
+              .map((dayIdx) => {
+                const slot = data.availabilitySlots.find((s) => s.dayOfWeek === dayIdx);
+                const startTime = slot?.startTime ?? '09:00';
+                const endTime = slot?.endTime ?? '17:00';
+                return (
+                  <div
+                    key={dayIdx}
+                    className="flex items-center gap-3 p-4 bg-[#f8f9fa] rounded-2xl border border-[#f1f3f5]"
+                  >
+                    <span className="font-black text-xs text-primary uppercase tracking-widest min-w-[40px]">
+                      {DAYS[dayIdx]}
+                    </span>
+                    <select
+                      value={startTime}
+                      onChange={(e) => updateSlotTime(dayIdx, 'startTime', e.target.value)}
+                      className="flex-1 bg-white border border-border rounded-xl px-3 py-2 text-[10px] font-bold text-text-main focus:outline-none focus:border-primary cursor-pointer"
+                    >
+                      {TIME_OPTIONS.map((t) => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
+                    <span className="text-[10px] font-black text-text-muted">to</span>
+                    <select
+                      value={endTime}
+                      onChange={(e) => updateSlotTime(dayIdx, 'endTime', e.target.value)}
+                      className="flex-1 bg-white border border-border rounded-xl px-3 py-2 text-[10px] font-bold text-text-main focus:outline-none focus:border-primary cursor-pointer"
+                    >
+                      {TIME_OPTIONS.map((t) => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+      )}
+
+      {data.availability.length === 0 && (
+        <div className="p-6 bg-[#fffbe6] rounded-2xl border border-[#ffe066] flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-[#e67700]">
+          <Clock size={16} className="shrink-0" />
+          Please select at least one day to continue.
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Philippine K-12 subject categories
+const PH_SUBJECTS = [
+  'Filipino', 'English', 'Mathematics', 'Science',
+  'Biology', 'Chemistry', 'Physics', 'Integrated Science',
+  'Algebra', 'Geometry', 'Trigonometry', 'Statistics', 'Calculus',
+  'Araling Panlipunan', 'Philippine History', 'Asian Studies', 'World History', 'Economics',
+  'Music', 'Arts', 'Physical Education', 'Health',
+  'Edukasyon sa Pagpapakatao',
+  'ICT', 'Agriculture', 'Home Economics', 'Industrial Arts',
+  'STEM', 'ABM', 'HUMSS', 'TVL',
+  'Filipino - Panitikan', 'English - Literature',
+];
+
+function SubjectsStep({ data, set }: StepProps) {
+  const toggleSubject = (subject: string) => {
+    set((d) => {
+      const already = d.subjects.includes(subject);
+      return {
+        ...d,
+        subjects: already
+          ? d.subjects.filter((s) => s !== subject)
+          : [...d.subjects, subject],
+      };
+    });
+  };
+
+  return (
+    <div className="space-y-8">
+      <div className="p-4 bg-primary/5 border border-primary/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-primary leading-relaxed">
+        Select the subjects you specialize in teaching. Students will find you based on these subjects.
       </div>
+
+      <div className="flex flex-wrap gap-2.5">
+        {PH_SUBJECTS.map((sub) => {
+          const isSelected = data.subjects.includes(sub);
+          return (
+            <button
+              key={sub}
+              type="button"
+              onClick={() => toggleSubject(sub)}
+              className={`px-4 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest border-2 transition-all ${
+                isSelected
+                  ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20 scale-105'
+                  : 'bg-[#f8f9fa] border-[#f1f3f5] text-[#adb5bd] hover:border-primary hover:text-primary'
+              }`}
+            >
+              {sub}
+            </button>
+          );
+        })}
+      </div>
+
+      {data.subjects.length > 0 && (
+        <div className="p-4 bg-p-mint/30 rounded-2xl border border-p-mint flex items-center gap-3">
+          <Check size={16} className="text-teal-700 shrink-0" />
+          <p className="text-[10px] font-black uppercase tracking-widest text-teal-700">
+            {data.subjects.length} subject{data.subjects.length > 1 ? 's' : ''} selected
+          </p>
+        </div>
+      )}
+
+      {data.subjects.length === 0 && (
+        <div className="p-6 bg-[#fffbe6] rounded-2xl border border-[#ffe066] flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-[#e67700]">
+          <AlertCircle size={16} className="shrink-0" />
+          Please select at least one subject to continue.
+        </div>
+      )}
     </div>
   );
 }

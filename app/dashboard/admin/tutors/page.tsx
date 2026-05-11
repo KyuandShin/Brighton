@@ -144,7 +144,7 @@ export default function AdminTutorsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search tutors by name or email..."
-            className="w-full bg-white border-2 border-border rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-text-main focus:outline-none focus:border-primary transition-all placeholder:text-text-muted/50"
+            className="w-full bg-surface border-2 border-border rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-text-main focus:outline-none focus:border-primary transition-all placeholder:text-text-muted/50"
           />
         </div>
         <div className="flex gap-2 p-1.5 bg-p-purple/50 rounded-2xl border border-border">
@@ -166,20 +166,20 @@ export default function AdminTutorsPage() {
 
       {/* Tutor Table */}
       {loading ? (
-        <div className="bg-white rounded-3xl border border-border overflow-hidden animate-pulse">
+        <div className="bg-surface rounded-3xl border border-border overflow-hidden animate-pulse">
           {[1, 2, 3, 4, 5].map((i) => (
             <div key={i} className="p-6 border-b border-border h-24 bg-surface-elevated" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="bg-white border-2 border-dashed border-border rounded-[40px] p-16 text-center space-y-4">
+        <div className="bg-surface border-2 border-dashed border-border rounded-[40px] p-16 text-center space-y-4">
           <UserCheck size={40} className="mx-auto text-text-muted" />
           <p className="text-sm font-black uppercase tracking-widest text-text-muted">
             No tutor applications found
           </p>
         </div>
       ) : (
-        <div className="bg-white rounded-3xl border border-border overflow-hidden">
+        <div className="bg-surface rounded-3xl border border-border overflow-hidden">
           {filtered.map((tutor) => (
             <div
               key={tutor.id}

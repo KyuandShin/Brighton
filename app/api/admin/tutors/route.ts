@@ -1,10 +1,12 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const { data } = await auth.getSession();
+    const { data } = await auth.getSession({
+      fetchOptions: { headers: req.headers }
+    });
     const userId = data?.user?.id;
     
     if (!userId) {

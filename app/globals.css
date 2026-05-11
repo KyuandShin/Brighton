@@ -14,6 +14,61 @@
   --text-main: #1e0a3c;
   --text-muted: #7c6ea8;
   --primary: #9333ea;
+
+  /* Light pastel palette */
+  --p-blue:   #dbeafe;
+  --p-pink:   #fce7f3;
+  --p-yellow: #fef9c3;
+  --p-green:  #d1fae5;
+  --p-purple: #ede9fe;
+  --p-peach:  #ffedd5;
+  --p-sky:    #e0f2fe;
+  --p-rose:   #ffe4e6;
+  --p-mint:   #ccfbf1;
+  --p-sakura: #ffd7e8;
+  --p-cream:  #fffbf0;
+}
+
+/* ── Dark Mode ──────────────────────────────────────────────────────── */
+.dark {
+  --background: #0f0719;
+  --foreground: #f0e6ff;
+  --surface: #1a1028;
+  --surface-elevated: #231540;
+  --border: #2d1b4e;
+  --muted-foreground: #9b87b5;
+  --accent: #a855f7;
+  --accent-strong: #c084fc;
+  --accent-foreground: #ffffff;
+  --text-main: #f0e6ff;
+  --text-muted: #9b87b5;
+  --primary: #a855f7;
+
+  /* Dark pastel palette */
+  --p-blue:   #1e3a5f;
+  --p-pink:   #3d1f3a;
+  --p-yellow: #3d3520;
+  --p-green:  #1a3a2e;
+  --p-purple: #2a1a45;
+  --p-peach:  #3d2a1a;
+  --p-sky:    #1a2a3a;
+  --p-rose:   #3d1a1a;
+  --p-mint:   #1a3a3a;
+  --p-sakura: #3d1a3a;
+  --p-cream:  #1a1a0a;
+}
+
+.dark .logo-halo {
+  background: linear-gradient(135deg, #2d1b4e 0%, #1a1028 100%);
+  box-shadow: 0 3px 18px rgba(168, 85, 247, 0.25);
+}
+
+.dark body {
+  background-image:
+    radial-gradient(1200px circle at 15% -5%,   rgb(147 51 234 / 0.12), transparent 42%),
+    radial-gradient(900px  circle at 88% 5%,    rgb(124 58 237 / 0.10), transparent 40%),
+    radial-gradient(600px  circle at 65% 55%,   rgb(88 28 135 / 0.08), transparent 50%),
+    radial-gradient(700px  circle at 50% 108%,  rgb(107 33 168 / 0.10), transparent 52%);
 }
 
 @theme inline {
@@ -34,18 +89,18 @@
   --color-text-main: var(--text-main);
   --color-text-muted: var(--text-muted);
 
-  /* Anime pastel palette */
-  --color-p-blue:   #dbeafe;
-  --color-p-pink:   #fce7f3;
-  --color-p-yellow: #fef9c3;
-  --color-p-green:  #d1fae5;
-  --color-p-purple: #ede9fe;
-  --color-p-peach:  #ffedd5;
-  --color-p-sky:    #e0f2fe;
-  --color-p-rose:   #ffe4e6;
-  --color-p-mint:   #ccfbf1;
-  --color-p-sakura: #ffd7e8;
-  --color-p-cream:  #fffbf0;
+  /* Anime pastel palette - uses var() to respond to light/dark theme */
+  --color-p-blue:   var(--p-blue);
+  --color-p-pink:   var(--p-pink);
+  --color-p-yellow: var(--p-yellow);
+  --color-p-green:  var(--p-green);
+  --color-p-purple: var(--p-purple);
+  --color-p-peach:  var(--p-peach);
+  --color-p-sky:    var(--p-sky);
+  --color-p-rose:   var(--p-rose);
+  --color-p-mint:   var(--p-mint);
+  --color-p-sakura: var(--p-sakura);
+  --color-p-cream:  var(--p-cream);
 
   /* Fonts */
   --font-sans: var(--font-geist-sans);
@@ -118,6 +173,11 @@ body {
     radial-gradient(900px  circle at 88% 5%,    rgb(147 51 234  / 0.12), transparent 40%),
     radial-gradient(600px  circle at 65% 55%,   rgb(252 231 243 / 0.10), transparent 50%),
     radial-gradient(700px  circle at 50% 108%,  rgb(216 180 254 / 0.12), transparent 52%);
+}
+
+/* ── Transition for smooth theme switching ──────────────────────────── */
+html {
+  transition: color 0.3s ease, background-color 0.3s ease;
 }
 
 /* ── Gradient text utility ───────────────────────────────────────────── */

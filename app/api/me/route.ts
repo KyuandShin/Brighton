@@ -10,7 +10,9 @@ export async function GET(req: NextRequest) {
   try {
     // Authenticate and retrieve session data using Neon Auth
     // Neon Auth automatically reads session cookies from Next.js request context
-    const { data: session, error } = await auth.getSession();
+    const { data: session, error } = await auth.getSession({
+      fetchOptions: { headers: req.headers }
+    });
 
     if (error || !session?.user?.id) {
       // Disable auto-retry for this endpoint by returning proper cache headers
@@ -26,11 +28,9 @@ export async function GET(req: NextRequest) {
 
     const userId = session.user.id;
 
-    // Wait for Neon Auth to finish syncing session to database (race condition fix for OAuth logins)
-    await new Promise(resolve => setTimeout(resolve, 250));
-
     // Query database for complete profile including related profile models
-    const user = await prisma.user.findUnique({
+    // Retry once after 250ms if user not found (handles OAuth sync race condition)
+    let user = await prisma.user.findUnique({
       where: { id: userId },
       include: {
         studentProfile: true,
@@ -42,6 +42,23 @@ export async function GET(req: NextRequest) {
         },
       },
     });
+
+    if (!user) {
+      // User may not have been created yet by Neon Auth — retry once
+      await new Promise(resolve => setTimeout(resolve, 250));
+      user = await prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+          studentProfile: true,
+          tutorProfile: {
+            include: {
+              subjects: { include: { subject: true } },
+              availability: true,
+            },
+          },
+        },
+      });
+    }
 
     if (!user) {
       // User is authed but no DB record yet — return basic info from session
@@ -75,9 +92,10 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json(user);
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[GET /api/me]', err);
-    return NextResponse.json({ error: err.message ?? 'Server error' }, { 
+    const message = err instanceof Error ? err.message : 'Server error';
+    return NextResponse.json({ error: message }, { 
       status: 500,
       headers: {
         'Cache-Control': 'no-store, max-age=0',

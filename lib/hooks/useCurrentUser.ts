@@ -10,6 +10,7 @@ export interface CurrentUser {
   isVerified: boolean;
   image: string | null;
   createdAt?: string;
+  theme?: string;
   studentProfile: {
     id: string;
     schoolLevel: 'ELEMENTARY' | 'HIGH_SCHOOL';

@@ -11,6 +11,21 @@ const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
+// Philippine K-12 subjects
+const K12_SUBJECTS = [
+  'Filipino', 'English', 'Mathematics', 'Science',
+  'Araling Panlipunan', 'Edukasyon sa Pagpapakatao', 'Music', 'Arts',
+  'Physical Education', 'Health', 'Home Economics', 'Industrial Arts',
+  'ICT', 'Agriculture', 'Algebra', 'Geometry', 'Trigonometry',
+  'Statistics', 'Probability', 'Calculus', 'Biology', 'Chemistry',
+  'Physics', 'Earth Science', 'General Science', 'Integrated Science',
+  'Philippine History', 'Asian Studies', 'World History', 'Economics',
+  'Contemporary Issues', 'Media and Information Literacy',
+  'Oral Communication', 'Reading and Writing', 'English for Academic Purposes',
+  'Filipino sa Piling Larangan', 'Panitikan', 'STEM', 'ABM', 'HUMSS',
+  'TVL', 'Disaster Readiness', 'Environmental Science',
+];
+
 const MOCK_TUTORS = [
   {
     id: 't1',
@@ -37,7 +52,7 @@ const MOCK_TUTORS = [
     name: 'Ms. Lea Salonga',
     email: 'lea@example.com',
     headline: 'English & Literature Coach',
-    subjects: ['Grammar', 'Literature', 'Writing'],
+    subjects: ['English', 'Literature', 'Reading and Writing'],
     rating: 5.0,
     price: 22,
     bio: 'Helping students find their voice through the power of language.',
@@ -45,17 +60,19 @@ const MOCK_TUTORS = [
 ];
 
 async function main() {
-  console.log('Seeding tutors...');
+  console.log('Seeding K-12 subjects...');
 
-  // First, ensure subjects exist
-  const allSubjects = [...new Set(MOCK_TUTORS.flatMap((t) => t.subjects))];
-  for (const s of allSubjects) {
+  // Seed all K-12 subjects
+  for (const s of K12_SUBJECTS) {
     await prisma.subject.upsert({
       where: { name: s },
       update: {},
       create: { name: s },
     });
   }
+  console.log(`Seeded ${K12_SUBJECTS.length} subjects`);
+
+  console.log('Seeding tutors...');
 
   for (const t of MOCK_TUTORS) {
     const user = await prisma.user.upsert({

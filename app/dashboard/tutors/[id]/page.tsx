@@ -4,7 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import {
   Star, Clock, Globe, ShieldCheck, Video, Calendar,
-  ChevronRight, CheckCircle, Bell, AlertCircle, Copy, Check,
+  ChevronRight, CheckCircle, Bell, AlertCircle, Copy, Check, Heart, Star as StarIcon,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { MOCK_TUTORS } from '@/lib/mock-data';
@@ -36,7 +36,7 @@ interface NormalizedTutor {
   introVideoUrl: string | null;
   price: number;
   subjects: string[];
-  rating: number;
+  rating: number | null;
   image: string;
   level: string;
   availability: { dayOfWeek: number; startTime: string; endTime: string }[];
@@ -58,6 +58,7 @@ export default function TutorProfilePage() {
   const { user } = useCurrentUser();
   const [tutor, setTutor] = useState<NormalizedTutor | null>(null);
   const [loadingTutor, setLoadingTutor] = useState(true);
+  const [isFavorite, setIsFavorite] = useState(false);
 
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
@@ -81,11 +82,22 @@ export default function TutorProfilePage() {
             introVideoUrl: found.introVideoUrl ?? null,
             price: found.pricingPerHour,
             subjects: found.subjects,
-            rating: found.rating ?? 5.0,
+            rating: found.rating,
             image: found.image ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(found.name)}`,
             level: 'BOTH',
             availability: found.availability ?? [],
           });
+          // Check if this tutor is favorited
+          if (user?.id) {
+            fetch(`/api/favorites?userId=${user.id}`)
+              .then((r) => r.json())
+              .then((favs) => {
+                if (Array.isArray(favs)) {
+                  setIsFavorite(favs.some((f: any) => f.tutor.id === found.id));
+                }
+              })
+              .catch(() => {});
+          }
         } else {
           const mock = MOCK_TUTORS.find((t) => t.id === id);
           if (mock) setTutor({ dbId: null, name: mock.name, headline: mock.headline, bio: mock.bio, introVideoUrl: null, price: mock.price, subjects: mock.subjects, rating: mock.rating, image: mock.image, level: mock.level, availability: [] });
@@ -96,11 +108,24 @@ export default function TutorProfilePage() {
         if (mock) setTutor({ dbId: null, name: mock.name, headline: mock.headline, bio: mock.bio, introVideoUrl: null, price: mock.price, subjects: mock.subjects, rating: mock.rating, image: mock.image, level: mock.level, availability: [] });
       })
       .finally(() => setLoadingTutor(false));
-  }, [id]);
+  }, [id, user?.id]);
+
+  const toggleFavorite = async () => {
+    if (!user?.id || !tutor?.dbId) return;
+    const res = await fetch('/api/favorites', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: user.id, tutorId: tutor.dbId }),
+    });
+    const data = await res.json();
+    setIsFavorite(data.saved);
+  };
 
   const today = new Date();
   const selectedDateObj = selectedDate ? new Date(selectedDate + 'T00:00:00') : null;
-  const dayOfWeek = selectedDateObj ? selectedDateObj.getDay() : -1;
+  const dayOfWeek = selectedDateObj !== null 
+    ? (selectedDateObj.getDay() === 0 ? 6 : selectedDateObj.getDay() - 1)
+    : -1;
   const availabilityForDay = tutor?.availability.find((a) => a.dayOfWeek === dayOfWeek);
   const timeSlots = availabilityForDay
     ? generateTimeSlots(availabilityForDay.startTime, availabilityForDay.endTime)
@@ -132,7 +157,6 @@ export default function TutorProfilePage() {
         if (!res.ok) { setBookingError(data.error || 'Booking failed.'); return; }
         setConfirmedBookingId(data.id);
       } else {
-        // Mock tutor — use a fake ID for demo
         setConfirmedBookingId('demo-' + Math.random().toString(36).substring(2, 10));
       }
 
@@ -145,21 +169,8 @@ export default function TutorProfilePage() {
     }
   };
 
-  const classroomPath = confirmedBookingId ? `/dashboard/classroom/${confirmedBookingId}` : '';
-  const fullRoomUrl = confirmedBookingId
-    ? `${typeof window !== 'undefined' ? window.location.origin : ''}/dashboard/classroom/${confirmedBookingId}`
-    : '';
-
-  const copyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(fullRoomUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {}
-  };
-
-  if (loadingTutor) return <div className="py-20 text-center font-black uppercase tracking-widest text-[#adb5bd]">Loading Profile...</div>;
-  if (!tutor) return <div className="py-20 text-center font-black uppercase tracking-widest text-[#adb5bd]">Tutor not found.</div>;
+  if (loadingTutor) return <div className="py-20 text-center font-black uppercase tracking-widest text-text-muted">Loading Profile...</div>;
+  if (!tutor) return <div className="py-20 text-center font-black uppercase tracking-widest text-text-muted">Tutor not found.</div>;
 
   const minDate = today.toISOString().split('T')[0];
 
@@ -174,12 +185,12 @@ export default function TutorProfilePage() {
             exit={{ opacity: 0, y: -20, x: '-50%' }}
             className="fixed top-24 left-1/2 z-100 bg-p-green border-2 border-white shadow-2xl px-8 py-4 rounded-3xl flex items-center gap-4 pointer-events-none"
           >
-            <div className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center text-[#27ae60]">
+            <div className="w-10 h-10 bg-surface rounded-2xl flex items-center justify-center text-[#27ae60]">
               <CheckCircle size={20} />
             </div>
             <div>
-              <p className="text-xs font-black uppercase tracking-widest text-[#2b8a3e]">Session Booked!</p>
-              <p className="text-[10px] font-bold text-[#2b8a3e]/70">Your Jitsi classroom room is ready.</p>
+              <p className="text-xs font-black uppercase tracking-widest text-[#2b8a3e]">Request Sent!</p>
+              <p className="text-[10px] font-bold text-[#2b8a3e]/70">Waiting for tutor to confirm.</p>
             </div>
           </motion.div>
         )}
@@ -188,7 +199,7 @@ export default function TutorProfilePage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
         {/* Left: Profile */}
         <div className="lg:col-span-8 space-y-8">
-          <div className="bg-white border-2 border-[#f1f3f5] rounded-[48px] overflow-hidden shadow-sm">
+          <div className="bg-surface border-2 border-border rounded-[48px] overflow-hidden shadow-sm">
             {tutor.introVideoUrl ? (
               <div className="aspect-video bg-[#f8f9fa]">
                 <ReactPlayer url={tutor.introVideoUrl} width="100%" height="100%" controls />
@@ -214,13 +225,30 @@ export default function TutorProfilePage() {
                   <h1 className="text-4xl font-black text-text-main tracking-tight">{tutor.name}</h1>
                   <p className="text-lg font-bold text-text-muted uppercase tracking-tighter">{tutor.headline}</p>
                 </div>
-                <div className="bg-p-yellow px-4 py-2 rounded-2xl border-2 border-white shadow-sm flex items-center gap-2 text-[#f08c00]">
-                  <Star size={18} fill="currentColor" />
-                  <span className="font-black text-lg">{tutor.rating.toFixed(1)}</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={toggleFavorite}
+                    className={`p-3 rounded-2xl border-2 transition-all ${
+                      isFavorite
+                        ? 'bg-p-pink border-pink-300 text-pink-500'
+                        : 'bg-[#f8f9fa] border-[#f1f3f5] text-text-muted hover:border-pink-300 hover:text-pink-400'
+                    }`}
+                    aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                  >
+                    <Heart size={18} fill={isFavorite ? 'currentColor' : 'none'} />
+                  </button>
+                  <div className="bg-p-yellow px-4 py-2 rounded-2xl border-2 border-white shadow-sm flex items-center gap-2 text-[#f08c00]">
+                    <Star size={18} fill="currentColor" />
+                    {tutor.rating !== null ? (
+                      <span className="font-black text-lg">{tutor.rating.toFixed(1)}</span>
+                    ) : (
+                      <span className="font-black text-[10px] uppercase tracking-widest">New</span>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-8 border-y border-[#f1f3f5]">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-8 border-y border-border">
                 <Stat icon={Clock} label="Experience" val="Verified" />
                 <Stat icon={Globe} label="Language" val="English" />
                 <Stat icon={Calendar} label="Level" val={tutor.level} />
@@ -232,7 +260,7 @@ export default function TutorProfilePage() {
                   <h3 className="text-lg font-black tracking-tight uppercase">Subjects</h3>
                   <div className="flex flex-wrap gap-2">
                     {tutor.subjects.map((s) => (
-                      <span key={s} className="px-4 py-2 bg-[#f8f9fa] rounded-xl text-[10px] font-black uppercase tracking-widest text-primary border border-[#f1f3f5]">{s}</span>
+                      <span key={s} className="px-4 py-2 bg-surface-elevated rounded-xl text-[10px] font-black uppercase tracking-widest text-primary border border-border">{s}</span>
                     ))}
                   </div>
                 </div>
@@ -250,7 +278,7 @@ export default function TutorProfilePage() {
 
         {/* Right: Booking Card */}
         <div className="lg:col-span-4">
-          <div className="bg-white border-2 border-[#f1f3f5] rounded-[48px] p-10 sticky top-32 shadow-xl space-y-8 overflow-hidden">
+          <div className="bg-surface border-2 border-border rounded-[48px] p-10 sticky top-32 shadow-xl space-y-8 overflow-hidden">
             <div className="flex justify-between items-center">
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted">Hourly Rate</p>
               <p className="text-3xl font-black text-text-main">${tutor.price}<span className="text-sm opacity-20">/hr</span></p>
@@ -265,7 +293,7 @@ export default function TutorProfilePage() {
                     value={selectedDate}
                     min={minDate}
                     onChange={(e) => { setSelectedDate(e.target.value); setSelectedTime(''); }}
-                    className="w-full bg-[#f8f9fa] border-2 border-[#f1f3f5] rounded-2xl px-4 py-3 text-sm font-bold text-text-main focus:outline-none focus:border-primary transition-all"
+                    className="w-full bg-surface-elevated border-2 border-border rounded-2xl px-4 py-3 text-sm font-bold text-text-main focus:outline-none focus:border-primary transition-all"
                   />
                 </div>
 
@@ -281,7 +309,7 @@ export default function TutorProfilePage() {
                           className={`py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border-2 ${
                             selectedTime === slot
                               ? 'bg-primary text-white border-primary shadow-md'
-                              : 'bg-[#f8f9fa] border-[#f1f3f5] text-text-muted hover:border-primary hover:text-primary'
+                              : 'bg-surface-elevated border-border text-text-muted hover:border-primary hover:text-primary'
                           }`}
                         >
                           {slot}
@@ -320,46 +348,30 @@ export default function TutorProfilePage() {
                 animate={{ opacity: 1, scale: 1 }}
                 className="space-y-5"
               >
-                <div className="bg-p-green p-6 rounded-[28px] space-y-4 border-2 border-white">
-                  <div className="flex items-center gap-3 text-[#27ae60]">
-                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm shrink-0">
-                      <CheckCircle size={20} />
+                <div className="bg-p-yellow p-6 rounded-[28px] space-y-4 border-2 border-amber-200">
+                  <div className="flex items-center gap-3 text-amber-600">
+                    <div className="w-10 h-10 bg-surface rounded-xl flex items-center justify-center shadow-sm shrink-0">
+                      <AlertCircle size={20} />
                     </div>
                     <div>
-                      <p className="text-sm font-black uppercase tracking-tight text-[#2b8a3e]">Booking Confirmed</p>
-                      <p className="text-[10px] font-bold text-[#2b8a3e]/60 uppercase">{selectedDate} · {selectedTime}</p>
+                      <p className="text-sm font-black uppercase tracking-tight text-amber-700">Request Sent!</p>
+                      <p className="text-[10px] font-bold text-amber-600/60 uppercase">{selectedDate} · {selectedTime}</p>
                     </div>
                   </div>
                 </div>
 
-                {/* Room info */}
                 <div className="space-y-2">
-                  <label className="text-[9px] font-black uppercase tracking-[0.2em] text-text-muted ml-1">
-                    Jitsi Room ID
-                  </label>
-                  <div className="flex items-center gap-2 bg-[#f8f9fa] border-2 border-[#f1f3f5] rounded-2xl px-4 py-3">
-                    <span className="text-[10px] font-mono text-text-main flex-1 truncate">
-                      brighton-{confirmedBookingId}
-                    </span>
-                    <button
-                      onClick={copyLink}
-                      className="shrink-0 p-1.5 bg-white rounded-lg border border-border hover:bg-primary hover:text-white hover:border-primary transition-all"
-                      title="Copy room link"
-                    >
-                      {copied ? <Check size={14} className="text-[#27ae60]" /> : <Copy size={14} />}
-                    </button>
+                  <label className="text-[9px] font-black uppercase tracking-[0.2em] text-text-muted ml-1">Status</label>
+                  <div className="bg-p-yellow p-4 rounded-2xl flex items-center gap-3 border-2 border-amber-200">
+                    <AlertCircle size={18} className="text-amber-600 shrink-0" />
+                    <div>
+                      <p className="text-xs font-black text-amber-700 uppercase tracking-tight">Waiting for Confirmation</p>
+                      <p className="text-[9px] font-bold text-amber-600/70">
+                        The tutor needs to accept your booking request. You'll be notified once confirmed.
+                      </p>
+                    </div>
                   </div>
-                  <p className="text-[9px] text-[#adb5bd] font-bold uppercase tracking-widest ml-1">
-                    Share this link with your tutor to join the same room
-                  </p>
                 </div>
-
-                <button
-                  onClick={() => router.push(classroomPath)}
-                  className="flex items-center justify-center gap-3 w-full py-5 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-[#5c7cfa] transition-all shadow-xl shadow-primary/20"
-                >
-                  <Video size={16} /> Enter Classroom Now
-                </button>
 
                 <button
                   onClick={() => { 
@@ -367,7 +379,7 @@ export default function TutorProfilePage() {
                     setSelectedDate(''); 
                     setSelectedTime('');
                   }}
-                  className="w-full py-3 text-[10px] font-black uppercase tracking-widest text-[#adb5bd] hover:text-text-main transition-colors"
+                  className="w-full py-3 text-[10px] font-black uppercase tracking-widest text-text-muted hover:text-text-main transition-colors"
                 >
                   Book Another Session
                 </button>
@@ -383,11 +395,11 @@ export default function TutorProfilePage() {
 function Stat({ icon: Icon, label, val }: { icon: any; label: string; val: string }) {
   return (
     <div className="flex items-center gap-3">
-      <div className="w-10 h-10 bg-[#f8f9fa] rounded-xl flex items-center justify-center text-primary">
+      <div className="w-10 h-10 bg-surface-elevated rounded-xl flex items-center justify-center text-primary">
         <Icon size={18} />
       </div>
       <div>
-        <p className="text-[9px] font-black uppercase tracking-widest text-[#adb5bd]">{label}</p>
+        <p className="text-[9px] font-black uppercase tracking-widest text-text-muted">{label}</p>
         <p className="text-xs font-black text-text-main">{val}</p>
       </div>
     </div>

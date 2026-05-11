@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Calendar as CalendarIcon, Clock, Video, User,
   ChevronRight, Sparkles, X, BookOpen, ExternalLink, Users,
-  TrendingUp, Sun,
+  TrendingUp, Sun, Star, GraduationCap, Brain, Rocket, Heart
 } from 'lucide-react';
 import Link from 'next/link';
 import { useCurrentUser } from '@/lib/hooks/useCurrentUser';
@@ -20,19 +20,29 @@ interface ScheduleItem {
   rawDate: string;
   meetLink: string;
   topic: string;
+  status: string;
   color: string;
   iconColor: string;
   iconBg: string;
   bannerFrom: string;
   bannerTo: string;
+  bannerDarkFrom: string;
+  bannerDarkTo: string;
 }
 
 const COLORS = [
-  { color: 'bg-p-purple', iconColor: 'text-purple-600', iconBg: 'bg-purple-100', bannerFrom: '#ede9fe', bannerTo: '#c4b5fd' },
-  { color: 'bg-p-pink',   iconColor: 'text-pink-600',   iconBg: 'bg-pink-100',   bannerFrom: '#fce7f3', bannerTo: '#f9a8d4' },
-  { color: 'bg-p-mint',   iconColor: 'text-teal-600',   iconBg: 'bg-teal-100',   bannerFrom: '#d1fae5', bannerTo: '#6ee7b7' },
-  { color: 'bg-p-yellow', iconColor: 'text-amber-600',  iconBg: 'bg-amber-100',  bannerFrom: '#fef9c3', bannerTo: '#fcd34d' },
-  { color: 'bg-p-peach',  iconColor: 'text-orange-600', iconBg: 'bg-orange-100', bannerFrom: '#ffedd5', bannerTo: '#fdba74' },
+  { color: 'bg-p-purple', iconColor: 'text-purple-600 dark:text-purple-400', iconBg: 'bg-purple-100 dark:bg-purple-900/50', bannerFrom: '#ede9fe', bannerTo: '#c4b5fd', bannerDarkFrom: '#2a1a45', bannerDarkTo: '#1e1035' },
+  { color: 'bg-p-pink',   iconColor: 'text-pink-600 dark:text-pink-400',   iconBg: 'bg-pink-100 dark:bg-pink-900/50',   bannerFrom: '#fce7f3', bannerTo: '#f9a8d4', bannerDarkFrom: '#3d1f3a', bannerDarkTo: '#2d152a' },
+  { color: 'bg-p-mint',   iconColor: 'text-teal-600 dark:text-teal-400',   iconBg: 'bg-teal-100 dark:bg-teal-900/50',   bannerFrom: '#d1fae5', bannerTo: '#6ee7b7', bannerDarkFrom: '#1a3a2e', bannerDarkTo: '#0f2a1e' },
+  { color: 'bg-p-yellow', iconColor: 'text-amber-600 dark:text-amber-400',  iconBg: 'bg-amber-100 dark:bg-amber-900/50',  bannerFrom: '#fef9c3', bannerTo: '#fcd34d', bannerDarkFrom: '#3d3520', bannerDarkTo: '#2d2515' },
+  { color: 'bg-p-peach',  iconColor: 'text-orange-600 dark:text-orange-400', iconBg: 'bg-orange-100 dark:bg-orange-900/50', bannerFrom: '#ffedd5', bannerTo: '#fdba74', bannerDarkFrom: '#3d2a1a', bannerDarkTo: '#2d1a0f' },
+];
+
+const quickActions = [
+  { label: 'Find a Tutor', href: '/dashboard/tutors', icon: Users, gradient: 'from-purple-500 to-pink-500', desc: 'Browse experts' },
+  { label: 'Take Test', href: '/dashboard/test', icon: Brain, gradient: 'from-pink-500 to-amber-500', desc: 'AI assessment' },
+  { label: 'My Classes', href: '/dashboard/classes', icon: BookOpen, gradient: 'from-blue-500 to-purple-500', desc: 'View schedule' },
+  { label: 'Bookings', href: '/dashboard/bookings', icon: CalendarIcon, gradient: 'from-teal-500 to-blue-500', desc: 'Manage sessions' },
 ];
 
 export default function DashboardPage() {
@@ -41,6 +51,15 @@ export default function DashboardPage() {
   const [schedule, setSchedule]           = useState<ScheduleItem[]>([]);
   const [loading, setLoading]             = useState(true);
   const [selectedClass, setSelectedClass] = useState<ScheduleItem | null>(null);
+  const [isDark, setIsDark]               = useState(false);
+
+  useEffect(() => {
+    const checkDark = () => setIsDark(document.documentElement.classList.contains('dark'));
+    checkDark();
+    const observer = new MutationObserver(checkDark);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (userLoading) return;
@@ -81,6 +100,7 @@ export default function DashboardPage() {
             rawDate: booking.date,
             meetLink: booking.meetLink || '',
             topic: `Session with ${tutorName}`,
+            status: booking.status || 'CONFIRMED',
             ...COLORS[index % COLORS.length],
           };
         });
@@ -102,66 +122,114 @@ export default function DashboardPage() {
     return itemDate.toDateString() === today.toDateString();
   };
 
-  const now             = new Date();
-  const todaysClasses   = schedule.filter((item) => isToday(item.rawDate));
-  const upcomingClasses = schedule.filter((item) => new Date(item.rawDate) >= now);
+  const now = new Date();
+  const activeSchedule = schedule.filter((item) => item.status !== 'COMPLETED' && item.status !== 'CANCELLED');
+  const confirmedSchedule = schedule.filter((item) => item.status === 'CONFIRMED');
+  const pendingSchedule = schedule.filter((item) => item.status === 'PENDING');
+  const todaysClasses   = confirmedSchedule.filter((item) => isToday(item.rawDate));
+  const upcomingClasses = confirmedSchedule.filter((item) => new Date(item.rawDate) >= now);
 
   const stats = [
-    { label: 'Upcoming', value: upcomingClasses.length, icon: TrendingUp, bg: 'bg-p-purple', text: 'text-purple-600' },
-    { label: 'Today',    value: todaysClasses.length,   icon: Sun,         bg: 'bg-p-yellow', text: 'text-amber-600' },
-    { label: 'Total',    value: schedule.length,        icon: BookOpen,    bg: 'bg-p-blue',   text: 'text-blue-600'  },
+    { label: 'Upcoming', value: upcomingClasses.length, icon: TrendingUp, bg: 'bg-p-purple', text: 'text-purple-600 dark:text-purple-400' },
+    { label: 'Today',    value: todaysClasses.length,   icon: Sun,         bg: 'bg-p-yellow', text: 'text-amber-600 dark:text-amber-400' },
+    { label: 'Total',    value: activeSchedule.length,   icon: BookOpen,    bg: 'bg-p-blue',   text: 'text-blue-600 dark:text-blue-400'  },
   ];
 
   return (
-    <div className="space-y-10">
-      {/* Header */}
-      <header className="space-y-6">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div className="space-y-1">
-            <h2 className="text-3xl font-black tracking-tight text-text-main">
+    <div className="space-y-8">
+      {/* Hero Header */}
+      <header className="relative overflow-hidden bg-gradient-to-br from-p-purple/20 via-surface to-p-sakura/20 dark:from-[#2a1a45]/40 dark:via-surface dark:to-[#3d1a3a]/30 rounded-[40px] p-6 sm:p-8 md:p-10 border-2 border-border">
+        <div className="absolute -top-10 -right-10 w-48 h-48 bg-p-purple/10 rounded-full blur-3xl" />
+        <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-p-sakura/20 rounded-full blur-3xl" />
+        
+        <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-surface/80 rounded-full shadow-sm">
+              <Sparkles size={12} className="text-primary" />
+              <span className="text-[8px] font-black uppercase tracking-[0.2em] text-text-muted">
+                {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+              </span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-text-main">
               Welcome back,{' '}
               <span className="gradient-text">{user?.name?.split(' ')[0] || 'Friend'}!</span>
             </h2>
-            <p className="text-text-muted font-bold text-xs uppercase tracking-widest">
-              {loading ? 'Loading your schedule...' :
-               todaysClasses.length === 0 ? 'No sessions scheduled for today.' :
-               `You have ${todaysClasses.length} session${todaysClasses.length > 1 ? 's' : ''} today.`}
+            <p className="text-text-muted font-bold text-[10px] sm:text-xs uppercase tracking-widest">
+              {loading ? '✨ Loading your academic overview...' :
+               todaysClasses.length === 0 ? '☀️ No sessions scheduled for today — time to book one!' :
+               `🎯 You have ${todaysClasses.length} session${todaysClasses.length > 1 ? 's' : ''} today. Let's go!`}
             </p>
           </div>
           <Link
             href="/dashboard/test"
-            className="px-5 py-2.5 bg-p-yellow text-amber-700 rounded-xl font-black text-[10px] uppercase tracking-[0.15em] shadow-sm shadow-amber-200/60 hover:scale-105 transition-all flex items-center gap-2 shrink-0"
+            className="group relative overflow-hidden w-full sm:w-auto px-5 py-3 bg-gradient-to-r from-primary to-pink-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.15em] shadow-lg shadow-primary/20 hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center gap-2.5 shrink-0"
           >
-            <Sparkles size={13} /> Retake AI Assessment
+            <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <Brain size={14} className="relative z-10" />
+            <span className="relative z-10">AI Assessment</span>
+            <Sparkles size={10} className="relative z-10 animate-sparkle" />
           </Link>
         </div>
 
         {/* Stats row */}
         {!loading && (
-          <div className="grid grid-cols-3 gap-3">
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="grid grid-cols-3 gap-2 sm:gap-3 mt-8"
+          >
             {stats.map((s) => {
               const Icon = s.icon;
               return (
-                <div key={s.label} className={`${s.bg} border border-white rounded-2xl px-4 py-3 flex items-center gap-3`}>
-                  <div className="w-8 h-8 bg-white/60 rounded-xl flex items-center justify-center shrink-0">
-                    <Icon size={15} className={s.text} />
+                <div key={s.label} className={`${s.bg} border-2 border-border/80 rounded-2xl px-3 sm:px-5 py-3 sm:py-4 flex items-center gap-2 sm:gap-4 hover:shadow-md transition-all hover:-translate-y-0.5`}>
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-surface/70 rounded-xl flex items-center justify-center shrink-0">
+                    <Icon size={16} className={`${s.text} sm:size-[18px]`} />
                   </div>
-                  <div>
-                    <p className="text-lg font-black text-text-main leading-none">{s.value}</p>
-                    <p className="text-[9px] font-black uppercase tracking-widest text-text-muted">{s.label}</p>
+                  <div className="min-w-0">
+                    <p className="text-xl sm:text-2xl font-black text-text-main leading-none">{s.value}</p>
+                    <p className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-text-muted mt-0.5">{s.label}</p>
                   </div>
                 </div>
               );
             })}
-          </div>
+          </motion.div>
         )}
       </header>
 
+      {/* Quick Actions */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="grid grid-cols-2 md:grid-cols-4 gap-3"
+      >
+        {quickActions.map((action) => {
+          const Icon = action.icon;
+          return (
+            <Link key={action.label} href={action.href}>
+              <div className="group relative overflow-hidden p-4 bg-surface border-2 border-border rounded-2xl hover:shadow-lg hover:-translate-y-1 transition-all cursor-pointer">
+                <div className={`absolute inset-0 bg-gradient-to-br ${action.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-300`} />
+                <div className="relative z-10 flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br ${action.gradient} shadow-sm group-hover:scale-110 transition-transform duration-300`}>
+                    <Icon size={18} className="text-white" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-black text-text-main">{action.label}</p>
+                    <p className="text-[8px] font-bold text-text-muted uppercase tracking-widest">{action.desc}</p>
+                  </div>
+                </div>
+              </div>
+            </Link>
+          );
+        })}
+      </motion.div>
+
       {/* Schedule Section */}
-      <section className="space-y-6">
+      <section className="space-y-5">
         <div className="flex justify-between items-center">
-          <h3 className="text-base font-black tracking-tight uppercase flex items-center gap-2.5 text-text-main">
-            <div className="w-7 h-7 bg-p-purple rounded-lg flex items-center justify-center">
+          <h3 className="text-sm sm:text-base font-black tracking-tight uppercase flex items-center gap-2.5 text-text-main">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-br from-[#ede9fe] to-[#fce7f3] dark:from-[#2a1a45] dark:to-[#3d1f3a] rounded-xl flex items-center justify-center">
               <CalendarIcon size={14} className="text-primary" />
             </div>
             Your Academic Schedule
@@ -169,18 +237,18 @@ export default function DashboardPage() {
           {schedule.length > 0 && (
             <Link
               href="/dashboard/classes"
-              className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-primary hover:text-accent-strong transition-colors"
+              className="group flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-primary hover:text-accent-strong transition-colors"
             >
-              View All <ChevronRight size={12} />
+              View All <ChevronRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
             </Link>
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
           {loading ? (
             [1, 2, 3].map((i) => (
-              <div key={i} className="bg-white border-2 border-border rounded-[32px] overflow-hidden animate-pulse">
-                <div className="h-20 bg-p-purple/50" />
+              <div key={i} className="bg-surface border-2 border-border rounded-[32px] overflow-hidden animate-pulse">
+                <div className="h-20 bg-surface-elevated" />
                 <div className="p-5 space-y-3">
                   <div className="h-5 bg-surface-elevated rounded-xl w-3/4" />
                   <div className="h-3 bg-surface-elevated rounded-xl w-1/2" />
@@ -188,45 +256,53 @@ export default function DashboardPage() {
                 </div>
               </div>
             ))
-          ) : schedule.length === 0 ? (
-            <div className="col-span-full flex flex-col items-center justify-center py-16 text-center space-y-5">
-              <div className="w-16 h-16 bg-p-purple rounded-3xl flex items-center justify-center">
-                <BookOpen size={28} className="text-primary" />
+          ) : confirmedSchedule.length === 0 && pendingSchedule.length === 0 ? (
+            <div className="col-span-full flex flex-col items-center justify-center py-12 sm:py-16 text-center space-y-6">
+              <div className="relative">
+                <div className="w-20 h-20 bg-gradient-to-br from-[#ede9fe] to-[#fce7f3] dark:from-[#2a1a45] dark:to-[#3d1f3a] rounded-3xl flex items-center justify-center">
+                  <BookOpen size={32} className="text-white" />
+                </div>
+                <div className="absolute -top-2 -right-2 w-8 h-8 bg-p-sakura dark:bg-[#3d1a3a] rounded-full flex items-center justify-center animate-sparkle">
+                  <Star size={12} className="text-pink-500 dark:text-pink-400" />
+                </div>
               </div>
               <div className="space-y-2">
-                <h3 className="text-lg font-black text-text-main">No scheduled classes yet</h3>
-                <p className="text-sm text-text-muted max-w-md">
+                <h3 className="text-xl font-black text-text-main">No scheduled classes yet</h3>
+                <p className="text-sm text-text-muted max-w-md leading-relaxed">
                   Browse available tutors and book your first session to start your learning adventure!
                 </p>
               </div>
               <Link
                 href="/dashboard/tutors"
-                className="px-6 py-3 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:opacity-90 transition-all flex items-center gap-2"
-                style={{ background: 'linear-gradient(135deg, #ec4899 0%, #9333ea 100%)', boxShadow: '0 6px 20px rgba(147,51,234,0.2)' }}
+                className="group px-8 py-4 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:shadow-xl hover:scale-105 transition-all flex items-center gap-2.5"
+                style={{ background: 'linear-gradient(135deg, #ec4899 0%, #9333ea 100%)', boxShadow: '0 8px 24px rgba(147,51,234,0.2)' }}
               >
-                <Users size={14} /> Find Tutors
+                <Users size={14} /> Find Tutors <Rocket size={14} className="group-hover:translate-x-0.5 transition-transform" />
               </Link>
             </div>
           ) : (
-            schedule.map((item) => (
+            confirmedSchedule.filter((item) => new Date(item.rawDate) >= now).map((item) => (
               <motion.div
                 key={item.id}
-                whileHover={{ y: -5 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                whileHover={{ y: -6 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                 onClick={() => setSelectedClass(item)}
-                className="bg-white border-2 border-border rounded-[32px] overflow-hidden cursor-pointer group hover:border-primary/30 hover:shadow-lg hover:shadow-primary/10 transition-all"
+                className="bg-surface border-2 border-border rounded-[32px] overflow-hidden cursor-pointer group hover:border-primary/30 hover:shadow-xl hover:shadow-primary/10 transition-all"
               >
                 {/* Colored banner */}
                 <div
                   className="h-20 relative flex items-end px-5 pb-3"
-                  style={{ background: `linear-gradient(135deg, ${item.bannerFrom}, ${item.bannerTo})` }}
+                  style={{ background: `linear-gradient(135deg, ${isDark ? item.bannerDarkFrom : item.bannerFrom}, ${isDark ? item.bannerDarkTo : item.bannerTo})` }}
                 >
-                  <div className="absolute -right-4 -top-4 w-20 h-20 rounded-full border-[12px] border-white/20" />
-                  <span className="relative px-3 py-1 bg-white/60 backdrop-blur-sm rounded-full text-[9px] font-black uppercase tracking-widest text-text-main">
+                  <div className="absolute -right-4 -top-4 w-24 h-24 rounded-full border-[12px] border-white/20 dark:border-white/5" />
+                  <div className="absolute -left-4 -bottom-4 w-16 h-16 rounded-full border-8 border-white/10 dark:border-white/5" />
+                  <span className="relative px-4 py-1.5 bg-white/70 dark:bg-white/10 dark:text-white backdrop-blur-sm rounded-full text-[9px] font-black uppercase tracking-widest text-text-main shadow-sm">
                     {item.time}
                   </span>
-                  <div className={`absolute top-4 right-5 p-1.5 ${item.iconBg} rounded-xl ${item.iconColor}`}>
-                    <Video size={15} />
+                  <div className={`absolute top-4 right-5 p-2 ${item.iconBg} rounded-xl ${item.iconColor} shadow-sm`}>
+                    <Video size={14} />
                   </div>
                 </div>
 
@@ -240,14 +316,14 @@ export default function DashboardPage() {
                       {item.subject}
                     </p>
                   </div>
-                  <div className="flex items-center gap-1.5 text-[10px] font-bold text-text-muted uppercase tracking-tight">
+                  <div className="flex items-center gap-1.5 text-[10px] font-bold text-text-muted">
                     <User size={11} /> {item.teacher}
                   </div>
-                  <div className="pt-2 border-t border-border flex items-center justify-between">
+                  <div className="pt-3 border-t border-border flex items-center justify-between">
                     <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-text-muted">
                       <Clock size={11} /> {item.date}
                     </div>
-                    <div className="w-7 h-7 bg-p-purple rounded-xl flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all">
+                    <div className="w-8 h-8 bg-gradient-to-br from-[#ede9fe] to-[#fce7f3] dark:from-[#2a1a45] dark:to-[#3d1f3a] rounded-xl flex items-center justify-center text-primary group-hover:from-primary group-hover:to-pink-500 group-hover:text-white transition-all shadow-sm">
                       <ChevronRight size={14} />
                     </div>
                   </div>
@@ -261,7 +337,7 @@ export default function DashboardPage() {
       {/* Detail Modal */}
       <AnimatePresence>
         {selectedClass && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -273,43 +349,45 @@ export default function DashboardPage() {
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="w-full max-w-lg bg-white rounded-[40px] shadow-[0_40px_100px_rgba(147,51,234,0.15)] border border-p-purple overflow-hidden relative z-10"
+              className="w-full max-w-lg bg-surface rounded-[40px] shadow-[0_40px_100px_rgba(147,51,234,0.15)] border border-p-purple dark:border-[#2d1b4e] overflow-hidden relative z-10"
             >
               <div
                 className="h-28 relative"
-                style={{ background: `linear-gradient(135deg, ${selectedClass.bannerFrom}, ${selectedClass.bannerTo})` }}
+                style={{ background: `linear-gradient(135deg, ${isDark ? selectedClass.bannerDarkFrom : selectedClass.bannerFrom}, ${isDark ? selectedClass.bannerDarkTo : selectedClass.bannerTo})` }}
               >
                 <button
                   onClick={() => setSelectedClass(null)}
-                  className="absolute top-5 right-5 p-2 bg-white/60 hover:bg-white rounded-full transition-all text-text-main"
+                  className="absolute top-5 right-5 p-2 bg-surface/60 hover:bg-surface rounded-full transition-all text-text-main hover:shadow-md z-10"
                   aria-label="Close modal"
                 >
                   <X size={18} />
                 </button>
-                <div className="absolute -bottom-7 left-8 w-14 h-14 bg-white rounded-2xl shadow-md border-4 border-white flex items-center justify-center">
+                <div className="absolute -bottom-7 left-8 w-14 h-14 bg-surface rounded-2xl shadow-md border-4 border-surface flex items-center justify-center">
                   <BookOpen size={24} className={selectedClass.iconColor} />
                 </div>
               </div>
 
-              <div className="p-8 pt-11 space-y-6">
+              <div className="p-6 sm:p-8 pt-11 space-y-6">
                 <div className="space-y-1.5">
-                  <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-primary">
-                    <Sparkles size={11} /> Confirmed Session
+                  <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em]">
+                    <span className="text-primary">✦</span>
+                    <span className="text-primary">Confirmed Session</span>
+                    <span className="text-primary">✦</span>
                   </div>
-                  <h3 className="text-2xl font-black tracking-tight text-text-main">{selectedClass.topic}</h3>
+                  <h3 className="text-xl sm:text-2xl font-black tracking-tight text-text-main">{selectedClass.topic}</h3>
                   <p className="text-xs font-bold text-text-muted uppercase tracking-widest">
                     {selectedClass.subject} · {selectedClass.teacher}
                   </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="p-4 bg-p-purple/40 rounded-2xl space-y-1">
+                  <div className="p-5 bg-gradient-to-br from-p-purple/30 to-p-purple/10 dark:from-[#2a1a45]/60 dark:to-[#1e1035]/30 rounded-2xl space-y-1.5 border border-p-purple/20 dark:border-[#2d1b4e]/50">
                     <p className="text-[9px] font-black uppercase tracking-widest text-text-muted">Time</p>
-                    <p className="text-xs font-black text-text-main">{selectedClass.time}</p>
+                    <p className="text-sm font-black text-text-main">{selectedClass.time}</p>
                   </div>
-                  <div className="p-4 bg-p-pink/40 rounded-2xl space-y-1">
+                  <div className="p-5 bg-gradient-to-br from-p-pink/30 to-p-sakura/10 dark:from-[#3d1f3a]/60 dark:to-[#2d152a]/30 rounded-2xl space-y-1.5 border border-pink-200/20 dark:border-[#3d1f3a]/50">
                     <p className="text-[9px] font-black uppercase tracking-widest text-text-muted">Date</p>
-                    <p className="text-xs font-black text-text-main">{selectedClass.date}</p>
+                    <p className="text-sm font-black text-text-main">{selectedClass.date}</p>
                   </div>
                 </div>
 
@@ -317,18 +395,19 @@ export default function DashboardPage() {
                   href={selectedClass.meetLink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full p-4 rounded-2xl flex items-center justify-between group hover:opacity-90 transition-all text-white"
+                  className="group relative overflow-hidden w-full p-4 rounded-2xl flex items-center justify-between transition-all text-white hover:shadow-xl hover:scale-[1.02]"
                   style={{ background: 'linear-gradient(135deg, #ec4899 0%, #9333ea 100%)', boxShadow: '0 8px 24px rgba(147,51,234,0.25)' }}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="p-1.5 bg-white/20 rounded-xl"><Video size={17} /></div>
+                  <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="relative z-10 flex items-center gap-3">
+                    <div className="p-2 bg-white/20 rounded-xl"><Video size={17} /></div>
                     <span className="font-black text-xs uppercase tracking-widest">Join Classroom</span>
                   </div>
-                  <ExternalLink size={16} className="opacity-60 group-hover:opacity-100 transition-opacity" />
+                  <ExternalLink size={16} className="relative z-10 opacity-60 group-hover:opacity-100 transition-opacity" />
                 </a>
               </div>
 
-              <div className="px-8 py-4 bg-p-purple/30 border-t border-p-purple text-center">
+              <div className="px-8 py-4 bg-gradient-to-r from-p-purple/20 to-p-sakura/10 dark:from-[#2a1a45]/40 dark:to-[#3d1a3a]/30 border-t border-p-purple/20 dark:border-[#2d1b4e]/50 text-center">
                 <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Brighton Academic Framework v2.0</p>
               </div>
             </motion.div>

@@ -21,6 +21,8 @@ model User {
   notifications    Notification[]
   studentProfile   Student?
   tutorProfile     Tutor?
+  savedTutors      SavedTutor[]
+  theme            String?        @default("light")
 }
 
 model Student {
@@ -35,7 +37,7 @@ model Student {
   attempts    Attempt[]
   bookings    Booking[]
   reviews     Review[]
-  user        User      @relation(fields: [userId], references: [id])
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Tutor {
@@ -52,8 +54,10 @@ model Tutor {
   education          Education[]
   reviews            Review[]
   sessionNotes       SessionNote[]
-  user               User               @relation(fields: [userId], references: [id])
+  resources          Resource[]
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   subjects           TutorSubject[]
+  savedBy            SavedTutor[]
 }
 
 model Education {
@@ -64,7 +68,7 @@ model Education {
   specialization String
   yearStart      Int
   yearEnd        Int?
-  tutor          Tutor  @relation(fields: [tutorId], references: [id])
+  tutor          Tutor  @relation(fields: [tutorId], references: [id], onDelete: Cascade)
 }
 
 model Certification {
@@ -74,7 +78,7 @@ model Certification {
   certificate    String
   issuedBy       String
   certificateUrl String?
-  tutor          Tutor  @relation(fields: [tutorId], references: [id])
+  tutor          Tutor  @relation(fields: [tutorId], references: [id], onDelete: Cascade)
 }
 
 model Availability {
@@ -83,7 +87,7 @@ model Availability {
   dayOfWeek Int
   startTime String
   endTime   String
-  tutor     Tutor  @relation(fields: [tutorId], references: [id])
+  tutor     Tutor  @relation(fields: [tutorId], references: [id], onDelete: Cascade)
 }
 
 model Subject {
@@ -97,7 +101,7 @@ model TutorSubject {
   tutorId   String
   subjectId String
   subject   Subject @relation(fields: [subjectId], references: [id])
-  tutor     Tutor   @relation(fields: [tutorId], references: [id])
+  tutor     Tutor   @relation(fields: [tutorId], references: [id], onDelete: Cascade)
 
   @@id([tutorId, subjectId])
 }
@@ -109,9 +113,10 @@ model Booking {
   date      DateTime
   meetLink  String?
   status    String       @default("PENDING")
-  student   Student      @relation(fields: [studentId], references: [id])
-  tutor     Tutor        @relation(fields: [tutorId], references: [id])
+  student   Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  tutor     Tutor        @relation(fields: [tutorId], references: [id], onDelete: Cascade)
   notes     SessionNote?
+  review    Review?
 }
 
 model SessionNote {
@@ -120,19 +125,45 @@ model SessionNote {
   tutorId   String
   content   String
   createdAt DateTime @default(now())
-  booking   Booking  @relation(fields: [bookingId], references: [id])
-  tutor     Tutor    @relation(fields: [tutorId], references: [id])
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  tutor     Tutor    @relation(fields: [tutorId], references: [id], onDelete: Cascade)
 }
 
 model Review {
   id        String   @id @default(cuid())
   studentId String
   tutorId   String
-  rating    Int      @default(5)
+  bookingId String?  @unique
+  rating    Int
   comment   String?
   createdAt DateTime @default(now())
-  student   Student  @relation(fields: [studentId], references: [id])
-  tutor     Tutor    @relation(fields: [tutorId], references: [id])
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  tutor     Tutor    @relation(fields: [tutorId], references: [id], onDelete: Cascade)
+  booking   Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+}
+
+model SavedTutor {
+  id        String   @id @default(cuid())
+  userId    String
+  tutorId   String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tutor     Tutor    @relation(fields: [tutorId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tutorId])
+}
+
+model Resource {
+  id          String   @id @default(cuid())
+  tutorId     String
+  title       String
+  description String?
+  fileUrl     String
+  fileType    String   @default("link")
+  subject     String?
+  level       Level?
+  createdAt   DateTime @default(now())
+  tutor       Tutor    @relation(fields: [tutorId], references: [id], onDelete: Cascade)
 }
 
 model Message {
@@ -142,8 +173,8 @@ model Message {
   content    String
   createdAt  DateTime @default(now())
   isRead     Boolean  @default(false)
-  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
-  sender     User     @relation("SentMessages", fields: [senderId], references: [id])
+  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
 }
 
 model Notification {
@@ -154,7 +185,7 @@ model Notification {
   link      String?
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Test {
@@ -180,9 +211,13 @@ model Attempt {
   studentId  String
   testId     String
   score      Int
+  total      Int      @default(30)
+  mastery    String?
+  strengths  Json
   weaknesses Json
+  studyPlan  String?
   timestamp  DateTime @default(now())
-  student    Student  @relation(fields: [studentId], references: [id])
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
   test       Test     @relation(fields: [testId], references: [id])
 }
 

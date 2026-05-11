@@ -1,12 +1,25 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { User, GraduationCap, ChevronRight, Mail, Lock, Sparkles, UserCircle, School, Calendar, Upload, X } from 'lucide-react';
+import { User, GraduationCap, ChevronRight, Mail, Lock, Sparkles, UserCircle, School, Calendar, Upload, X, Star, Rocket, Heart, Search } from 'lucide-react';
 import { authClient } from '@/lib/auth/client';
 import { useCurrentUser } from '@/lib/hooks/useCurrentUser';
 import { uploadToCloudinary } from '@/lib/cloudinary';
+
+const PH_GRADES = [
+  { value: 1,  label: 'Grade 1' },
+  { value: 2,  label: 'Grade 2' },
+  { value: 3,  label: 'Grade 3' },
+  { value: 4,  label: 'Grade 4' },
+  { value: 5,  label: 'Grade 5' },
+  { value: 6,  label: 'Grade 6' },
+  { value: 7,  label: 'Grade 7' },
+  { value: 8,  label: 'Grade 8' },
+  { value: 9,  label: 'Grade 9' },
+  { value: 10, label: 'Grade 10' },
+];
 
 export default function SignupPage() {
   const router = useRouter();
@@ -14,9 +27,12 @@ export default function SignupPage() {
   const [email, setEmail]             = useState('');
   const [password, setPassword]       = useState('');
   const [role, setRole]               = useState<'STUDENT' | 'TUTOR'>('STUDENT');
-  const [schoolLevel, setSchoolLevel] = useState<'ELEMENTARY' | 'HIGH_SCHOOL'>('ELEMENTARY');
+  const [gradeLevel, setGradeLevel]   = useState<number>(7);
   const [fullName, setFullName]       = useState('');
   const [schoolName, setSchoolName]   = useState('');
+  const [schoolSearch, setSchoolSearch] = useState('');
+  const [schoolResults, setSchoolResults] = useState<string[]>([]);
+  const [showSchoolDropdown, setShowSchoolDropdown] = useState(false);
   const [age, setAge]                 = useState('');
   const [parentEmail, setParentEmail] = useState('');
   const [loading, setLoading]         = useState(false);
@@ -24,6 +40,50 @@ export default function SignupPage() {
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const schoolDropdownRef = useRef<HTMLDivElement>(null);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Derive school level from grade
+  const schoolLevel: 'ELEMENTARY' | 'HIGH_SCHOOL' = gradeLevel <= 6 ? 'ELEMENTARY' : 'HIGH_SCHOOL';
+
+  // School search with debounce
+  const searchSchools = useCallback(async (query: string) => {
+    if (query.length < 2) {
+      setSchoolResults([]);
+      return;
+    }
+    try {
+      const res = await fetch(`/api/schools?q=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      if (Array.isArray(data)) setSchoolResults(data);
+    } catch {
+      // fallback silently
+    }
+  }, []);
+
+  const handleSchoolInputChange = (value: string) => {
+    setSchoolSearch(value);
+    setShowSchoolDropdown(true);
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    searchTimeoutRef.current = setTimeout(() => searchSchools(value), 200);
+  };
+
+  const selectSchool = (name: string) => {
+    setSchoolName(name);
+    setSchoolSearch(name);
+    setShowSchoolDropdown(false);
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (schoolDropdownRef.current && !schoolDropdownRef.current.contains(e.target as Node)) {
+        setShowSchoolDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   useEffect(() => {
     if (!userLoading && user) {
@@ -102,6 +162,7 @@ export default function SignupPage() {
           age,
           parentEmail: parsedAge < 18 ? parentEmail : null,
           schoolLevel,
+          gradeLevel: gradeLevel,
           image: profileImage,
         }),
       });
@@ -112,9 +173,8 @@ export default function SignupPage() {
         return;
       }
 
-      // Account created successfully - redirect to login page
-      // Avoid immediate auto-signin which causes 403 errors
-      window.location.href = '/login?registered=true';
+      // Account created & auto-signed in - go to dashboard
+      window.location.href = '/dashboard';
     } catch {
       setError('An unexpected error occurred');
     } finally {
@@ -123,66 +183,121 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="flex flex-col gap-8">
-      <div className="text-center space-y-1">
-        <h2 className="text-3xl font-black tracking-tight text-text-main">Create Account</h2>
-        <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Join the Academic Hub</p>
+    <div className="flex flex-col gap-6">
+      {/* Header with sakura decoration */}
+      <div className="text-center space-y-3 pb-2">
+        <div className="inline-flex items-center gap-2 px-4 py-2 bg-p-sakura rounded-full shadow-sm">
+          <Sparkles size={14} className="text-pink-500" />
+          <span className="text-[9px] font-black uppercase tracking-[0.3em] text-pink-600">New Student</span>
+        </div>
+        <h2 className="text-3xl font-black tracking-tight">
+          <span className="gradient-text">Create Account</span>
+        </h2>
+        <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted">
+          Join Brighton's Learning Community
+        </p>
       </div>
 
       {error && (
-        <div className="bg-p-yellow border border-[#fcc419]/20 text-[#f08c00] p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-center">
-          {error}
+        <div className="animate-bounce-cute flex items-start gap-3 bg-p-yellow border-2 border-[#fcc419]/30 text-[#e67700] p-4 rounded-2xl">
+          <Star size={16} className="shrink-0 mt-0.5" />
+          <p className="text-[10px] font-black uppercase tracking-widest leading-relaxed">{error}</p>
         </div>
       )}
 
-      <form onSubmit={handleSignup} className="flex flex-col gap-5">
-        {/* Role Picker */}
-        <div className="flex flex-col gap-3">
-          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted ml-1">Path Selection</label>
-          <div className="grid grid-cols-2 gap-3 p-1.5 bg-p-purple/50 rounded-[20px] border border-border">
+      <form onSubmit={handleSignup} className="flex flex-col gap-4">
+        {/* Role Picker - Premium Redesign */}
+        <div className="flex flex-col gap-2">
+          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted ml-1 flex items-center gap-2">
+            <Rocket size={12} className="text-primary" /> I want to join as
+          </label>
+          <div className="grid grid-cols-2 gap-3 p-1.5 bg-gradient-to-r from-p-purple/40 to-p-sakura/30 rounded-[20px] border-2 border-border">
             <button type="button" onClick={() => setRole('STUDENT')}
-              className={`flex items-center justify-center gap-2 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${role === 'STUDENT' ? 'bg-white text-primary shadow-md' : 'text-text-muted hover:text-text-main'}`}>
-              <User size={14} /> Student
+              className={`group relative flex items-center justify-center gap-2.5 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all duration-300 ${
+                role === 'STUDENT' 
+                  ? 'bg-white text-primary shadow-lg shadow-primary/10 scale-[1.02]' 
+                  : 'text-text-muted hover:text-text-main hover:bg-white/40'
+              }`}>
+              <div className={`absolute inset-0 rounded-2xl transition-opacity duration-300 ${role === 'STUDENT' ? 'opacity-100' : 'opacity-0'}`}
+                style={{ background: 'linear-gradient(135deg, rgba(147,51,234,0.04), rgba(236,72,153,0.04))' }} />
+              <User size={16} className={role === 'STUDENT' ? 'text-primary' : ''} />
+              <span className="relative z-10">Student</span>
+              {role === 'STUDENT' && (
+                <Heart size={10} className="absolute -top-1 -right-1 text-pink-400 animate-bounce-cute" />
+              )}
             </button>
             <button type="button" onClick={() => setRole('TUTOR')}
-              className={`flex items-center justify-center gap-2 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${role === 'TUTOR' ? 'bg-white text-primary shadow-md' : 'text-text-muted hover:text-text-main'}`}>
-              <GraduationCap size={14} /> Tutor
+              className={`group relative flex items-center justify-center gap-2.5 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all duration-300 ${
+                role === 'TUTOR' 
+                  ? 'bg-white text-primary shadow-lg shadow-primary/10 scale-[1.02]' 
+                  : 'text-text-muted hover:text-text-main hover:bg-white/40'
+              }`}>
+              <div className={`absolute inset-0 rounded-2xl transition-opacity duration-300 ${role === 'TUTOR' ? 'opacity-100' : 'opacity-0'}`}
+                style={{ background: 'linear-gradient(135deg, rgba(147,51,234,0.04), rgba(236,72,153,0.04))' }} />
+              <GraduationCap size={16} className={role === 'TUTOR' ? 'text-primary' : ''} />
+              <span className="relative z-10">Tutor</span>
+              {role === 'TUTOR' && (
+                <Sparkles size={10} className="absolute -top-1 -right-1 text-primary animate-sparkle" />
+              )}
             </button>
           </div>
         </div>
 
+        {/* Tutor notice card */}
         {role === 'TUTOR' && (
-          <div className="p-5 bg-primary/5 border border-primary/20 rounded-2xl text-[10px] font-black uppercase tracking-widest text-primary text-center leading-relaxed">
-            Tutor accounts require verification. Click &quot;Proceed&quot; to fill out your tutor profile.
+          <div className="group relative overflow-hidden p-5 bg-gradient-to-br from-primary/5 to-pink-100/40 border-2 border-primary/20 rounded-2xl transition-all hover:border-primary/40">
+            <div className="absolute -top-8 -right-8 w-20 h-20 bg-primary/10 rounded-full blur-2xl" />
+            <div className="relative z-10 flex items-start gap-3">
+              <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
+                <Star size={18} className="text-primary" />
+              </div>
+              <div>
+                <p className="text-[11px] font-black uppercase tracking-widest text-primary mb-1">Tutor Verification Required</p>
+                <p className="text-[10px] font-bold text-text-muted leading-relaxed">
+                  Tutor accounts require admin verification. Click <span className="text-primary">"Proceed to Onboarding"</span> to complete your tutor profile with certifications and availability.
+                </p>
+              </div>
+            </div>
           </div>
         )}
 
+         {/* STUDENT FIELDS */}
          {role === 'STUDENT' && (
-           <div className="flex flex-col gap-5">
+           <div className="flex flex-col gap-4">
              {/* Profile Picture Upload */}
-             <div className="flex flex-col gap-3">
-               <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted ml-1">Profile Picture</label>
+             <div className="flex flex-col gap-2">
+               <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted ml-1 flex items-center gap-2">
+                 <UserCircle size={12} /> Profile Picture
+               </label>
                <div 
                  onClick={() => fileInputRef.current?.click()}
-                 className="relative cursor-pointer group bg-surface-elevated border-2 border-dashed border-border rounded-2xl p-6 flex flex-col items-center justify-center gap-3 hover:border-primary/50 transition-all"
+                 className="group relative cursor-pointer bg-gradient-to-br from-p-purple/20 to-p-sakura/10 border-2 border-dashed border-border rounded-2xl p-5 flex flex-col items-center justify-center gap-2 hover:border-primary/40 hover:from-p-purple/30 hover:to-p-sakura/20 transition-all duration-300"
                >
                  {profileImage ? (
                    <>
-                     <img src={profileImage} alt="Profile" className="w-20 h-20 rounded-full object-cover border-2 border-primary" />
+                     <div className="relative">
+                       <img src={profileImage} alt="Profile" className="w-20 h-20 rounded-full object-cover ring-2 ring-primary/40 ring-offset-2" />
+                       <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-400 rounded-full border-2 border-white flex items-center justify-center">
+                         <Check2Icon size={10} className="text-white" />
+                       </div>
+                     </div>
                      <button 
                        onClick={(e) => { e.stopPropagation(); setProfileImage(null); }}
-                       className="absolute top-2 right-2 p-1.5 bg-rose-500 rounded-full text-white hover:bg-rose-600 transition-all"
+                       className="absolute top-2 right-2 p-1.5 bg-rose-400 rounded-full text-white hover:bg-rose-500 transition-all shadow-md hover:scale-110"
                      >
-                       <X size={14} />
+                       <X size={12} />
                      </button>
-                     <span className="text-[10px] font-black uppercase tracking-wider text-text-muted">Click to change</span>
+                     <span className="text-[10px] font-bold text-text-muted mt-1">Click to change</span>
                    </>
                  ) : (
                    <>
-                     <div className="w-20 h-20 rounded-full bg-p-purple flex items-center justify-center">
-                       <Upload size={24} className="text-primary" />
+                     <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary/20 to-pink-200/40 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                       <Upload size={22} className="text-primary/60 group-hover:text-primary transition-colors" />
                      </div>
-                     <span className="text-[10px] font-black uppercase tracking-wider text-text-muted">Click to upload profile picture</span>
+                     <div className="text-center">
+                       <p className="text-[10px] font-black uppercase tracking-wider text-text-muted group-hover:text-primary transition-colors">Upload Profile Picture</p>
+                       <p className="text-[8px] font-bold text-text-muted/50 mt-0.5">PNG, JPG · Max 5MB</p>
+                     </div>
                    </>
                  )}
                </div>
@@ -195,99 +310,187 @@ export default function SignupPage() {
                />
              </div>
 
-             <div className="grid grid-cols-2 gap-4">
+             {/* Name + Age row */}
+             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted ml-1">Full Name</label>
-                <div className="relative">
-                <UserCircle className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted ml-1 flex items-center gap-2">
+                  <UserCircle size={12} /> Full Name
+                </label>
+                <div className="relative group">
+                  <UserCircle className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-primary transition-colors" size={16} />
                   <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)}
-                    className="w-full bg-surface-elevated border border-border rounded-2xl pl-12 pr-4 py-4 text-sm font-bold focus:outline-none focus:border-primary transition-all"
-                    placeholder="Full Name" required />
+                    className="w-full bg-surface-elevated border-2 border-border rounded-2xl pl-12 pr-4 py-4 text-sm font-bold focus:outline-none focus:border-primary focus:bg-white transition-all placeholder:text-text-muted/30"
+                    placeholder="Juan Dela Cruz" required />
                 </div>
               </div>
               <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted ml-1">Age</label>
-                <div className="relative">
-                <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted ml-1 flex items-center gap-2">
+                  <Calendar size={12} /> Age
+                </label>
+                <div className="relative group">
+                  <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-primary transition-colors" size={16} />
                   <input type="number" value={age} onChange={(e) => setAge(e.target.value)}
-                    className="w-full bg-surface-elevated border border-border rounded-2xl pl-12 pr-4 py-4 text-sm font-bold focus:outline-none focus:border-primary transition-all"
-                    placeholder="Age" required min="5" max="100" />
+                    className="w-full bg-surface-elevated border-2 border-border rounded-2xl pl-12 pr-4 py-4 text-sm font-bold focus:outline-none focus:border-primary focus:bg-white transition-all placeholder:text-text-muted/30"
+                    placeholder="e.g. 12" required min="5" max="100" />
                 </div>
               </div>
             </div>
 
-            <div className="flex flex-col gap-2">
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted ml-1">Current School</label>
-              <div className="relative">
-                <School className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
-                <input type="text" value={schoolName} onChange={(e) => setSchoolName(e.target.value)}
-                  className="w-full bg-surface-elevated border border-border rounded-2xl pl-12 pr-4 py-4 text-sm font-bold focus:outline-none focus:border-primary transition-all"
-                  placeholder="School Name" required />
+            {/* School - Autocomplete Search */}
+            <div className="flex flex-col gap-2 relative" ref={schoolDropdownRef}>
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted ml-1 flex items-center gap-2">
+                <School size={12} /> Current School
+              </label>
+              <div className="relative group">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-primary transition-colors" size={16} />
+                <input
+                  type="text"
+                  value={schoolSearch}
+                  onChange={(e) => { handleSchoolInputChange(e.target.value); setSchoolName(e.target.value); }}
+                  onFocus={() => { if (schoolSearch.length >= 2) setShowSchoolDropdown(true); }}
+                  className="w-full bg-surface-elevated border-2 border-border rounded-2xl pl-12 pr-4 py-4 text-sm font-bold focus:outline-none focus:border-primary focus:bg-white transition-all placeholder:text-text-muted/30"
+                  placeholder="Start typing your school name..." required />
               </div>
+              {schoolName && schoolSearch && schoolName === schoolSearch && (
+                <p className="text-[9px] font-bold text-primary ml-1">✓ {schoolName}</p>
+              )}
+              {showSchoolDropdown && schoolResults.length > 0 && (
+                <div className="absolute top-full mt-1 left-0 right-0 bg-white border-2 border-border rounded-2xl shadow-xl z-20 max-h-48 overflow-y-auto">
+                  {schoolResults.map((school, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => selectSchool(school)}
+                      className="w-full text-left px-4 py-3 text-xs font-bold text-text-main hover:bg-p-purple transition-all border-b border-border/50 last:border-0"
+                    >
+                      {school}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
+            {/* Grade Level - Philippine K-12 style */}
             <div className="flex flex-col gap-2">
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted ml-1">Academic Level</label>
-              <div className="relative">
-                <Sparkles className="absolute left-4 top-1/2 -translate-y-1/2 text-primary" size={16} />
-                <select value={schoolLevel} onChange={(e) => setSchoolLevel(e.target.value as any)}
-                  className="w-full bg-surface-elevated border border-border rounded-2xl pl-12 pr-10 py-4 text-[10px] font-black uppercase tracking-widest text-text-main focus:outline-none focus:border-primary transition-all appearance-none cursor-pointer">
-                  <option value="ELEMENTARY">Elementary School</option>
-                  <option value="HIGH_SCHOOL">High School</option>
-                </select>
-                <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted rotate-90" size={14} />
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted ml-1 flex items-center gap-2">
+                <GraduationCap size={12} /> Grade Level
+              </label>
+              <div className="grid grid-cols-5 gap-2">
+                {PH_GRADES.map((g) => {
+                  const isElementary = g.value <= 6;
+                  const isSelected = gradeLevel === g.value;
+                  const activeColor = isElementary ? '#2b8a3e' : '#1971c2';
+                  const activeBg = isElementary ? '#d3f9d8' : '#d0ebff';
+                  return (
+                    <button
+                      key={g.value}
+                      type="button"
+                      onClick={() => setGradeLevel(g.value)}
+                      className={`py-3 rounded-xl border-2 text-center transition-all font-black text-[10px] uppercase tracking-wider ${
+                        isSelected
+                          ? 'text-white shadow-md'
+                          : 'border-border bg-surface-elevated text-text-muted hover:border-primary/30'
+                      }`}
+                      style={isSelected ? { background: activeColor, borderColor: activeColor } : undefined}
+                    >
+                      {g.label}
+                    </button>
+                  );
+                })}
               </div>
+              <p className="text-[9px] font-bold text-text-muted/50 ml-1">
+                {schoolLevel === 'ELEMENTARY' ? '📚 Elementary (Grades 1–6)' : '🎓 High School (Grades 7–10)'}
+              </p>
             </div>
 
+            {/* Parent Email */}
             {age && parseInt(age) < 18 && (
               <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[#ff6b6b] ml-1">Parent/Guardian Email</label>
-                <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-[#ff6b6b]" size={16} />
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[#e03131] ml-1 flex items-center gap-2">
+                  <Heart size={12} /> Parent/Guardian Email
+                </label>
+                <div className="relative group">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-[#e03131] group-focus-within:text-[#e03131]" size={16} />
                   <input type="email" value={parentEmail} onChange={(e) => setParentEmail(e.target.value)}
-                    className="w-full bg-[#fff5f5] border border-[#ffc9c9] rounded-2xl pl-12 pr-4 py-4 text-sm font-bold focus:outline-none focus:border-[#ff6b6b] transition-all"
+                    className="w-full bg-[#fff5f5] border-2 border-[#ffc9c9] rounded-2xl pl-12 pr-4 py-4 text-sm font-bold focus:outline-none focus:border-[#e03131] focus:bg-white transition-all placeholder:text-[#ff8787]/40"
                     placeholder="parent@email.com" required />
                 </div>
+                <p className="text-[9px] font-bold text-[#e03131]/60 ml-1">We'll notify your parent when you book sessions</p>
               </div>
             )}
           </div>
         )}
 
-        <div className="flex flex-col gap-3">
+        {/* Email */}
+        <div className="flex flex-col gap-2">
           <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted ml-1">Account Email</label>
           <div className="relative group">
-            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-primary transition-colors" size={16} />
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center group-focus-within:bg-primary/20 transition-colors">
+              <Mail className="text-primary" size={14} />
+            </div>
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-surface-elevated border border-border rounded-2xl pl-12 pr-4 py-4 text-sm font-bold focus:outline-none focus:border-primary transition-all"
-              placeholder="student@academic.com" required />
+              className="w-full bg-surface-elevated border-2 border-border rounded-2xl pl-16 pr-4 py-4 text-sm font-bold focus:outline-none focus:border-primary focus:bg-white transition-all placeholder:text-text-muted/30"
+              placeholder="you@email.com" required />
           </div>
         </div>
 
-        <div className="flex flex-col gap-3">
+        {/* Password */}
+        <div className="flex flex-col gap-2">
           <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted ml-1">Secure Password</label>
           <div className="relative group">
-            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-primary transition-colors" size={16} />
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center group-focus-within:bg-primary/20 transition-colors">
+              <Lock className="text-primary" size={14} />
+            </div>
             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-surface-elevated border border-border rounded-2xl pl-12 pr-4 py-4 text-sm font-bold focus:outline-none focus:border-primary transition-all"
+              className="w-full bg-surface-elevated border-2 border-border rounded-2xl pl-16 pr-4 py-4 text-sm font-bold focus:outline-none focus:border-primary focus:bg-white transition-all placeholder:text-text-muted/30"
               placeholder="••••••••" required minLength={8} />
           </div>
         </div>
 
+        {/* Submit Button - Premium */}
         <button type="submit" disabled={loading}
-          className="bg-primary hover:bg-accent-strong text-white font-black text-xs uppercase tracking-[0.2em] py-5 rounded-2xl mt-4 transition-all shadow-xl shadow-primary/20 disabled:opacity-50 flex items-center justify-center gap-2">
-          {loading
-            ? 'Initializing...'
-            : role === 'TUTOR' ? 'Proceed to Onboarding' : 'Complete Registration'}
-          {!loading && <ChevronRight size={16} />}
+          className="group relative overflow-hidden bg-gradient-to-r from-primary to-pink-500 hover:from-accent-strong hover:to-pink-600 text-white font-black text-xs uppercase tracking-[0.2em] py-5 rounded-2xl mt-2 transition-all duration-300 shadow-xl shadow-primary/25 disabled:opacity-50 flex items-center justify-center gap-2.5">
+          <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+          {loading ? (
+            <>
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <span>Creating Account...</span>
+            </>
+          ) : (
+            <>
+              <Rocket size={16} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+              <span>{role === 'TUTOR' ? 'Proceed to Onboarding' : 'Create Account'}</span>
+              <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
+            </>
+          )}
         </button>
       </form>
 
-      <div className="text-center pt-2">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted">
+      {/* Footer */}
+      <div className="text-center pt-2 pb-6">
+        <p className="text-[10px] font-bold tracking-widest text-text-muted">
           Already have an account?{' '}
-          <Link href="/login" className="text-primary hover:underline font-black ml-1">Login</Link>
+          <Link href="/login" className="text-primary hover:text-accent-strong font-black hover:underline transition-all ml-1">
+            Login
+          </Link>
         </p>
       </div>
     </div>
+  );
+}
+
+// ── Helper icon components ──────────────────────────────────────────────
+function Check2Icon({ size = 12, className = '' }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
+function Check3Icon({ size = 14, className = '' }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
   );
 }

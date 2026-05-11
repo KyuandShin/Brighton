@@ -8,9 +8,9 @@ export async function POST(req: NextRequest) {
     const {
       email, password, name, headline, bio,
       university, degree, videoUrl, price,
-      availability, certifications,
+      availability, availabilitySlots, certifications,
       introduction, experience, motivation,
-      photoUrl
+      photoUrl, subjects
     } = body;
 
     console.log('[TUTOR SIGNUP] Starting signup for:', email);
@@ -23,6 +23,26 @@ export async function POST(req: NextRequest) {
     if (missing.length > 0) {
       return NextResponse.json(
         { error: `Missing required fields: ${missing.join(', ')}` },
+        { status: 400 },
+      );
+    }
+
+    // Password strength validation
+    if (password.length < 8) {
+      return NextResponse.json(
+        { error: 'Password must be at least 8 characters long' },
+        { status: 400 },
+      );
+    }
+    if (!/[a-z]/.test(password)) {
+      return NextResponse.json(
+        { error: 'Password must contain at least one lowercase letter' },
+        { status: 400 },
+      );
+    }
+    if (!/[0-9]/.test(password)) {
+      return NextResponse.json(
+        { error: 'Password must contain at least one number' },
         { status: 400 },
       );
     }
@@ -69,7 +89,7 @@ export async function POST(req: NextRequest) {
       } else {
         authUserId = data?.user?.id ?? (data as any)?.id ?? (data as any)?.userId;
       }
-    } catch (authErr: any) {
+    } catch (authErr: unknown) {
       console.error('[TUTOR SIGNUP] Auth service crash:', authErr);
       return NextResponse.json({ error: 'Auth service unavailable' }, { status: 500 });
     }
@@ -100,13 +120,19 @@ export async function POST(req: NextRequest) {
       });
 
       // 2. Upsert Tutor profile
+      const parsedPrice = price !== undefined && price !== null && price !== '' 
+        ? parseFloat(String(price)) 
+        : undefined;
+      // Only use default 20 if price was truly not provided (undefined/null), not if it's explicitly 0
+      const finalPrice = parsedPrice !== undefined ? parsedPrice : 20;
+
       const tutor = await tx.tutor.upsert({
         where: { userId: authUserId! },
         update: {
           headline: headline?.trim() ?? '',
           bio: finalBio.trim(),
           introVideoUrl: videoUrl?.trim() ?? '',
-          pricingPerHour: parseFloat(String(price)) || 20,
+          pricingPerHour: finalPrice,
           verificationStatus: 'PENDING',
         },
         create: {
@@ -114,7 +140,7 @@ export async function POST(req: NextRequest) {
           headline: headline?.trim() ?? '',
           bio: finalBio.trim(),
           introVideoUrl: videoUrl?.trim() ?? '',
-          pricingPerHour: parseFloat(String(price)) || 20,
+          pricingPerHour: finalPrice,
           verificationStatus: 'PENDING',
         },
       });
@@ -133,16 +159,27 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // 4. Handle Availability
-      const days: number[] = Array.isArray(availability) ? availability : [];
-      if (days.length > 0) {
+      // 4. Handle Availability — use availabilitySlots with time ranges, fallback to defaults
+      const slots: { dayOfWeek: number; startTime: string; endTime: string }[] = 
+        Array.isArray(availabilitySlots) && availabilitySlots.length > 0
+          ? availabilitySlots
+          : Array.isArray(availability) 
+            ? availability.map((uiDay: number) => ({
+                // UI days: 0=Mon ... 6=Sun — store directly as schema dayOfWeek (0=Mon)
+                dayOfWeek: uiDay,
+                startTime: '09:00',
+                endTime: '17:00',
+              }))
+            : [];
+
+      if (slots.length > 0) {
         await tx.availability.deleteMany({ where: { tutorId: tutor.id } });
         await tx.availability.createMany({
-          data: days.map((uiDay: number) => ({
+          data: slots.map((s: any) => ({
             tutorId: tutor.id,
-            dayOfWeek: uiDay === 6 ? 0 : uiDay + 1,
-            startTime: '09:00',
-            endTime: '17:00',
+            dayOfWeek: s.dayOfWeek,
+            startTime: s.startTime || '09:00',
+            endTime: s.endTime || '17:00',
           })),
         });
       }
@@ -166,6 +203,27 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      // 6. Handle Subjects — ensure they exist in the Subject table, then connect
+      if (Array.isArray(subjects) && subjects.length > 0) {
+        // Remove existing subject connections
+        await tx.tutorSubject.deleteMany({ where: { tutorId: tutor.id } });
+
+        for (const subjectName of subjects) {
+          const subjectRecord = await tx.subject.upsert({
+            where: { name: subjectName.trim() },
+            update: {},
+            create: { name: subjectName.trim() },
+          });
+
+          await tx.tutorSubject.create({
+            data: {
+              tutorId: tutor.id,
+              subjectId: subjectRecord.id,
+            },
+          });
+        }
+      }
+
       return { user, tutor };
     });
 
@@ -176,9 +234,10 @@ export async function POST(req: NextRequest) {
       message: 'Application submitted. You will be notified once verified.',
     });
 
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[TUTOR SIGNUP ERROR]', err);
-    return NextResponse.json({ error: err.message ?? 'Server error' }, { status: 500 });
+    const message = err instanceof Error ? err.message : 'Server error';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 

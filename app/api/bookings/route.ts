@@ -20,6 +20,15 @@ export async function GET(req: NextRequest) {
     });
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
+    // ── Auto-expire past CONFIRMED bookings to COMPLETED ──────────────────
+    await prisma.booking.updateMany({
+      where: {
+        status: 'CONFIRMED',
+        date: { lt: new Date() },
+      },
+      data: { status: 'COMPLETED' },
+    });
+
     let bookings: any[] = [];
 
     if (user.role === 'ADMIN') {
@@ -65,9 +74,10 @@ export async function GET(req: NextRequest) {
         'Vary': 'Cookie'
       }
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[GET /api/bookings]', err);
-    return NextResponse.json({ error: err.message ?? 'Server error' }, { status: 500 });
+    const message = err instanceof Error ? err.message : 'Server error';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
@@ -88,7 +98,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'tutorDbId and date are required' }, { status: 400 });
     }
 
-    // Allow admins to book tutors for testing
     let studentUser = await prisma.user.findUnique({
       where: { id: postData.user.id },
       include: { studentProfile: true },
@@ -122,13 +131,32 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Tutor not found' }, { status: 404 });
     }
 
-    // Create booking
+    // Validate that the date is valid and in the future
+    const bookingDate = new Date(date);
+    if (isNaN(bookingDate.getTime())) {
+      return NextResponse.json({ error: 'Invalid date format' }, { status: 400 });
+    }
+
+    // Check for duplicate booking (same student + tutor + time)
+    const existing = await prisma.booking.findFirst({
+      where: {
+        studentId: studentUser.studentProfile.id,
+        tutorId: tutorDbId,
+        date: bookingDate,
+        status: { in: ['PENDING', 'CONFIRMED'] },
+      },
+    });
+    if (existing) {
+      return NextResponse.json({ error: 'You already have a booking request for this time slot.' }, { status: 409 });
+    }
+
+    // Create booking with PENDING status — tutor must accept
     const booking = await prisma.booking.create({
       data: {
         studentId: studentUser.studentProfile.id,
         tutorId: tutorDbId,
-        date: new Date(date),
-        status: 'CONFIRMED',
+        date: bookingDate,
+        status: 'PENDING',
       },
     });
 
@@ -153,7 +181,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Format date/time for emails
-    const sessionDate = new Date(date);
+    const sessionDate = bookingDate;
     const formattedDate = sessionDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     const formattedTime = sessionDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
     const origin = req.headers.get('origin') ?? 'https://your-domain.com';
@@ -167,35 +195,23 @@ export async function POST(req: NextRequest) {
       data: [
         {
           userId: studentUser.id,
-          title: 'Session Confirmed!',
-          message: `Your session with ${tutorName} on ${formattedDate} at ${formattedTime} is confirmed.`,
-          link: meetLink,
+          title: 'Booking Request Sent!',
+          message: `Your session request with ${tutorName} on ${formattedDate} at ${formattedTime} has been sent. Waiting for tutor to confirm.`,
+          link: '/dashboard/classes',
         },
         {
           userId: tutorRecord.user.id,
-          title: 'New Student Booked!',
-          message: `${studentName} booked a session with you on ${formattedDate} at ${formattedTime}.`,
-          link: meetLink,
+          title: 'New Booking Request!',
+          message: `${studentName} wants to book a session with you on ${formattedDate} at ${formattedTime}. Review and confirm.`,
+          link: '/dashboard/bookings',
         },
       ],
     });
 
     // ── Email notifications (fire and forget — don't block response) ──────
     sendEmail({
-      to: studentUser.email,
-      subject: `✅ Session Confirmed with ${tutorName}`,
-      html: bookingConfirmationStudent({
-        studentName: studentName ?? 'Student',
-        tutorName: tutorName ?? 'Tutor',
-        date: formattedDate,
-        time: formattedTime,
-        classroomUrl,
-      }),
-    });
-
-    sendEmail({
       to: tutorRecord.user.email,
-      subject: `📚 New Booking from ${studentName}`,
+      subject: `📚 New Booking Request from ${studentName}`,
       html: bookingNotificationTutor({
         tutorName: tutorName ?? 'Tutor',
         studentName: studentName ?? 'Student',
@@ -203,11 +219,29 @@ export async function POST(req: NextRequest) {
         time: formattedTime,
         classroomUrl,
       }),
+    }).catch((emailErr) => {
+      console.error('[POST /api/bookings] Failed to send tutor email:', emailErr);
+    });
+
+    // Send confirmation to student as well
+    sendEmail({
+      to: studentUser.email,
+      subject: `📚 Booking Request Sent to ${tutorName}`,
+      html: bookingConfirmationStudent({
+        studentName: studentName ?? 'Student',
+        tutorName: tutorName ?? 'Tutor',
+        date: formattedDate,
+        time: formattedTime,
+        classroomUrl,
+      }),
+    }).catch((emailErr) => {
+      console.error('[POST /api/bookings] Failed to send student email:', emailErr);
     });
 
     return NextResponse.json(updated);
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[POST /api/bookings]', err);
-    return NextResponse.json({ error: err.message ?? 'Server error' }, { status: 500 });
+    const message = err instanceof Error ? err.message : 'Server error';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

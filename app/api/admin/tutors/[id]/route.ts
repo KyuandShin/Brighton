@@ -9,7 +9,9 @@ export async function PATCH(
 ) {
   const params = await context.params;
   try {
-    const { data } = await auth.getSession();
+    const { data } = await auth.getSession({
+      fetchOptions: { headers: request.headers }
+    });
     const userId = data?.user?.id;
     
     if (!userId) {
@@ -87,7 +89,9 @@ export async function DELETE(
 ) {
   const params = await context.params;
   try {
-    const { data } = await auth.getSession();
+    const { data } = await auth.getSession({
+      fetchOptions: { headers: request.headers }
+    });
     const userId = data?.user?.id;
     
     if (!userId) {

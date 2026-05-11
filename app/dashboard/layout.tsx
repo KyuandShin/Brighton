@@ -3,10 +3,10 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Home, Users, Calendar, BookOpen, Bell, LogOut,
-  User, X, ChevronRight, Sparkles, UserCheck
+  User, X, ChevronRight, Sparkles, UserCheck, Moon, Sun, Heart, TrendingUp
 } from 'lucide-react';
 import { useCurrentUser, getInitials } from '@/lib/hooks/useCurrentUser';
 import { authClient } from '@/lib/auth/client';
@@ -17,6 +17,7 @@ const navItems = [
   { name: 'Tutors',   href: '/dashboard/tutors',   icon: Users },
   { name: 'Classes',  href: '/dashboard/classes',  icon: BookOpen },
   { name: 'Calendar', href: '/dashboard/calendar', icon: Calendar },
+  { name: 'Bookings', href: '/dashboard/bookings', icon: UserCheck },
 ];
 
 const adminNavItems = [
@@ -41,10 +42,60 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [notifOpen,   setNotifOpen]   = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [darkMode, setDarkMode]       = useState(false);
   const notifRef   = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
+
+  // Theme initialization
+  useEffect(() => {
+    const stored = localStorage.getItem('brighton-theme');
+    if (stored === 'dark') {
+      setDarkMode(true);
+      document.documentElement.classList.add('dark');
+    } else if (stored === 'light') {
+      setDarkMode(false);
+      document.documentElement.classList.remove('dark');
+    } else {
+      // Default to system preference
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      setDarkMode(prefersDark);
+      if (prefersDark) document.documentElement.classList.add('dark');
+    }
+  }, []);
+
+  // Sync user theme from DB on mount
+  useEffect(() => {
+    if (user?.theme) {
+      const isDark = user.theme === 'dark';
+      setDarkMode(isDark);
+      if (isDark) document.documentElement.classList.add('dark');
+      else document.documentElement.classList.remove('dark');
+    }
+  }, [user?.theme]);
+
+  const toggleTheme = useCallback(async () => {
+    const newTheme = darkMode ? 'light' : 'dark';
+    setDarkMode(!darkMode);
+    if (newTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('brighton-theme', newTheme);
+    
+    // Persist to backend
+    if (user?.id) {
+      try {
+        await fetch('/api/theme', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ theme: newTheme }),
+        });
+      } catch {}
+    }
+  }, [darkMode, user?.id]);
 
   useEffect(() => {
     if (!user) return;
@@ -69,14 +120,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   };
 
   const handleLogout = async () => {
-    // Fully clear all session data
+    // Preserve theme preference when logging out
+    const theme = localStorage.getItem('brighton-theme');
     await authClient.signOut();
-    
-    // Clear all client side storage
     localStorage.clear();
     sessionStorage.clear();
-    
-    // Force full page reload with cache busting
+    if (theme) localStorage.setItem('brighton-theme', theme);
     window.location.replace('/login?logout=' + Date.now());
   };
 
@@ -90,13 +139,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (error === 'TUTOR_PENDING') {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-8">
-        <div className="max-w-md w-full bg-white rounded-[40px] border border-p-purple shadow-[0_20px_60px_rgba(147,51,234,0.08)] p-12 text-center space-y-6">
+        <div className="max-w-md w-full bg-surface rounded-[40px] border border-p-purple shadow-[0_20px_60px_rgba(147,51,234,0.08)] p-12 text-center space-y-6">
           <div className="w-20 h-20 bg-p-yellow rounded-3xl flex items-center justify-center mx-auto">
             <Sparkles size={36} className="text-amber-500" />
           </div>
           <h2 className="text-2xl font-black text-text-main tracking-tight">Pending Verification</h2>
           <p className="text-sm font-bold text-text-muted uppercase tracking-wider leading-relaxed">
-            Your tutor application is under review. You&apos;ll be notified once approved.
+            Your tutor application is under review. You'll be notified once approved.
           </p>
           <button
             onClick={handleLogout}
@@ -112,6 +161,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const displayName = user?.name ?? user?.email ?? 'Account';
   const initials    = loading ? '…' : getInitials(user?.name ?? user?.email);
   const isAdmin     = user?.role === 'ADMIN';
+  const isStudent   = user?.role === 'STUDENT';
+
+  const extraNavItems = [];
+  if (isStudent) {
+    extraNavItems.push({ name: 'Favorites', href: '/dashboard/favorites', icon: Heart });
+    extraNavItems.push({ name: 'Test History', href: '/dashboard/test-history', icon: TrendingUp });
+  }
+  if (user?.role === 'TUTOR') {
+    extraNavItems.push({ name: 'Analytics', href: '/dashboard/analytics', icon: TrendingUp });
+    extraNavItems.push({ name: 'Resources', href: '/dashboard/resources', icon: BookOpen });
+  }
 
   if (loading) {
     return (
@@ -132,12 +192,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className="min-h-screen bg-background">
       {/* ── Navbar ───────────────────────────────────────────────────── */}
-      <nav className="bg-white/90 backdrop-blur-xl border-b border-p-purple px-6 py-0 sticky top-0 z-50 h-16 flex items-center">
+      <nav className="bg-surface/90 backdrop-blur-xl border-b border-border px-6 py-0 sticky top-0 z-50 h-16 flex items-center">
         <div className="w-full max-w-7xl mx-auto flex justify-between items-center gap-6">
 
           {/* Logo */}
           <Link href="/dashboard" className="flex items-center gap-3 shrink-0 group">
-            <div className="w-10 h-10 logo-halo flex items-center justify-center border border-p-purple bg-white transition-transform group-hover:scale-105">
+            <div className="w-10 h-10 logo-halo flex items-center justify-center border border-p-purple bg-surface transition-transform group-hover:scale-105">
               <Image src="/logo.png" alt="Logo" width={24} height={24} className="object-contain" style={{ width: 'auto', height: 'auto' }} />
             </div>
             <span className="text-sm font-black tracking-[0.2em] text-text-main uppercase">Brighton</span>
@@ -148,6 +208,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {navItems.map((item) => {
               const Icon     = item.icon;
               const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all flex items-center gap-2 ${
+                    isActive
+                      ? 'text-white shadow-md shadow-primary/20'
+                      : 'text-text-muted hover:bg-p-purple hover:text-primary'
+                  }`}
+                  style={isActive ? {
+                    background: 'linear-gradient(135deg, #ec4899 0%, #9333ea 100%)',
+                    boxShadow: '0 4px 14px rgba(147,51,234,0.25)',
+                  } : undefined}
+                >
+                  <Icon size={14} strokeWidth={2.5} />
+                  {item.name}
+                </Link>
+              );
+            })}
+
+            {/* Extra student/tutor nav items */}
+            {extraNavItems.map((item) => {
+              const Icon     = item.icon;
+              const isActive = pathname.startsWith(item.href) || pathname === item.href;
               return (
                 <Link
                   key={item.name}
@@ -197,16 +281,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             )}
           </div>
 
-          {/* Right: Notifications + Profile */}
+          {/* Right: Dark Mode toggle + Notifications + Profile */}
           <div className="flex items-center gap-2 shrink-0">
+            {/* Dark Mode Toggle */}
+            <button
+              onClick={toggleTheme}
+              className="p-2.5 bg-p-purple border border-border rounded-xl text-text-muted hover:bg-primary hover:text-white hover:border-primary transition-all"
+              aria-label="Toggle dark mode"
+            >
+              {darkMode ? <Sun size={17} strokeWidth={2.5} /> : <Moon size={17} strokeWidth={2.5} />}
+            </button>
 
             {/* Notifications Bell */}
             <div className="relative" ref={notifRef}>
               <button
                 onClick={() => {
+                  // Mark as read when closing the dropdown, not when opening
+                  if (notifOpen && unreadCount > 0) markAllRead();
                   setNotifOpen(!notifOpen);
                   setProfileOpen(false);
-                  if (!notifOpen && unreadCount > 0) markAllRead();
                 }}
                 className="relative p-2.5 bg-p-purple border border-border rounded-xl text-text-muted hover:bg-primary hover:text-white hover:border-primary transition-all"
               >
@@ -220,14 +313,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </button>
 
               {notifOpen && (
-                <div className="absolute right-0 top-12 w-80 bg-white rounded-[24px] shadow-[0_20px_60px_rgba(147,51,234,0.12)] border border-p-purple overflow-hidden z-50">
-                  <div className="px-5 py-4 border-b border-p-purple flex justify-between items-center">
+                <div className="absolute right-0 top-12 w-80 bg-surface rounded-[24px] shadow-[0_20px_60px_rgba(147,51,234,0.12)] border border-border overflow-hidden z-50">
+                  <div className="px-5 py-4 border-b border-border flex justify-between items-center">
                     <span className="text-xs font-black uppercase tracking-widest text-text-main">Notifications</span>
                     <button onClick={() => setNotifOpen(false)} className="p-1 hover:bg-p-purple rounded-lg transition-all">
                       <X size={14} className="text-text-muted" />
                     </button>
                   </div>
-                  <div className="max-h-80 overflow-y-auto divide-y divide-p-purple">
+                  <div className="max-h-80 overflow-y-auto divide-y divide-border">
                     {notifications.length === 0 ? (
                       <div className="py-10 text-center">
                         <span className="text-3xl block mb-2 opacity-30">🔔</span>
@@ -275,8 +368,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </button>
 
               {profileOpen && (
-                <div className="absolute right-0 top-12 w-52 bg-white rounded-[20px] shadow-[0_20px_60px_rgba(147,51,234,0.12)] border border-p-purple overflow-hidden z-50">
-                  <div className="px-4 py-3 border-b border-p-purple">
+                <div className="absolute right-0 top-12 w-52 bg-surface rounded-[20px] shadow-[0_20px_60px_rgba(147,51,234,0.12)] border border-border overflow-hidden z-50">
+                  <div className="px-4 py-3 border-b border-border">
                     <p className="text-xs font-black text-text-main truncate">{displayName}</p>
                     <p className="text-[10px] text-text-muted truncate">{user?.email}</p>
                   </div>
@@ -288,6 +381,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     >
                       <User size={14} /> My Profile
                     </Link>
+                    <button
+                      onClick={() => { setProfileOpen(false); toggleTheme(); }}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wider text-text-muted hover:bg-p-purple hover:text-primary transition-all"
+                    >
+                      {darkMode ? <Sun size={14} /> : <Moon size={14} />} {darkMode ? 'Light Mode' : 'Dark Mode'}
+                    </button>
                     <button
                       onClick={handleLogout}
                       className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wider text-rose-500 hover:bg-rose-50 transition-all"
@@ -306,10 +405,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <main className="max-w-7xl mx-auto px-6 py-10 pb-24 md:pb-10">{children}</main>
 
       {/* ── Mobile Bottom Navigation ──────────────────────────────────── */}
-      <nav className="fixed bottom-0 left-0 right-0 h-16 bg-white/95 backdrop-blur-xl border-t border-p-purple z-50 md:hidden flex items-center justify-around px-2">
-        {navItems.map((item) => {
+      <nav className="fixed bottom-0 left-0 right-0 h-16 bg-surface/95 backdrop-blur-xl border-t border-border z-50 md:hidden flex items-center justify-around px-2">
+        {[...navItems, ...extraNavItems].map((item) => {
           const Icon = item.icon;
-          const isActive = pathname === item.href;
+          const isActive = pathname === item.href || pathname.startsWith(item.href);
           return (
             <Link
               key={item.name}

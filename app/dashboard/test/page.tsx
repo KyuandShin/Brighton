@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { BookOpen, CheckCircle2, ChevronRight, Brain, Loader2, AlertCircle, Target, TrendingUp, Lightbulb } from 'lucide-react';
+import { BookOpen, CheckCircle2, ChevronRight, Brain, Loader2, AlertCircle, Target, TrendingUp, Lightbulb, Star, Sparkles, GraduationCap, Rocket, Heart } from 'lucide-react';
 
 interface Question {
   id: string;
@@ -64,11 +64,13 @@ export default function PlacementTestPage() {
       const res = await fetch(`/api/ai/questions?level=${chosenLevel}&count=30`);
       if (!res.ok) throw new Error('Failed to load questions');
       const data = await res.json();
-      setQuestions(data.questions ?? []);
+      if (!data.questions?.length) throw new Error('No questions available');
+      setQuestions(data.questions);
+      setStep('test');
     } catch (e: any) {
       setError(e.message);
+      setStep('level');
     }
-    setStep('test');
   };
 
   const handleAnswer = async (answer: string) => {
@@ -100,10 +102,11 @@ export default function PlacementTestPage() {
       if (!res.ok) throw new Error('Analysis failed');
       const data = await res.json();
       setResult(data);
+      setStep('result');
     } catch (e: any) {
       setError(e.message);
+      setStep('result');
     }
-    setStep('result');
   };
 
   const reset = () => {
@@ -118,38 +121,78 @@ export default function PlacementTestPage() {
   // ── Level Selection ──────────────────────────────────────────────────────
   if (step === 'level') {
     return (
-      <div className="max-w-2xl mx-auto space-y-8 py-12">
-        <div className="text-center space-y-3">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full text-primary text-[10px] font-black uppercase tracking-widest">
-            <Brain size={14} /> AI Placement Assessment
+      <div className="max-w-3xl mx-auto space-y-8 py-8">
+        {/* Header */}
+        <div className="text-center space-y-4">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-p-sakura rounded-full shadow-sm">
+            <Brain size={14} className="text-pink-500" />
+            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-pink-600">AI Placement Assessment</span>
           </div>
-          <h2 className="text-3xl font-black text-text-main tracking-tight">Find Your Level</h2>
-          <p className="text-text-muted font-bold text-xs uppercase tracking-widest">
-            30 questions · All subjects · AI-powered analysis
-          </p>
+          <h2 className="text-4xl font-black tracking-tight">
+            <span className="gradient-text">Find Your Level</span>
+          </h2>
+          <div className="flex items-center justify-center gap-2 text-text-muted">
+            <Sparkles size={14} />
+            <p className="font-bold text-xs uppercase tracking-widest">30 questions · All subjects · AI-powered analysis</p>
+            <Sparkles size={14} />
+          </div>
         </div>
 
+        {/* Level Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <LevelCard
-            title="Elementary"
-            desc="Filipino, English, Math, Science, Social Studies, MAPEH, EsP"
-            badge="Grades 1–6"
-            color="bg-[#d3f9d8]"
-            textColor="text-[#2b8a3e]"
+          <button
             onClick={() => startTest('ELEMENTARY')}
-          />
-          <LevelCard
-            title="High School"
-            desc="Filipino, English, Algebra, Science, Social Studies, TLE, MAPEH, EsP"
-            badge="Grades 7–12"
-            color="bg-[#d0ebff]"
-            textColor="text-[#1971c2]"
+            className="group relative overflow-hidden p-8 bg-gradient-to-br from-[#d3f9d8] to-[#b2f2bb] border-2 border-white rounded-[40px] text-left hover:shadow-xl transition-all duration-300 shadow-sm hover:-translate-y-1"
+          >
+            <div className="absolute -top-10 -right-10 w-32 h-32 bg-[#8ce99a]/30 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500" />
+            <div className="relative z-10 space-y-5">
+              <div className="flex items-center justify-between">
+                <div className="inline-block px-3 py-1 bg-white/70 rounded-full text-[9px] font-black uppercase tracking-widest text-[#2b8a3e] shadow-sm">
+                  Grades 1–6
+                </div>
+                <div className="w-10 h-10 bg-white/60 rounded-2xl flex items-center justify-center group-hover:bg-white/90 transition-colors group-hover:scale-110 duration-300">
+                  <BookOpen className="text-[#2b8a3e]" size={20} />
+                </div>
+              </div>
+              <h3 className="text-2xl font-black text-[#2b8a3e] tracking-tight">Elementary</h3>
+              <p className="text-xs font-bold text-[#2b8a3e]/70 leading-relaxed">
+                Filipino, English, Math, Science, Social Studies, MAPEH, EsP
+              </p>
+              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#2b8a3e] group-hover:gap-3 transition-all">
+                Start Assessment <ChevronRight size={14} />
+              </div>
+            </div>
+          </button>
+
+          <button
             onClick={() => startTest('HIGH_SCHOOL')}
-          />
+            className="group relative overflow-hidden p-8 bg-gradient-to-br from-[#d0ebff] to-[#a5d8ff] border-2 border-white rounded-[40px] text-left hover:shadow-xl transition-all duration-300 shadow-sm hover:-translate-y-1"
+          >
+            <div className="absolute -top-10 -right-10 w-32 h-32 bg-[#74c0fc]/30 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500" />
+            <div className="relative z-10 space-y-5">
+              <div className="flex items-center justify-between">
+                <div className="inline-block px-3 py-1 bg-white/70 rounded-full text-[9px] font-black uppercase tracking-widest text-[#1971c2] shadow-sm">
+                  Grades 7–12
+                </div>
+                <div className="w-10 h-10 bg-white/60 rounded-2xl flex items-center justify-center group-hover:bg-white/90 transition-colors group-hover:scale-110 duration-300">
+                  <GraduationCap className="text-[#1971c2]" size={20} />
+                </div>
+              </div>
+              <h3 className="text-2xl font-black text-[#1971c2] tracking-tight">High School</h3>
+              <p className="text-xs font-bold text-[#1971c2]/70 leading-relaxed">
+                Filipino, English, Algebra, Science, Social Studies, TLE, MAPEH, EsP
+              </p>
+              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#1971c2] group-hover:gap-3 transition-all">
+                Start Assessment <ChevronRight size={14} />
+              </div>
+            </div>
+          </button>
         </div>
 
-        <p className="text-center text-[10px] font-bold text-text-muted uppercase tracking-widest opacity-60">
-          Based on the Philippine K-12 Curriculum · Powered by Claude AI
+        <p className="text-center text-[10px] font-bold text-text-muted uppercase tracking-widest opacity-60 flex items-center justify-center gap-2">
+          <Sparkles size={12} className="text-primary" />
+          Based on the Philippine K-12 Curriculum · Powered by AI
+          <Sparkles size={12} className="text-primary" />
         </p>
       </div>
     );
@@ -159,12 +202,22 @@ export default function PlacementTestPage() {
   if (step === 'loading') {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] gap-6">
-        <div className="w-16 h-16 bg-primary/10 rounded-3xl flex items-center justify-center">
-          <Loader2 size={32} className="text-primary animate-spin" />
+        <div className="relative">
+          <div className="w-20 h-20 bg-gradient-to-br from-primary/10 to-pink-100 rounded-3xl flex items-center justify-center animate-bounce-cute">
+            <Brain size={36} className="text-primary" />
+          </div>
+          <div className="absolute -top-2 -right-2 w-8 h-8 bg-p-sakura rounded-full flex items-center justify-center animate-sparkle">
+            <Sparkles size={14} className="text-pink-500" />
+          </div>
         </div>
-        <div className="text-center space-y-1">
+        <div className="text-center space-y-2">
           <p className="text-sm font-black uppercase tracking-widest text-text-main">Preparing your test...</p>
           <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Selecting 30 questions across all subjects</p>
+        </div>
+        <div className="flex gap-1.5 mt-2">
+          {[0,1,2].map(i => (
+            <div key={i} className="w-2.5 h-2.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: `${i * 0.15}s`, animationDuration: '0.8s' }} />
+          ))}
         </div>
       </div>
     );
@@ -177,44 +230,87 @@ export default function PlacementTestPage() {
     const topicLabel = q.topic ? q.topic.split(' - ')[0] : '';
 
     return (
-      <div className="max-w-2xl mx-auto space-y-8 py-12">
+      <div className="max-w-2xl mx-auto space-y-6 py-8">
         {error && (
-          <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-2xl text-red-600 text-[10px] font-black uppercase tracking-widest">
+          <div className="flex items-center gap-3 p-4 bg-[#fff5f5] border-2 border-[#ffc9c9] rounded-2xl text-[#e03131] text-[10px] font-black uppercase tracking-widest">
             <AlertCircle size={14} className="shrink-0" /> {error}
           </div>
         )}
 
-        <div className="bg-white border-2 border-[#f1f3f5] rounded-[40px] p-8 space-y-8 shadow-sm">
-          {/* Progress */}
-          <div className="space-y-2">
-            <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-text-muted">
-              <span>Question {currentIdx + 1} of {questions.length}</span>
-              <span className="px-3 py-1 bg-[#f1f3f5] rounded-full">{topicLabel}</span>
+        {/* Progress */}
+        <div className="space-y-2">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-text-muted">
+              <div className="w-7 h-7 bg-gradient-to-br from-primary/20 to-pink-100 rounded-lg flex items-center justify-center">
+                <Brain size={14} className="text-primary" />
+              </div>
+              Question {currentIdx + 1} of {questions.length}
             </div>
-            <div className="h-2 bg-[#f1f3f5] rounded-full overflow-hidden">
-              <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
+            <div className="flex items-center gap-2">
+              <span className="px-3 py-1.5 bg-p-sakura rounded-full text-[9px] font-black uppercase tracking-widest text-pink-600">
+                {topicLabel}
+              </span>
+              <span className="text-[10px] font-black text-text-muted">{Math.round(progress)}%</span>
             </div>
           </div>
+          <div className="h-2.5 bg-[#f1f3f5] rounded-full overflow-hidden shadow-inner">
+            <div 
+              className="h-full bg-gradient-to-r from-primary to-pink-400 rounded-full transition-all duration-500 relative overflow-hidden"
+              style={{ width: `${progress}%` }}
+            >
+              <div className="absolute inset-0 bg-white/20 animate-shimmer" style={{ backgroundSize: '200% 100%' }} />
+            </div>
+          </div>
+        </div>
 
-          {/* Question */}
-          <h3 className="text-xl font-black text-text-main tracking-tight leading-snug">{q.text}</h3>
+        {/* Question Card */}
+        <div className="bg-surface border-2 border-border rounded-[40px] p-8 md:p-10 space-y-8 shadow-sm hover:shadow-md transition-shadow duration-300">
+          <h3 className="text-xl md:text-2xl font-black text-text-main tracking-tight leading-snug flex items-start gap-3">
+            <span className="w-8 h-8 bg-gradient-to-br from-primary/10 to-pink-100 rounded-xl flex items-center justify-center shrink-0 mt-0.5">
+              <Star size={16} className="text-primary" />
+            </span>
+            <span>{q.text}</span>
+          </h3>
 
           {/* Options */}
           <div className="grid grid-cols-1 gap-3">
-            {q.options.map((opt) => (
+            {q.options.map((opt, idx) => (
               <button
                 key={opt}
                 onClick={() => handleAnswer(opt)}
-                className={`w-full text-left px-6 py-4 border-2 rounded-2xl font-bold text-sm transition-all
+                className={`group w-full text-left px-6 py-4 border-2 rounded-2xl font-bold text-sm transition-all duration-200 relative overflow-hidden
                   ${selectedOption === opt
-                    ? 'border-primary bg-primary text-white scale-[0.98]'
-                    : 'bg-[#f8f9fa] border-[#f1f3f5] text-text-main hover:border-primary hover:bg-[#f0f4ff] hover:text-primary'
+                    ? 'border-primary bg-primary text-white scale-[0.98] shadow-lg shadow-primary/20'
+                    : 'bg-[#f8f9fa] border-[#f1f3f5] text-text-main hover:border-primary/40 hover:bg-[#f0f4ff] hover:text-primary hover:shadow-md'
                   }`}
               >
-                {opt}
+                <div className="flex items-center gap-4">
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs transition-all ${
+                    selectedOption === opt
+                      ? 'bg-white/20 text-white'
+                      : 'bg-surface border-2 border-border text-text-muted group-hover:border-primary/30'
+                  }`}>
+                    {String.fromCharCode(65 + idx)}
+                  </div>
+                  <span className="flex-1">{opt}</span>
+                  {selectedOption === opt && (
+                    <CheckCircle2 size={18} className="text-white/80" />
+                  )}
+                </div>
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Progress dots */}
+        <div className="flex flex-wrap justify-center gap-1.5">
+          {questions.slice(0, Math.min(30, questions.length)).map((_, idx) => (
+            <div key={idx} className={`w-2 h-2 rounded-full transition-all duration-300 ${
+              idx === currentIdx ? 'w-4 bg-primary scale-125' 
+              : idx < currentIdx ? 'bg-primary/40' 
+              : 'bg-[#f1f3f5]'
+            }`} />
+          ))}
         </div>
       </div>
     );
@@ -224,12 +320,28 @@ export default function PlacementTestPage() {
   if (step === 'submitting') {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] gap-6">
-        <div className="w-16 h-16 bg-primary/10 rounded-3xl flex items-center justify-center">
-          <Brain size={32} className="text-primary animate-pulse" />
+        <div className="relative">
+          <div className="w-24 h-24 bg-gradient-to-br from-primary/10 via-pink-50 to-primary/5 rounded-[32px] flex items-center justify-center">
+            <Brain size={48} className="text-primary animate-pulse" />
+          </div>
+          <div className="absolute -top-3 -right-3 w-10 h-10 bg-p-sakura rounded-full flex items-center justify-center">
+            <Sparkles size={16} className="text-pink-500 animate-sparkle" />
+          </div>
+          <div className="absolute -bottom-2 -left-2 w-8 h-8 bg-[#d3f9d8] rounded-full flex items-center justify-center animate-float-slow">
+            <Heart size={12} className="text-[#2b8a3e]" />
+          </div>
         </div>
         <div className="text-center space-y-2">
-          <p className="text-sm font-black uppercase tracking-widest text-text-main">Claude AI is analyzing your results...</p>
-          <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Identifying strengths, weaknesses & building your study plan</p>
+          <p className="text-lg font-black uppercase tracking-widest text-text-main">AI is analyzing your results...</p>
+          <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest max-w-xs mx-auto leading-relaxed">
+            Identifying your strengths, weaknesses & building a personalized study plan
+          </p>
+        </div>
+        <div className="flex gap-2 mt-4">
+          {[0,1,2,3,4].map(i => (
+            <div key={i} className="w-3 h-3 bg-gradient-to-r from-primary to-pink-400 rounded-full animate-bounce" 
+              style={{ animationDelay: `${i * 0.12}s`, animationDuration: '0.7s' }} />
+          ))}
         </div>
       </div>
     );
@@ -240,14 +352,16 @@ export default function PlacementTestPage() {
     if (error || !result) {
       return (
         <div className="max-w-2xl mx-auto py-12 space-y-6">
-          <div className="flex items-center gap-3 p-6 bg-red-50 border border-red-200 rounded-3xl text-red-600 text-sm font-bold">
-            <AlertCircle size={20} className="shrink-0" />
+          <div className="flex items-center gap-4 p-6 bg-[#fff5f5] border-2 border-[#ffc9c9] rounded-3xl text-[#e03131]">
+            <div className="w-12 h-12 bg-[#ffe3e3] rounded-2xl flex items-center justify-center shrink-0">
+              <AlertCircle size={24} />
+            </div>
             <div>
               <p className="font-black uppercase tracking-widest text-[10px] mb-1">Analysis Error</p>
-              <p>{error ?? 'Something went wrong. Please try again.'}</p>
+              <p className="font-bold text-sm">{error ?? 'Something went wrong. Please try again.'}</p>
             </div>
           </div>
-          <button onClick={reset} className="w-full py-4 bg-primary text-white font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-[#5c7cfa] transition-all">
+          <button onClick={reset} className="w-full py-5 bg-gradient-to-r from-primary to-pink-500 text-white font-black text-xs uppercase tracking-widest rounded-2xl hover:shadow-xl hover:shadow-primary/20 transition-all">
             Try Again
           </button>
         </div>
@@ -257,6 +371,7 @@ export default function PlacementTestPage() {
     const pct = result.percentage;
     const scoreColor = pct >= 80 ? '#2f9e44' : pct >= 60 ? '#e67700' : '#e03131';
     const scoreEmoji = pct >= 80 ? '🏆' : pct >= 60 ? '📈' : '💪';
+    const levelLabel = level === 'HIGH_SCHOOL' ? 'High School' : 'Elementary';
 
     const masteryColors: Record<string, string> = {
       'Advanced': '#2f9e44',
@@ -267,70 +382,98 @@ export default function PlacementTestPage() {
     const masteryColor = masteryColors[result.mastery_level] ?? '#748ffc';
 
     return (
-      <div className="max-w-2xl mx-auto space-y-6 py-12">
+      <div className="max-w-2xl mx-auto space-y-6 py-8">
 
         {/* Score Card */}
-        <div className="bg-white border-2 border-[#f1f3f5] rounded-[40px] p-10 shadow-sm space-y-8">
+        <div className="bg-surface border-2 border-border rounded-[40px] p-8 md:p-10 shadow-sm space-y-8 hover:shadow-md transition-shadow duration-300">
           <div className="text-center space-y-4">
-            <div className="text-5xl">{scoreEmoji}</div>
+            <div className="text-5xl animate-bounce-cute">{scoreEmoji}</div>
             <div>
-              <h2 className="text-3xl font-black text-text-main tracking-tight">Assessment Complete!</h2>
-              <p className="text-[10px] font-black uppercase tracking-widest text-text-muted mt-1">
-                {level === 'HIGH_SCHOOL' ? 'High School' : 'Elementary'} · Philippine K-12 Curriculum
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-p-sakura rounded-full text-[9px] font-black uppercase tracking-widest text-pink-600 mb-3">
+                <Brain size={12} /> Assessment Complete
+              </div>
+              <h2 className="text-3xl font-black text-text-main tracking-tight">Your Results Are In!</h2>
+              <p className="text-[10px] font-black uppercase tracking-widest text-text-muted mt-1 flex items-center justify-center gap-2">
+                <Star size={12} className="text-primary" />
+                {levelLabel} · Philippine K-12 Curriculum
+                <Star size={12} className="text-primary" />
               </p>
             </div>
-            <div className="flex items-center justify-center gap-6">
+            <div className="flex items-center justify-center gap-8 p-6 bg-gradient-to-br from-[#f8f9fa] to-[#f0f4ff] rounded-3xl">
               <div className="text-center">
-                <p className="text-[9px] font-black uppercase tracking-widest text-[#adb5bd] mb-1">Score</p>
+                <p className="text-[9px] font-black uppercase tracking-widest text-[#adb5bd] mb-2">Score</p>
                 <p className="text-5xl font-black tracking-tighter" style={{ color: scoreColor }}>
                   {result.score}<span className="text-xl text-[#adb5bd]">/{result.total}</span>
                 </p>
-                <p className="text-sm font-black text-text-muted">{pct}%</p>
+                <div className="mt-1 px-3 py-0.5 rounded-full text-[10px] font-black" style={{ backgroundColor: scoreColor + '15', color: scoreColor }}>
+                  {pct}%
+                </div>
               </div>
-              <div className="w-px h-16 bg-[#f1f3f5]" />
+              <div className="w-px h-20 bg-[#f1f3f5]" />
               <div className="text-center">
-                <p className="text-[9px] font-black uppercase tracking-widest text-[#adb5bd] mb-1">Mastery</p>
-                <p className="text-xl font-black" style={{ color: masteryColor }}>{result.mastery_level}</p>
+                <p className="text-[9px] font-black uppercase tracking-widest text-[#adb5bd] mb-2">Mastery Level</p>
+                <p className="text-2xl font-black" style={{ color: masteryColor }}>{result.mastery_level}</p>
+                <div className="mt-1 px-3 py-0.5 rounded-full text-[10px] font-black" style={{ backgroundColor: masteryColor + '15', color: masteryColor }}>
+                  {pct >= 80 ? 'Keep Shining!' : pct >= 60 ? 'Keep Growing!' : 'Keep Trying!'}
+                </div>
               </div>
             </div>
           </div>
 
           {/* AI Recommendation */}
-          <div className="bg-[#f0f4ff] border border-primary/20 rounded-2xl p-5 space-y-2">
-            <div className="flex items-center gap-2">
-              <Brain size={14} className="text-primary" />
-              <p className="text-[10px] font-black uppercase tracking-widest text-primary">AI Recommendation</p>
+          <div className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-[#f0f4ff] to-pink-50/50 border-2 border-primary/15 rounded-3xl p-6 space-y-3">
+            <div className="absolute -top-6 -right-6 w-20 h-20 bg-primary/5 rounded-full blur-2xl" />
+            <div className="relative z-10 flex items-start gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-primary/20 to-pink-200/30 rounded-xl flex items-center justify-center shrink-0">
+                <Brain size={18} className="text-primary" />
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-2 flex items-center gap-2">
+                  <Rocket size={12} /> AI Recommendation
+                </p>
+                <p className="text-sm font-medium text-text-main leading-relaxed">
+                  {result.recommendation}
+                </p>
+              </div>
             </div>
-            <p className="text-sm font-medium text-text-main leading-relaxed">
-              {result.recommendation}
-            </p>
           </div>
         </div>
 
         {/* Weaknesses */}
         {result.weaknesses?.length > 0 && (
-          <div className="bg-white border-2 border-[#f1f3f5] rounded-[40px] p-8 shadow-sm space-y-5">
-            <h4 className="text-xs font-black uppercase tracking-widest text-text-main flex items-center gap-2">
-              <Target size={14} className="text-red-500" /> Areas That Need Work
+          <div className="bg-surface border-2 border-border rounded-[40px] p-8 shadow-sm space-y-6 hover:shadow-md transition-shadow duration-300">
+            <h4 className="text-sm font-black uppercase tracking-widest text-text-main flex items-center gap-2">
+              <div className="w-8 h-8 bg-[#fff5f5] rounded-xl flex items-center justify-center">
+                <Target size={16} className="text-red-500" />
+              </div>
+              Areas That Need Work
             </h4>
             <div className="space-y-4">
               {result.weaknesses.map((w, idx) => {
                 const colors = [
-                  { bg: '#fff5f5', border: '#ffc9c9', text: '#e03131' },
-                  { bg: '#fff9db', border: '#ffec99', text: '#e67700' },
-                  { bg: '#fff3bf', border: '#ffe066', text: '#c69100' },
+                  { bg: '#fff5f5', border: '#ffc9c9', text: '#e03131', bar: '#e03131' },
+                  { bg: '#fff9db', border: '#ffec99', text: '#e67700', bar: '#e67700' },
+                  { bg: '#fff3bf', border: '#ffe066', text: '#c69100', bar: '#c69100' },
                 ];
                 const c = colors[Math.min(idx, 2)];
                 return (
-                  <div key={idx} className="p-4 rounded-2xl border space-y-2" style={{ backgroundColor: c.bg, borderColor: c.border }}>
+                  <div key={idx} className="p-5 rounded-3xl border-2 space-y-3 transition-all hover:shadow-sm" 
+                    style={{ backgroundColor: c.bg, borderColor: c.border }}>
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: c.text }}>{w.topic}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-lg flex items-center justify-center font-black text-[10px]"
+                          style={{ backgroundColor: c.text + '20', color: c.text }}>
+                          {idx + 1}
+                        </span>
+                        <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: c.text }}>{w.topic}</span>
+                      </div>
                       <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: c.text }}>{w.accuracy}%</span>
                     </div>
-                    <div className="h-2 bg-white/60 rounded-full overflow-hidden">
-                      <div className="h-full rounded-full transition-all duration-700" style={{ width: `${w.accuracy}%`, backgroundColor: c.text }} />
+                    <div className="h-3 bg-white/60 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full transition-all duration-1000 ease-out" 
+                        style={{ width: `${w.accuracy}%`, backgroundColor: c.bar }} />
                     </div>
-                    <div className="flex items-start gap-2 mt-2">
+                    <div className="flex items-start gap-2.5 mt-1 p-3 bg-white/40 rounded-2xl">
                       <Lightbulb size={12} style={{ color: c.text }} className="shrink-0 mt-0.5" />
                       <p className="text-[10px] font-bold leading-relaxed" style={{ color: c.text }}>{w.tip}</p>
                     </div>
@@ -343,23 +486,33 @@ export default function PlacementTestPage() {
 
         {/* Study Plan */}
         {result.study_plan && (
-          <div className="bg-white border-2 border-[#f1f3f5] rounded-[40px] p-8 shadow-sm space-y-4">
-            <h4 className="text-xs font-black uppercase tracking-widest text-text-main flex items-center gap-2">
-              <TrendingUp size={14} className="text-primary" /> Your Personalized Study Plan
+          <div className="bg-surface border-2 border-border rounded-[40px] p-8 shadow-sm space-y-5 hover:shadow-md transition-shadow duration-300">
+            <h4 className="text-sm font-black uppercase tracking-widest text-text-main flex items-center gap-2">
+              <div className="w-8 h-8 bg-gradient-to-br from-primary/10 to-pink-100 rounded-xl flex items-center justify-center">
+                <TrendingUp size={16} className="text-primary" />
+              </div>
+              {level === 'ELEMENTARY' ? 'Your Fun Study Plan' : 'Your Personalized Study Plan'}
             </h4>
-            <p className="text-sm font-medium text-text-main leading-relaxed">{result.study_plan}</p>
+            <div className="p-5 bg-gradient-to-br from-primary/[0.03] to-pink-50/30 rounded-3xl border border-primary/10">
+              <p className="text-sm font-medium text-text-main leading-relaxed whitespace-pre-line">{result.study_plan}</p>
+            </div>
           </div>
         )}
 
         {/* Strengths */}
         {result.strengths?.length > 0 && (
-          <div className="bg-white border-2 border-[#f1f3f5] rounded-[40px] p-8 shadow-sm space-y-4">
-            <h4 className="text-xs font-black uppercase tracking-widest text-text-main flex items-center gap-2">
-              <CheckCircle2 size={14} className="text-green-600" /> Your Strong Subjects
+          <div className="bg-surface border-2 border-border rounded-[40px] p-8 shadow-sm space-y-5 hover:shadow-md transition-shadow duration-300">
+            <h4 className="text-sm font-black uppercase tracking-widest text-text-main flex items-center gap-2">
+              <div className="w-8 h-8 bg-[#d3f9d8] rounded-xl flex items-center justify-center">
+                <CheckCircle2 size={16} className="text-[#2b8a3e]" />
+              </div>
+              Your Strong Subjects
             </h4>
             <div className="flex flex-wrap gap-2">
               {result.strengths.map((s, idx) => (
-                <span key={idx} className="px-3 py-1.5 bg-[#d3f9d8] text-[#2f9e44] border border-[#8ce99a] rounded-full text-[10px] font-black uppercase tracking-widest">
+                <span key={idx} 
+                  className="group relative overflow-hidden px-4 py-2 bg-gradient-to-r from-[#d3f9d8] to-[#b2f2bb] text-[#2b8a3e] border border-[#8ce99a] rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:shadow-md transition-all">
+                  <CheckCircle2 size={12} />
                   {s.topic} · {s.accuracy}%
                 </span>
               ))}
@@ -369,20 +522,22 @@ export default function PlacementTestPage() {
 
         {/* Full Topic Breakdown */}
         {result.topic_breakdown?.length > 0 && (
-          <div className="bg-white border-2 border-[#f1f3f5] rounded-[40px] p-8 shadow-sm space-y-4">
-            <h4 className="text-xs font-black uppercase tracking-widest text-text-main">Full Subject Breakdown</h4>
-            <div className="space-y-2">
+          <div className="bg-surface border-2 border-border rounded-[40px] p-8 shadow-sm space-y-5 hover:shadow-md transition-shadow duration-300">
+            <h4 className="text-sm font-black uppercase tracking-widest text-text-main">Full Subject Breakdown</h4>
+            <div className="space-y-2.5">
               {result.topic_breakdown
                 .sort((a, b) => a.accuracy - b.accuracy)
                 .map((t, idx) => {
                   const color = t.accuracy >= 80 ? '#2f9e44' : t.accuracy >= 60 ? '#e67700' : '#e03131';
                   return (
-                    <div key={idx} className="flex items-center gap-3">
+                    <div key={idx} className="flex items-center gap-3 p-2 hover:bg-[#f8f9fa] rounded-2xl transition-colors">
                       <span className="text-[9px] font-black uppercase tracking-widest text-text-muted w-44 shrink-0 truncate">{t.topic}</span>
-                      <div className="flex-1 h-2 bg-[#f1f3f5] rounded-full overflow-hidden">
-                        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${t.accuracy}%`, backgroundColor: color }} />
+                      <div className="flex-1 h-3 bg-[#f1f3f5] rounded-full overflow-hidden shadow-inner">
+                        <div className="h-full rounded-full transition-all duration-700 ease-out" 
+                          style={{ width: `${t.accuracy}%`, backgroundColor: color }} />
                       </div>
-                      <span className="text-[10px] font-black w-12 text-right" style={{ color }}>{t.accuracy}%</span>
+                      <span className="text-[10px] font-black w-14 text-right" style={{ color }}>{t.accuracy}%</span>
+                      <span className="text-[8px] font-bold text-text-muted">({t.correct}/{t.total})</span>
                     </div>
                   );
                 })}
@@ -394,14 +549,16 @@ export default function PlacementTestPage() {
         <div className="flex flex-col sm:flex-row gap-3">
           <button
             onClick={() => window.location.href = '/dashboard/tutors'}
-            className="flex-1 flex items-center justify-center gap-2 bg-primary text-white font-black text-xs uppercase tracking-widest py-4 rounded-2xl hover:bg-[#5c7cfa] transition-all shadow-lg shadow-primary/20"
+            className="group flex-1 flex items-center justify-center gap-2.5 bg-gradient-to-r from-primary to-pink-500 text-white font-black text-xs uppercase tracking-widest py-5 rounded-2xl hover:shadow-xl hover:shadow-primary/20 transition-all"
           >
-            Find a Tutor <ChevronRight size={16} />
+            <Rocket size={16} className="group-hover:-translate-y-0.5 transition-transform" />
+            Find a Tutor <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
           </button>
           <button
             onClick={reset}
-            className="flex-1 flex items-center justify-center gap-2 bg-[#f8f9fa] border-2 border-[#f1f3f5] text-text-muted font-black text-xs uppercase tracking-widest py-4 rounded-2xl hover:border-primary hover:text-primary transition-all"
+            className="group flex-1 flex items-center justify-center gap-2.5 bg-surface border-2 border-border text-text-muted font-black text-xs uppercase tracking-widest py-5 rounded-2xl hover:border-primary/30 hover:text-primary hover:shadow-md transition-all"
           >
+            <Brain size={16} className="group-hover:animate-sparkle" />
             Retake Test
           </button>
         </div>
@@ -410,26 +567,4 @@ export default function PlacementTestPage() {
   }
 
   return null;
-}
-
-function LevelCard({
-  title, desc, badge, color, textColor, onClick
-}: {
-  title: string; desc: string; badge: string; color: string; textColor: string; onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`p-8 ${color} border-2 border-white rounded-[40px] text-left hover:shadow-xl transition-all group shadow-sm`}
-    >
-      <div className={`inline-block px-3 py-1 bg-white/60 rounded-full text-[9px] font-black uppercase tracking-widest ${textColor} mb-6`}>
-        {badge}
-      </div>
-      <div className="w-12 h-12 bg-white/60 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-white transition-colors">
-        <BookOpen className={textColor} size={22} />
-      </div>
-      <h3 className="text-xl font-black text-text-main mb-2 tracking-tight">{title}</h3>
-      <p className="text-xs font-bold text-text-muted leading-relaxed">{desc}</p>
-    </button>
-  );
 }
