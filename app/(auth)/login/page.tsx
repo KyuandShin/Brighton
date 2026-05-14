@@ -176,7 +176,13 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true); setError('');
     try {
-      await (authClient as any).forgetPassword?.({ email, redirectTo: '/reset-password' });
+      // Better Auth client uses dynamic proxy — `forgetPassword` maps to `/forget-password`
+      const { error: fpError } = await (authClient as any).forgetPassword({ email, redirectTo: '/reset-password' });
+      if (fpError) {
+        setError(fpError.message || 'Failed to send reset email. Please try again.');
+        setLoading(false);
+        return;
+      }
       setForgotSent(true);
     } catch (err: unknown) {
       setError((err instanceof Error ? err.message : null) || 'Failed to send reset email. Please try again.');

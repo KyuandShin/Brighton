@@ -120,9 +120,9 @@ export default function TutorProfilePage() {
             level: 'BOTH',
             availability: found.availability ?? [],
           });
-          // Check if this tutor is favorited
+          // Check if this tutor is favorited — uses session-based auth
           if (user?.id) {
-            fetch(`/api/favorites?userId=${user.id}`)
+            fetch('/api/favorites')
               .then((r) => r.json())
               .then((favs) => {
                 if (Array.isArray(favs)) {

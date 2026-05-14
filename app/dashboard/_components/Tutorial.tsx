@@ -4,134 +4,16 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Star, Sparkles, ChevronRight, ChevronLeft, Users, Calendar, BookOpen, ClipboardList, BarChart2, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
-
-
-
-// ── Hoshi Mascot SVG ─────────────────────────────────────────────────────────
-function HoshiMascot({ mood }: { mood: 'happy' | 'excited' | 'thinking' | 'waving' }) {
-  return (
-    <svg viewBox="0 0 120 160" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-[0_12px_24px_rgba(147,51,234,0.25)]">
-      {/* Body / Dress */}
-      <ellipse cx="60" cy="148" rx="32" ry="14" fill="#c4b5fd" opacity="0.3" />
-      <path d="M38 115 Q60 108 82 115 L86 158 L34 158 Z" fill="#a78bfa" />
-      <path d="M50 118 L60 132 L70 118" stroke="white" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-      {/* Collar detail */}
-      <path d="M48 115 Q60 122 72 115" stroke="#ede9fe" strokeWidth="2" fill="none" strokeLinecap="round" />
-
-      {/* Neck */}
-      <rect x="54" y="100" width="12" height="18" rx="6" fill="#FDDCB5" />
-
-      {/* Hair back layer */}
-      <ellipse cx="60" cy="62" rx="36" ry="32" fill="#5EC8EA" />
-
-      {/* Twin tails */}
-      <motion.path
-        d="M24 72 C10 90 13 112 24 116 C32 120 38 103 33 86 Z"
-        fill="#5EC8EA"
-        animate={{ rotate: mood === 'waving' ? [-4, 4, -4] : [-2, 2, -2] }}
-        transition={{ duration: 1.8, repeat: Infinity }}
-        style={{ transformOrigin: '28px 72px' }}
-      />
-      <motion.path
-        d="M96 72 C110 90 107 112 96 116 C88 120 82 103 87 86 Z"
-        fill="#5EC8EA"
-        animate={{ rotate: mood === 'waving' ? [4, -4, 4] : [2, -2, 2] }}
-        transition={{ duration: 1.8, repeat: Infinity }}
-        style={{ transformOrigin: '92px 72px' }}
-      />
-
-      {/* Face */}
-      <ellipse cx="60" cy="72" rx="30" ry="28" fill="#FDDCB5" />
-
-      {/* Hair bangs */}
-      <path d="M30 62 C28 42 42 28 60 28 C78 28 92 42 90 62 Q82 55 60 52 Q38 55 30 62 Z" fill="#5EC8EA" />
-      {/* Side fringe strands */}
-      <path d="M30 62 Q26 72 28 80" stroke="#5EC8EA" strokeWidth="8" strokeLinecap="round" fill="none" />
-      <path d="M90 62 Q94 72 92 80" stroke="#5EC8EA" strokeWidth="8" strokeLinecap="round" fill="none" />
-
-      {/* Eyes — Large Anime */}
-      <ellipse cx="46" cy="71" rx="10" ry="11" fill="white" />
-      <ellipse cx="74" cy="71" rx="10" ry="11" fill="white" />
-      <ellipse cx="46" cy="72" rx="8" ry="9" fill="#60a5fa" />
-      <ellipse cx="74" cy="72" rx="8" ry="9" fill="#60a5fa" />
-      <ellipse cx="47" cy="73" rx="5.5" ry="6.5" fill="#1e1b4b" />
-      <ellipse cx="75" cy="73" rx="5.5" ry="6.5" fill="#1e1b4b" />
-      <circle cx="50" cy="68" r="3" fill="white" />
-      <circle cx="78" cy="68" r="3" fill="white" />
-      <circle cx="44" cy="74" r="1.5" fill="white" opacity="0.6" />
-      <circle cx="72" cy="74" r="1.5" fill="white" opacity="0.6" />
-
-      {/* Eyelashes top */}
-      <path d="M37 64 Q38 60 42 62" stroke="#1e1b4b" strokeWidth="1.5" fill="none" strokeLinecap="round" />
-      <path d="M55 62 Q57 58 59 61" stroke="#1e1b4b" strokeWidth="1.5" fill="none" strokeLinecap="round" />
-      <path d="M65 62 Q67 58 69 61" stroke="#1e1b4b" strokeWidth="1.5" fill="none" strokeLinecap="round" />
-      <path d="M83 64 Q82 60 78 62" stroke="#1e1b4b" strokeWidth="1.5" fill="none" strokeLinecap="round" />
-
-      {/* Blush */}
-      <motion.g animate={{ opacity: [0.45, 0.75, 0.45] }} transition={{ duration: 2.2, repeat: Infinity }}>
-        <ellipse cx="34" cy="82" rx="9" ry="5.5" fill="#FFB3CC" />
-        <ellipse cx="86" cy="82" rx="9" ry="5.5" fill="#FFB3CC" />
-      </motion.g>
-
-      {/* Nose */}
-      <circle cx="60" cy="80" r="1.5" fill="#e9a87a" opacity="0.6" />
-
-      {/* Mouth */}
-      {mood === 'thinking' ? (
-        <>
-          <path d="M52 90 L68 90" stroke="#E07070" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-          {/* Thinking dots */}
-          <circle cx="72" cy="72" r="2" fill="#a78bfa" opacity="0.6" />
-          <circle cx="78" cy="66" r="1.5" fill="#a78bfa" opacity="0.5" />
-          <circle cx="83" cy="61" r="1" fill="#a78bfa" opacity="0.4" />
-        </>
-      ) : mood === 'excited' ? (
-        <path d="M50 89 Q60 102 70 89" stroke="#E07070" strokeWidth="3" fill="none" strokeLinecap="round" />
-      ) : mood === 'waving' ? (
-        <path d="M51 89 Q60 99 69 89" stroke="#E07070" strokeWidth="2.8" fill="none" strokeLinecap="round" />
-      ) : (
-        <path d="M52 89 Q60 97 68 89" stroke="#E07070" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-      )}
-
-      {/* Arms */}
-      {mood === 'waving' ? (
-        <>
-          <path d="M38 115 Q28 103 22 95" stroke="#FDDCB5" strokeWidth="9" strokeLinecap="round" fill="none" />
-          <motion.path
-            d="M82 115 C92 100 100 88 95 78 C91 70 84 73 85 82"
-            stroke="#FDDCB5" strokeWidth="9" strokeLinecap="round" fill="none"
-            animate={{ rotate: [-12, 12, -12] }}
-            transition={{ duration: 0.55, repeat: Infinity }}
-            style={{ transformOrigin: '82px 115px' }}
-          />
-          {/* Waving hand detail */}
-          <motion.ellipse cx="95" cy="76" rx="7" ry="6" fill="#FDDCB5"
-            animate={{ rotate: [-12, 12, -12] }}
-            transition={{ duration: 0.55, repeat: Infinity }}
-            style={{ transformOrigin: '82px 115px' }}
-          />
-        </>
-      ) : (
-        <>
-          <path d="M38 115 Q28 128 30 142" stroke="#FDDCB5" strokeWidth="9" strokeLinecap="round" fill="none" />
-          <path d="M82 115 Q92 128 90 142" stroke="#FDDCB5" strokeWidth="9" strokeLinecap="round" fill="none" />
-        </>
-      )}
-
-      {/* Hair highlight */}
-      <ellipse cx="52" cy="42" rx="8" ry="5" fill="white" opacity="0.25" transform="rotate(-20 52 42)" />
-    </svg>
-  );
-}
+import HoshiMascot, { type HoshiMood } from '@/app/_components/HoshiMascot';
 
 // ── Step data ────────────────────────────────────────────────────────────────
 const STEPS = [
   {
     id: 'welcome',
-    badge: '✦ こんにちは！',
-    title: 'WELCOME SENPAI!',
-    subtitle: "I'm Hoshi, your academic guide~",
-    desc: "Welcome to Brighton — your AI-powered tutoring platform! I'll walk you through everything so you can start your journey to academic greatness.",
+    badge: '✦ Star',
+    title: 'WELCOME STUDENT!',
+    subtitle: "I'm Star, your academic guide~",
+    desc: "Welcome to Brighton — your AI-powered tutoring booking system! I'll walk you through everything so you can start your journey to academic success",
     mood: 'waving' as const,
     icon: Sparkles,
     color: '#ec4899',
@@ -142,7 +24,7 @@ const STEPS = [
   {
     id: 'tutors',
     badge: '✦ STEP 01',
-    title: 'FIND YOUR SENSEI',
+    title: 'FIND YOUR TUTOR',
     subtitle: 'Discover your perfect tutor',
     desc: "Browse our directory of verified tutors! Use the AI matching tool to find experts in your subject and academic level — Elementary or High School.",
     mood: 'excited' as const,

@@ -34,13 +34,18 @@ interface UseCurrentUserResult {
   refetch: () => void;
 }
 
-export function useCurrentUser(): UseCurrentUserResult {
+export function useCurrentUser(skip?: boolean): UseCurrentUserResult {
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
+    if (skip) {
+      setLoading(false);
+      return;
+    }
+
     let cancelled = false;
 
     fetch('/api/me', { cache: 'no-store', credentials: 'include' })

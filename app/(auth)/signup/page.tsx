@@ -230,14 +230,10 @@ export default function SignupPage() {
                 setLoading(true);
                 setError('');
                 try {
-                  const res = await fetch('/api/signup/student', {
+                  const res = await fetch('/api/auth/resend-verification', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      email, password, fullName, schoolName, age,
-                      parentEmail: age ? (parseInt(age) < 18 ? parentEmail : null) : null,
-                      schoolLevel, gradeLevel, image: profileImage,
-                    }),
+                    body: JSON.stringify({ email }),
                   });
                   const data = await res.json();
                   if (!res.ok) setError(data.error || 'Failed to resend');
@@ -460,7 +456,6 @@ export default function SignupPage() {
                   const isElementary = g.value <= 6;
                   const isSelected = gradeLevel === g.value;
                   const activeColor = isElementary ? '#2b8a3e' : '#1971c2';
-                  const activeBg = isElementary ? '#d3f9d8' : '#d0ebff';
                   return (
                     <button
                       key={g.value}
@@ -567,13 +562,6 @@ export default function SignupPage() {
 function Check2Icon({ size = 12, className = '' }: { size?: number; className?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <polyline points="20 6 9 17 4 12" />
-    </svg>
-  );
-}
-function Check3Icon({ size = 14, className = '' }: { size?: number; className?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round" className={className}>
       <polyline points="20 6 9 17 4 12" />
     </svg>
   );

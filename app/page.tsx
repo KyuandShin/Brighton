@@ -13,6 +13,7 @@ import {
   BarChart3, MessageSquare, Quote, Loader2,
   CalendarCheck, UserPlus
 } from 'lucide-react';
+import HoshiMascot from '@/app/_components/HoshiMascot';
 
 const HERO_DECOS = [
   { char: '✦', top: '15%',  left: '4%',   size: '2rem',   color: '#f472b6', delay: '0s',   dur: '5s'  },
@@ -71,7 +72,7 @@ const FAQ_ITEMS = [
 
 function SkillTag({ label, color, icon }: { label: string; color: string; icon: string }) {
   return (
-    <div className={`group relative overflow-hidden px-4 py-2.5 ${color} rounded-full text-[10px] font-black uppercase tracking-widest border border-white/60 shadow-sm cursor-default hover:scale-105 hover:shadow-md transition-all flex items-center gap-2`}>
+    <div className={`group relative overflow-hidden px-4 py-2.5 ${color} rounded-full text-[10px] font-black uppercase tracking-widest border border-border shadow-sm cursor-default hover:scale-105 hover:shadow-md transition-all flex items-center gap-2`}>
       <span className="text-xs">{icon}</span>
       <span>{label}</span>
     </div>
@@ -126,7 +127,7 @@ function TestimonialCard({ review }: { review: FeaturedReview }) {
   const comment = review.comment ?? 'Great experience!';
 
   return (
-    <div className="bg-white/80 backdrop-blur-sm border-2 border-p-purple/30 rounded-3xl p-6 space-y-4 hover:shadow-lg transition-all min-w-[300px] md:min-w-[340px]">
+    <div className="bg-surface/80 backdrop-blur-sm border-2 border-p-purple/30 rounded-3xl p-6 space-y-4 hover:shadow-lg transition-all min-w-[300px] md:min-w-[340px]">
       <div className="flex items-center gap-1 text-[#fcc419]">
         {Array.from({ length: 5 }).map((_, i) => (
           <Star key={i} size={12} fill={i < review.rating ? 'currentColor' : 'none'} className={i >= review.rating ? 'text-gray-300' : ''} />
@@ -153,7 +154,7 @@ function TestimonialCard({ review }: { review: FeaturedReview }) {
 
 function FaqItem({ question, answer, open, onToggle }: { question: string; answer: string; open: boolean; onToggle: () => void }) {
   return (
-    <div className={`bg-white/70 backdrop-blur-sm border-2 rounded-2xl transition-all ${open ? 'border-primary/30 shadow-md' : 'border-p-purple/30 hover:border-p-purple/60'}`}>
+    <div className={`bg-surface/70 backdrop-blur-sm border-2 rounded-2xl transition-all ${open ? 'border-primary/30 shadow-md' : 'border-p-purple/30 hover:border-p-purple/60'}`}>
       <button
         onClick={onToggle}
         className="w-full flex items-center justify-between px-6 py-5 text-left gap-4"
@@ -176,7 +177,7 @@ function FaqItem({ question, answer, open, onToggle }: { question: string; answe
 
 // ── Main Landing Page ────────────────────────────────────────────────────
 export default function LandingPage() {
-  const { user } = useCurrentUser();
+  const { user } = useCurrentUser(true);
   const logoHref = user ? '/dashboard' : '/';
   const [heroSearch, setHeroSearch] = useState('');
   const [heroLevel, setHeroLevel] = useState('ALL');
@@ -221,19 +222,28 @@ export default function LandingPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch tutors — single consolidated call
+  // Fetch tutors — sorted by best rating, with subject fallback for no-review tutors
   useEffect(() => {
     const controller = new AbortController();
-    fetch('/api/tutors', { signal: controller.signal })
+    setLoadingBest(true);
+    fetch('/api/tutors?sort=best&limit=100', { signal: controller.signal })
       .then(r => r.json())
       .then(data => {
         if (Array.isArray(data)) {
           setTutorCount(data.length);
-          // Find best rated tutors (top 3)
-          const sorted = [...data]
-            .filter((t: any) => t.verificationStatus === 'APPROVED')
-            .sort((a: any, b: any) => (b.rating ?? 0) - (a.rating ?? 0))
-            .slice(0, 3);
+          // Sort: best rated first, then by subject for tutors with no reviews
+          const sorted = [...data].sort((a: any, b: any) => {
+            const ratingA = a.rating ?? 0;
+            const ratingB = b.rating ?? 0;
+            // Both have no reviews → sort by subject alphabetically
+            if (ratingA === 0 && ratingB === 0) {
+              const subjA = (a.subjects ?? []).join(', ').toLowerCase();
+              const subjB = (b.subjects ?? []).join(', ').toLowerCase();
+              return subjA.localeCompare(subjB);
+            }
+            // Otherwise sort by rating descending
+            return ratingB - ratingA;
+          }).slice(0, 3);
           setBestTutors(sorted);
         }
       })
@@ -279,46 +289,61 @@ export default function LandingPage() {
         style={{ bottom: '-10%', right: '-5%', width: '30%', height: '30%', background: 'var(--color-p-pink)', filter: 'blur(120px)', opacity: 0.50, animation: 'blob-drift 10s ease-in-out infinite reverse' }} />
 
       {/* ── Navbar ───────────────────────────────────────────────────── */}
-      <nav className="z-50 max-w-7xl mx-auto px-6 py-4 flex justify-between items-center bg-white/70 backdrop-blur-xl sticky top-0 border-b border-p-purple/40">
-        <Link href={logoHref} className="flex items-center gap-3 group">
-          <div className="w-10 h-10 logo-halo flex items-center justify-center border border-p-purple bg-white group-hover:scale-105 transition-transform">
-            <Image src="/logo.png" alt="Logo" width={24} height={24} className="object-contain" style={{ width: 'auto', height: 'auto' }} />
-          </div>
-          <span className="text-sm font-black tracking-[0.2em] text-text-main uppercase">Brighton</span>
-        </Link>
-
-        <div className="hidden md:flex gap-8 text-[10px] font-black uppercase tracking-widest text-text-muted items-center">
-          <Link href="#features" className="hover:text-primary transition-colors">Features</Link>
-          <Link href="#tutors"   className="hover:text-primary transition-colors">Tutors</Link>
-          <Link href="#how-it-works" className="hover:text-primary transition-colors">How It Works</Link>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {/* Dark mode toggle */}
-          <button
-            onClick={() => setDark(!dark)}
-            className="w-9 h-9 rounded-xl bg-p-purple/50 flex items-center justify-center hover:bg-p-purple transition-colors"
-            aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
-          >
-            {dark ? <Sun size={14} className="text-amber-400" /> : <Moon size={14} className="text-text-muted" />}
-          </button>
-
-          <Link href="/login" className="px-4 py-2 font-black text-[10px] text-text-muted uppercase tracking-widest hover:text-primary transition-colors">Login</Link>
-          <Link
-            href="/signup"
-            className="group relative overflow-hidden px-6 py-3 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all hover:scale-105"
-            style={{ background: 'linear-gradient(135deg, #ec4899 0%, #9333ea 100%)', boxShadow: '0 6px 20px rgba(147,51,234,0.25)' }}
-          >
-            <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-            <span className="relative z-10 flex items-center gap-2">
-              Join Now <Rocket size={12} />
-            </span>
+      <nav className="bg-surface/70 backdrop-blur-xl sticky top-0 z-50 border-b border-p-purple/40 h-16 flex items-center">
+        <div className="w-full max-w-7xl mx-auto flex justify-between items-center gap-6 px-6">
+          {/* Logo */}
+          <Link href={logoHref} className="flex items-center gap-3 shrink-0 group">
+            <div className="w-10 h-10 logo-halo flex items-center justify-center border border-p-purple bg-surface group-hover:scale-105 transition-transform">
+              <Image src="/logo.png" alt="Logo" width={24} height={24} className="object-contain" style={{ width: 'auto', height: 'auto' }} />
+            </div>
+            <span className="text-sm font-black tracking-[0.2em] text-text-main uppercase">Brighton</span>
           </Link>
+
+          {/* Nav Links - centered */}
+          <div className="hidden md:flex gap-1 items-center flex-1 justify-center">
+            {[
+              { name: 'Features', href: '#features' },
+              { name: 'Tutors', href: '#tutors' },
+              { name: 'How It Works', href: '#how-it-works' },
+            ].map((item) => (
+              <Link
+                key={item.name}
+                href={item.href}
+                className="px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all text-text-muted hover:bg-p-purple hover:text-primary"
+              >
+                {item.name}
+              </Link>
+            ))}
+          </div>
+
+          {/* Right: Actions */}
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Dark mode toggle */}
+            <button
+              onClick={() => setDark(!dark)}
+              className="p-2.5 bg-p-purple border border-border rounded-xl text-text-muted hover:bg-primary hover:text-white hover:border-primary transition-all"
+              aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {dark ? <Sun size={17} strokeWidth={2.5} /> : <Moon size={17} strokeWidth={2.5} />}
+            </button>
+
+            <Link href="/login" className="px-4 py-2 font-black text-[10px] text-text-muted uppercase tracking-widest hover:text-primary transition-colors">Login</Link>
+            <Link
+              href="/signup"
+              className="group relative overflow-hidden px-6 py-3 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all hover:scale-105"
+              style={{ background: 'linear-gradient(135deg, #ec4899 0%, #9333ea 100%)', boxShadow: '0 6px 20px rgba(147,51,234,0.25)' }}
+            >
+              <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <span className="relative z-10 flex items-center gap-2">
+                Join Now <ArrowRight size={12} />
+              </span>
+            </Link>
+          </div>
         </div>
       </nav>
 
       {/* ── Hero ─────────────────────────────────────────────────────── */}
-      <header className="relative z-10 max-w-5xl mx-auto px-6 pt-20 pb-28 flex flex-col items-center text-center">
+      <header className="relative z-10 max-w-6xl mx-auto px-6 pt-16 pb-28">
         {/* Floating anime decorations */}
         {HERO_DECOS.map((d, i) => (
           <span key={i} className="absolute pointer-events-none select-none hidden md:block"
@@ -333,106 +358,137 @@ export default function LandingPage() {
         ))}
 
         {mounted && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: 'easeOut' }}
-            className="space-y-10 w-full"
-          >
-            {/* Badge */}
+          <div className="flex flex-col md:flex-row items-center gap-6 md:gap-10">
+            {/* Left side: mascot */}
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.2, duration: 0.5 }}
-              className="inline-flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-p-purple/60 to-p-sakura/40 border border-white rounded-full shadow-sm"
+              initial={{ opacity: 0, x: -30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.7, ease: 'easeOut' }}
+              className="hidden md:block shrink-0"
             >
-              <Zap size={12} className="text-amber-500" fill="currentColor" />
-              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary">
-                🎯 Find Your Perfect Tutor Match
-              </span>
+              <HoshiMascot
+                mood="present"
+                size={350}
+                floating
+              />
             </motion.div>
 
-            {/* Title */}
-            <div className="space-y-4">
-              <h1 className="text-5xl md:text-7xl font-black tracking-tight leading-tight">
-                What subject do you want{' '}
-                <span className="gradient-text">to master?</span>
-              </h1>
-              <p className="text-sm font-bold text-text-muted uppercase tracking-widest max-w-xl mx-auto">
-                Philippine K-12 Tutoring Platform — Elementary to High School
-              </p>
-            </div>
-
-            {/* Search Box */}
-            <motion.form
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.4, duration: 0.5 }}
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (user) {
-                  const params = new URLSearchParams();
-                  if (heroSearch.trim()) params.set('q', heroSearch.trim());
-                  if (heroLevel !== 'ALL') params.set('level', heroLevel);
-                  const qs = params.toString();
-                  window.location.href = `/dashboard/tutors${qs ? `?${qs}` : ''}`;
-                } else {
-                  setSearchModalQuery(heroSearch);
-                  setSearchModalLevel(heroLevel as 'ALL' | 'ELEMENTARY' | 'HIGH_SCHOOL');
-                  setShowSearchModal(true);
-                }
-              }}
-              className="max-w-2xl mx-auto w-full bg-white/80 backdrop-blur-md p-2 rounded-2xl shadow-[0_20px_60px_rgba(147,51,234,0.1)] border-2 border-white/80 hover:border-primary/20 transition-all group"
+            {/* Mobile mascot */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2, duration: 0.6 }}
+              className="md:hidden flex justify-center"
             >
-              <div className="flex flex-col md:flex-row gap-2">
-                <div className="flex-1 relative">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-primary transition-colors" size={18} />
-                  <input
-                    type="text"
-                    value={heroSearch}
-                    onChange={(e) => setHeroSearch(e.target.value)}
-                    placeholder="Search subjects (e.g. Algebra, Physics...)"
-                    aria-label="Search for subjects"
-                    className="w-full pl-12 pr-4 py-4 bg-transparent border-none focus:outline-none font-bold text-sm text-text-main placeholder:text-text-muted/40"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <select
-                    value={heroLevel}
-                    onChange={(e) => setHeroLevel(e.target.value)}
-                    aria-label="Filter by academic level"
-                    className="px-5 py-4 bg-p-purple/30 border-2 border-white/60 rounded-xl font-bold text-xs uppercase tracking-widest text-text-muted cursor-pointer focus:border-primary transition-all"
-                  >
-                    <option value="ALL">All Levels</option>
-                    <option value="ELEMENTARY">Elementary</option>
-                    <option value="HIGH_SCHOOL">High School</option>
-                  </select>
-                  <button
-                    type="submit"
-                    className="group/btn px-8 py-4 text-white rounded-xl font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 hover:scale-105"
-                    style={{ background: 'linear-gradient(135deg, #ec4899 0%, #9333ea 100%)', boxShadow: '0 6px 20px rgba(147,51,234,0.25)' }}
-                  >
-                    Find <ArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
-                  </button>
-                </div>
+              <HoshiMascot
+                mood="present"
+                size={100}
+                floating
+              />
+            </motion.div>
+
+            {/* Right side: content */}
+            <motion.div
+              initial={{ opacity: 0, x: 30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.7, ease: 'easeOut' }}
+              className="flex-1 text-center md:text-left space-y-8 "
+            >
+              {/* Badge */}
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.2, duration: 0.5 }}
+                className="inline-flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-p-purple/60 to-p-sakura/40 border border-border rounded-full shadow-sm mx-auto md:mx-0"
+              >
+                <Star size={12} className="text-amber-500" fill="currentColor" />
+                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary">
+                  Find Your Perfect Tutor Match
+                </span>
+              </motion.div>
+
+              {/* Title */}
+              <div className="space-y-4">
+                <h1 className="text-5xl md:text-6xl lg:text-7xl font-black tracking-tight leading-tight">
+                  What subject do you want{' '}
+                  <span className="gradient-text">to master?</span>
+                </h1>
+                <p className="text-sm font-bold text-text-muted uppercase tracking-widest max-w-lg">
+                  Tutoring Booking System
+                </p>
               </div>
-            </motion.form>
 
-            {/* Skill tags */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.6, duration: 0.5 }}
-              className="flex flex-wrap justify-center gap-2.5 pt-2"
-            >
-              <SkillTag label="Mathematics"    color="bg-p-blue   text-blue-700"   icon="📐" />
-              <SkillTag label="Science"        color="bg-p-mint   text-teal-700"   icon="🔬" />
-              <SkillTag label="English"        color="bg-p-pink   text-pink-700"   icon="📖" />
-              <SkillTag label="History"        color="bg-p-yellow text-amber-700"  icon="🏛️" />
-              <SkillTag label="Filipino"       color="bg-p-purple text-purple-700" icon="🇵🇭" />
-              <SkillTag label="MAPEH"          color="bg-p-peach  text-orange-700" icon="🎨" />
+              {/* Search Box */}
+              <motion.form
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.4, duration: 0.5 }}
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (user) {
+                    const params = new URLSearchParams();
+                    if (heroSearch.trim()) params.set('q', heroSearch.trim());
+                    if (heroLevel !== 'ALL') params.set('level', heroLevel);
+                    const qs = params.toString();
+                    window.location.href = `/dashboard/tutors${qs ? `?${qs}` : ''}`;
+                  } else {
+                    setSearchModalQuery(heroSearch);
+                    setSearchModalLevel(heroLevel as 'ALL' | 'ELEMENTARY' | 'HIGH_SCHOOL');
+                    setShowSearchModal(true);
+                  }
+                }}
+                className="w-full md:max-w-xl bg-surface/80 backdrop-blur-md p-2 rounded-2xl shadow-[0_20px_60px_rgba(147,51,234,0.1)] border-2 border-border hover:border-primary/20 transition-all group"
+              >
+                <div className="flex flex-col md:flex-row gap-2">
+                  <div className="flex-1 relative">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-primary transition-colors" size={18} />
+                    <input
+                      type="text"
+                      value={heroSearch}
+                      onChange={(e) => setHeroSearch(e.target.value)}
+                      placeholder="Search subjects (e.g. Algebra, Physics...)"
+                      aria-label="Search for subjects"
+                      className="w-full pl-12 pr-4 py-4 bg-transparent border-none focus:outline-none font-bold text-sm text-text-main placeholder:text-text-muted/40"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <select
+                      value={heroLevel}
+                      onChange={(e) => setHeroLevel(e.target.value)}
+                      aria-label="Filter by academic level"
+                      className="px-5 py-4 bg-p-purple/30 border-2 border-border/60 rounded-xl font-bold text-xs uppercase tracking-widest text-text-muted cursor-pointer focus:border-primary transition-all"
+                    >
+                      <option value="ALL">All Levels</option>
+                      <option value="ELEMENTARY">Elementary</option>
+                      <option value="HIGH_SCHOOL">High School</option>
+                    </select>
+                    <button
+                      type="submit"
+                      className="group/btn px-8 py-4 text-white rounded-xl font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 hover:scale-105"
+                      style={{ background: 'linear-gradient(135deg, #ec4899 0%, #9333ea 100%)', boxShadow: '0 6px 20px rgba(147,51,234,0.25)' }}
+                    >
+                      Find <ArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
+                    </button>
+                  </div>
+                </div>
+              </motion.form>
+
+              {/* Skill tags */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.6, duration: 0.5 }}
+                className="flex flex-wrap justify-center md:justify-start gap-2.5 pt-2"
+              >
+                <SkillTag label="Mathematics"    color="bg-p-blue   text-blue-700"   icon="+" />
+                <SkillTag label="Science"        color="bg-p-mint   text-teal-700"   icon="●" />
+                <SkillTag label="English"        color="bg-p-pink   text-pink-700"   icon="·" />
+                <SkillTag label="History"        color="bg-p-yellow text-amber-700"  icon="▲" />
+                <SkillTag label="Filipino"       color="bg-p-purple text-purple-700" icon="◆" />
+                <SkillTag label="MAPEH"          color="bg-p-peach  text-orange-700" icon="◆" />
+              </motion.div>
             </motion.div>
-          </motion.div>
+          </div>
         )}
       </header>
 
@@ -440,7 +496,7 @@ export default function LandingPage() {
       {stats && (
         <section className="relative z-10 pb-16">
           <div className="max-w-5xl mx-auto px-6">
-            <div className="bg-white/70 backdrop-blur-md border-2 border-p-purple/30 rounded-[40px] p-8 md:p-12 shadow-lg">
+            <div className="bg-surface/70 backdrop-blur-md border-2 border-p-purple/30 rounded-[40px] p-8 md:p-12 shadow-lg">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12">
                 <AnimatedCounter value={stats.tutors} suffix="+" label="Verified Tutors" />
                 <AnimatedCounter value={stats.students} suffix="+" label="Active Students" />
@@ -479,7 +535,7 @@ export default function LandingPage() {
                 viewport={{ once: true }}
                 transition={{ delay: idx * 0.12, duration: 0.5 }}
                 whileHover={{ y: -6 }}
-                className={`group relative overflow-hidden p-7 bg-white border-2 border-white rounded-[32px] transition-all hover:shadow-xl ${activeFeature === idx ? 'shadow-lg' : 'shadow-sm'}`}
+                className={`group relative overflow-hidden p-7 bg-surface border-2 border-border rounded-[32px] transition-all hover:shadow-xl ${activeFeature === idx ? 'shadow-lg' : 'shadow-sm'}`}
               >
                 <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-500`} />
                 <div className="absolute -top-8 -right-8 w-20 h-20 bg-p-purple/30 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700" />
@@ -609,7 +665,7 @@ export default function LandingPage() {
             /* Loading skeleton */
             <>
               {[1, 2, 3].map((i) => (
-                <div key={i} className="bg-white border-2 border-border rounded-[32px] overflow-hidden animate-pulse">
+                <div key={i} className="bg-surface border-2 border-border rounded-[32px] overflow-hidden animate-pulse">
                   <div className="h-24 bg-p-purple/60" />
                   <div className="p-6 space-y-3">
                     <div className="h-5 bg-surface-elevated rounded-xl w-2/3" />
@@ -644,7 +700,7 @@ export default function LandingPage() {
                   whileHover={{ y: -6 }}
                 >
                   <Link href={user ? `/dashboard/tutors/${tutor.id}` : '/signup'} className="block">
-                    <div className="bg-white border-2 border-border rounded-[32px] overflow-hidden cursor-pointer group relative">
+                    <div className="bg-surface border-2 border-border rounded-[32px] overflow-hidden cursor-pointer group relative">
                       {/* Banner */}
                       <div
                         className="relative h-24"
@@ -653,7 +709,7 @@ export default function LandingPage() {
                         <div className="absolute -right-6 -top-6 w-28 h-28 rounded-full border-[16px] border-white/20" />
                         <div className="absolute -right-2 top-10 w-12 h-12 rounded-full border-[8px] border-white/15" />
                         <div className="absolute -bottom-8 left-6">
-                          <div className="relative w-16 h-16 rounded-2xl border-4 border-white shadow-md overflow-hidden bg-white">
+                          <div className="relative w-16 h-16 rounded-2xl border-4 border-surface shadow-md overflow-hidden bg-surface">
                             <Image src={image} alt={tutor.name} fill sizes="64px" className="object-cover" />
                           </div>
                         </div>
@@ -682,7 +738,7 @@ export default function LandingPage() {
                         {subjects.length > 0 && (
                           <div className="flex flex-wrap gap-1.5">
                             {subjects.slice(0, 3).map((s: string) => (
-                              <span key={s} className={`px-2.5 py-1 ${theme.tagBg} rounded-full text-[9px] font-black uppercase tracking-widest ${theme.tagText} border border-white`}>
+                              <span key={s} className={`px-2.5 py-1 ${theme.tagBg} rounded-full text-[9px] font-black uppercase tracking-widest ${theme.tagText} border border-border`}>
                                 {s}
                               </span>
                             ))}
@@ -717,7 +773,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── How It Works ─────────────────────────────────────────────── */}
-      <section id="how-it-works" className="relative z-10 bg-white/60 backdrop-blur-md py-24 border-y border-p-purple/30">
+      <section id="how-it-works" className="relative z-10 bg-surface/60 backdrop-blur-md py-24 border-y border-p-purple/30">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-14 space-y-3">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-p-yellow rounded-full">
@@ -744,7 +800,7 @@ export default function LandingPage() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: idx * 0.12, duration: 0.4 }}
-                  className="relative bg-white/80 backdrop-blur-sm border-2 border-p-purple/30 rounded-[28px] p-6 text-center space-y-4 hover:shadow-lg transition-all group"
+                  className="relative bg-surface/80 backdrop-blur-sm border-2 border-p-purple/30 rounded-[28px] p-6 text-center space-y-4 hover:shadow-lg transition-all group"
                 >
                   {/* Step number */}
                   <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 text-white text-[11px] font-black flex items-center justify-center shadow-md">
@@ -780,7 +836,7 @@ export default function LandingPage() {
                   { text: 'Progress Analytics', icon: TrendingUp },
                   { text: 'Flexible Scheduling', icon: Star },
                 ].map(({ text, icon: Icon }) => (
-                  <div key={text} className="flex items-center gap-3 p-3 bg-white/70 rounded-2xl border border-white/80 hover:shadow-sm transition-all">
+                  <div key={text} className="flex items-center gap-3 p-3 bg-surface/70 rounded-2xl border border-border hover:shadow-sm transition-all">
                     <div className="w-7 h-7 rounded-lg bg-p-mint flex items-center justify-center shrink-0">
                       <Check size={12} className="text-teal-600" />
                     </div>
@@ -795,11 +851,11 @@ export default function LandingPage() {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
-              className="p-8 bg-white/80 backdrop-blur-sm border-2 border-p-purple/40 rounded-[40px] shadow-[0_20px_60px_rgba(147,51,234,0.08)] relative overflow-hidden"
+              className="p-8 bg-surface/80 backdrop-blur-sm border-2 border-p-purple/40 rounded-[40px] shadow-[0_20px_60px_rgba(147,51,234,0.08)] relative overflow-hidden"
             >
               <div className="absolute top-0 right-0 px-5 py-2.5 text-white text-[8px] font-black uppercase tracking-widest rounded-bl-2xl"
                 style={{ background: 'linear-gradient(135deg, #ec4899 0%, #9333ea 100%)' }}>
-                ✨ LSPU Innovation Project
+                LSPU Innovation Project
               </div>
               <div className="space-y-6 p-4 pt-8">
                 <div className="flex items-center gap-4">
@@ -823,7 +879,7 @@ export default function LandingPage() {
                   </div>
                   <div className="flex -space-x-2">
                     {[1,2,3].map(i => (
-                      <div key={i} className="w-8 h-8 rounded-full bg-gradient-to-br from-p-purple to-pink-300 border-2 border-white shadow-sm" />
+                      <div key={i} className="w-8 h-8 rounded-full bg-gradient-to-br from-p-purple to-pink-300 border-2 border-border shadow-sm" />
                     ))}
                   </div>
                 </div>
@@ -901,7 +957,7 @@ export default function LandingPage() {
             </Link>
             <Link
               href="/login"
-              className="px-10 py-5 bg-white border-2 border-p-purple/40 text-text-main rounded-2xl font-black text-xs uppercase tracking-widest hover:border-primary hover:shadow-lg transition-all flex items-center justify-center gap-2"
+              className="px-10 py-5 bg-surface border-2 border-p-purple/40 text-text-main rounded-2xl font-black text-xs uppercase tracking-widest hover:border-primary hover:shadow-lg transition-all flex items-center justify-center gap-2"
             >
               <BookOpen size={14} /> Sign In
             </Link>
@@ -910,7 +966,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── Footer ───────────────────────────────────────────────────── */}
-      <footer className="relative z-10 py-16 text-center bg-white/40 border-t border-p-purple/30">
+      <footer className="relative z-10 py-16 text-center bg-surface/40 border-t border-p-purple/30">
         <div className="max-w-4xl mx-auto px-6 space-y-8">
           <Link href={logoHref} className="inline-block group">
             <Image src="/logo.png" alt="Logo" width={40} height={40} className="mx-auto mb-4 opacity-40 group-hover:opacity-80 transition-all group-hover:scale-110" style={{ width: 'auto', height: 'auto' }} />

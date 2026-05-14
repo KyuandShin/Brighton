@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Calendar, Clock, User, CheckCircle, XCircle, AlertCircle,
-  BookOpen, ChevronRight, Video, RefreshCw, Send, X, CalendarDays, Star, MessageSquare
+  BookOpen, ChevronRight, Video, RefreshCw, Send, X, CalendarDays, Star
 } from 'lucide-react';
 import { useCurrentUser } from '@/lib/hooks/useCurrentUser';
 

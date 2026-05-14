@@ -4,7 +4,8 @@ import React, { useState, useEffect, Suspense } from 'react';
 import {
   Video, ChevronRight, ChevronLeft, GraduationCap, DollarSign,
   BookOpen, Clock, Check, Sparkles, AlertCircle, Loader2,
-  Plus, Trash2, FileText, Camera, StopCircle, RefreshCw, UploadCloud
+  Plus, Trash2, FileText, Camera, StopCircle, RefreshCw, UploadCloud,
+  Mail
 } from 'lucide-react';
 import Link from 'next/link';
 import { uploadToCloudinary } from '@/lib/cloudinary';
@@ -167,16 +168,22 @@ function TutorSignupContent() {
       <div className="min-h-screen bg-background flex items-center justify-center p-8">
         <div className="max-w-md w-full bg-white rounded-[40px] border border-border shadow-[0_30px_80px_rgba(147,51,234,0.1)] p-12 text-center space-y-6">
           <div className="w-20 h-20 bg-p-mint rounded-3xl flex items-center justify-center mx-auto">
-            <Check size={40} className="text-teal-700" strokeWidth={3} />
+            <Mail size={40} className="text-teal-700" />
           </div>
           <h2 className="text-3xl font-black text-text-main tracking-tight">Application Submitted!</h2>
           <p className="text-sm font-bold text-text-muted uppercase tracking-wider leading-relaxed">
-            Your tutor profile is under review. You&apos;ll receive an email once approved by our team.
+            Almost done! Check your email to verify your account, then wait for admin approval.
           </p>
+          <div className="p-4 bg-p-green/20 border border-p-green/30 rounded-2xl flex items-start gap-3 text-left">
+            <Check size={16} className="text-[#27ae60] mt-0.5 shrink-0" />
+            <p className="text-[10px] font-black uppercase tracking-widest text-[#27ae60] leading-relaxed">
+              Step 1: Click the verification link sent to {formData.email} to verify your email.
+            </p>
+          </div>
           <div className="p-4 bg-p-yellow rounded-2xl border border-[#fcc419]/20 flex items-start gap-3 text-left">
             <AlertCircle size={16} className="text-[#f08c00] mt-0.5 shrink-0" />
             <p className="text-[10px] font-black uppercase tracking-widest text-[#f08c00] leading-relaxed">
-              You cannot log in until your account is verified by an administrator.
+              Step 2: An admin will review and approve your tutor profile. You will be notified once verified.
             </p>
           </div>
           <Link href="/login" className="block w-full py-4 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20 hover:bg-accent-strong transition-all">

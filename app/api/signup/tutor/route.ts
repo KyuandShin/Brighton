@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth/server';
+import { sendEmail, emailVerificationEmail } from '@/lib/email';
+import crypto from 'crypto';
 
 export async function POST(req: NextRequest) {
   try {
@@ -228,11 +230,41 @@ export async function POST(req: NextRequest) {
       return { user, tutor };
     });
 
+    // ── 7. Send verification email ──────────────────────────────────────
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+    await prisma.verificationToken.deleteMany({ where: { email: email.trim() } });
+    await prisma.verificationToken.create({
+      data: {
+        email: email.trim(),
+        token: verificationToken,
+        expiresAt,
+      },
+    });
+
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const verificationUrl = `${baseUrl}/api/verify-email?token=${verificationToken}`;
+
+    const emailSent = await sendEmail({
+      to: email.trim(),
+      subject: 'Verify your Brighton Academic account',
+      html: emailVerificationEmail({
+        name: name.trim(),
+        email: email.trim(),
+        verificationUrl,
+      }),
+    });
+
+    if (!emailSent) {
+      console.error('[TUTOR SIGNUP] Failed to send verification email to:', email);
+    }
+
     console.log('[TUTOR SIGNUP] Success for:', email);
 
     return NextResponse.json({
       success: true,
-      message: 'Application submitted. You will be notified once verified.',
+      message: 'Application submitted. Please check your email to verify your account. You will be notified once a tutor admin approves your application.',
     });
 
   } catch (err: unknown) {

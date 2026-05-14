@@ -91,8 +91,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Could not retrieve auth user ID' }, { status: 500 });
     }
 
-    // Validate and parse grade level
-    const parsedGrade = gradeLevel ? parseInt(gradeLevel) : null;
+    // Grade level is already a number from the frontend
+    const parsedGrade = gradeLevel ?? null;
 
     // 2. Create User + Student profile — isVerified remains false
     await prisma.user.upsert({
