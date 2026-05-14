@@ -1,5 +1,8 @@
+'use client';
+
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 const DECORATIONS = [
   { char: '✦', top: '12%',  left: '7%',   size: '2rem',  color: '#f472b6', delay: '0s',    dur: '5s',   opacity: 0.28 },
@@ -13,6 +16,12 @@ const DECORATIONS = [
 ];
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   return (
     <div className="min-h-screen bg-background text-text-main flex flex-col items-center justify-center p-6 relative overflow-hidden">
 
@@ -65,8 +74,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </span>
       ))}
 
-      {/* Auth card */}
-      <div className="w-full max-w-md bg-white/92 backdrop-blur-sm rounded-4xl shadow-[0_24px_90px_rgba(147,51,234,0.11)] p-10 border border-p-purple relative z-10">
+      {/* Auth card - using CSS variables so it responds to dark mode */}
+      <div className="w-full max-w-md bg-surface/92 backdrop-blur-sm rounded-4xl shadow-[0_24px_90px_rgba(147,51,234,0.11)] p-10 border border-p-purple/40 relative z-10 dark:shadow-[0_24px_90px_rgba(168,85,247,0.15)]">
         <div className="flex flex-col items-center mb-10">
           <Link href="/" className="flex flex-col items-center group transition-transform hover:scale-105">
             <div className="w-14 h-14 logo-halo flex items-center justify-center border-2 border-p-purple mb-6">

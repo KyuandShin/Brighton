@@ -80,12 +80,12 @@ function ResetPasswordContent() {
           <div className="flex flex-col gap-2">
             <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted ml-1">New Password</label>
             <div className="relative group">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-[#adb5bd] group-focus-within:text-primary transition-colors" size={16} />
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-primary transition-colors" size={16} />
               <input type={showPw ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-[#f8f9fa] border border-[#f1f3f5] rounded-2xl pl-12 pr-12 py-4 text-sm font-bold focus:outline-none focus:border-primary transition-all placeholder:text-[#adb5bd]/50"
+                className="w-full bg-surface-elevated border border-border rounded-2xl pl-12 pr-12 py-4 text-sm font-bold focus:outline-none focus:border-primary transition-all placeholder:text-text-muted/50"
                 placeholder="••••••••" required minLength={8} />
               <button type="button" onClick={() => setShowPw((v) => !v)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#adb5bd] hover:text-primary transition-colors">
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted hover:text-primary transition-colors">
                 {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
@@ -94,15 +94,15 @@ function ResetPasswordContent() {
           <div className="flex flex-col gap-2">
             <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted ml-1">Confirm Password</label>
             <div className="relative group">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-[#adb5bd] group-focus-within:text-primary transition-colors" size={16} />
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-primary transition-colors" size={16} />
               <input type={showPw ? 'text' : 'password'} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full bg-[#f8f9fa] border border-[#f1f3f5] rounded-2xl pl-12 pr-4 py-4 text-sm font-bold focus:outline-none focus:border-primary transition-all placeholder:text-[#adb5bd]/50"
+                className="w-full bg-surface-elevated border border-border rounded-2xl pl-12 pr-4 py-4 text-sm font-bold focus:outline-none focus:border-primary transition-all placeholder:text-text-muted/50"
                 placeholder="••••••••" required />
             </div>
           </div>
 
           <button type="submit" disabled={loading}
-            className="bg-primary hover:bg-[#5c7cfa] text-white font-black text-xs uppercase tracking-[0.2em] py-5 rounded-2xl mt-2 transition-all shadow-xl shadow-primary/20 disabled:opacity-50 flex items-center justify-center gap-2">
+            className="bg-primary hover:bg-accent-strong text-white font-black text-xs uppercase tracking-[0.2em] py-5 rounded-2xl mt-2 transition-all shadow-xl shadow-primary/20 disabled:opacity-50 flex items-center justify-center gap-2">
             {loading ? 'Updating...' : 'Reset Password'}
             {!loading && <ChevronRight size={16} />}
           </button>

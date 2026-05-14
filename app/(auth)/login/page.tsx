@@ -12,7 +12,7 @@ type OtpStep = 'email' | 'otp';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { user, loading: userLoading } = useCurrentUser();
+  const { user, loading: userLoading } = useCurrentUser(true);
 
   // shared
   const [email, setEmail]       = useState('');
@@ -230,7 +230,7 @@ export default function LoginPage() {
             type="button"
             onClick={handleGoogleLogin}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-3 bg-white border-2 border-border hover:border-primary/30 rounded-2xl py-4 font-black text-xs uppercase tracking-widest text-text-main transition-all hover:shadow-md disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-3 bg-surface border-2 border-border hover:border-primary/30 rounded-2xl py-4 font-black text-xs uppercase tracking-widest text-text-main transition-all hover:shadow-md disabled:opacity-50"
           >
             {loading ? (
               <Loader2 size={18} className="animate-spin text-primary" />
@@ -319,7 +319,7 @@ export default function LoginPage() {
                 </div>
               </div>
               <button type="submit" disabled={loading}
-                className="bg-primary hover:bg-[#7c3aed] text-white font-black text-xs uppercase tracking-[0.2em] py-5 rounded-2xl transition-all shadow-xl shadow-primary/20 disabled:opacity-50 flex items-center justify-center gap-2">
+                className="bg-primary hover:bg-accent-strong text-white font-black text-xs uppercase tracking-[0.2em] py-5 rounded-2xl transition-all shadow-xl shadow-primary/20 disabled:opacity-50 flex items-center justify-center gap-2">
                 {loading ? 'Sending Code...' : 'Send Verification Code'}
                 {!loading && <ChevronRight size={16} />}
               </button>
@@ -344,7 +344,7 @@ export default function LoginPage() {
                 </div>
               </div>
               <button type="submit" disabled={loading || otp.length !== 6}
-              className="bg-primary hover:bg-[#7c3aed] text-white font-black text-xs uppercase tracking-[0.2em] py-5 rounded-2xl transition-all shadow-xl shadow-primary/20 disabled:opacity-50 flex items-center justify-center gap-2">
+              className="bg-primary hover:bg-accent-strong text-white font-black text-xs uppercase tracking-[0.2em] py-5 rounded-2xl transition-all shadow-xl shadow-primary/20 disabled:opacity-50 flex items-center justify-center gap-2">
                 {loading ? 'Verifying...' : 'Verify & Sign In'}
                 {!loading && <ChevronRight size={16} />}
               </button>
@@ -378,7 +378,7 @@ export default function LoginPage() {
                 </div>
               </div>
               <button type="submit" disabled={loading}
-              className="bg-primary hover:bg-[#7c3aed] text-white font-black text-xs uppercase tracking-[0.2em] py-5 rounded-2xl transition-all shadow-xl shadow-primary/20 disabled:opacity-50 flex items-center justify-center gap-2">
+              className="bg-primary hover:bg-accent-strong text-white font-black text-xs uppercase tracking-[0.2em] py-5 rounded-2xl transition-all shadow-xl shadow-primary/20 disabled:opacity-50 flex items-center justify-center gap-2">
                 {loading ? 'Sending...' : 'Send Reset Link'}
                 {!loading && <ChevronRight size={16} />}
               </button>

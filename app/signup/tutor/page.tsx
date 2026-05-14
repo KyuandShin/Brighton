@@ -166,7 +166,7 @@ function TutorSignupContent() {
   if (submitted) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-8">
-        <div className="max-w-md w-full bg-white rounded-[40px] border border-border shadow-[0_30px_80px_rgba(147,51,234,0.1)] p-12 text-center space-y-6">
+        <div className="max-w-md w-full bg-surface rounded-[40px] border border-border shadow-[0_30px_80px_rgba(147,51,234,0.1)] p-12 text-center space-y-6">
           <div className="w-20 h-20 bg-p-mint rounded-3xl flex items-center justify-center mx-auto">
             <Mail size={40} className="text-teal-700" />
           </div>
@@ -203,7 +203,7 @@ function TutorSignupContent() {
       <div className="w-full max-w-4xl relative z-10">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-4 mb-12 justify-center">
-          <div className="w-12 h-12 rounded-2xl bg-white border border-border shadow-sm flex items-center justify-center">
+          <div className="w-12 h-12 rounded-2xl bg-surface border border-border shadow-sm flex items-center justify-center">
             <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
           </div>
           <span className="text-sm font-black tracking-[0.3em] uppercase text-text-main">Brighton</span>
@@ -220,8 +220,8 @@ function TutorSignupContent() {
             <div key={step} className="relative z-10 flex flex-col items-center gap-3">
               <div className={`w-10 h-10 rounded-2xl flex items-center justify-center border-4 transition-all duration-500 shadow-sm ${
                 idx < currentStep  ? 'bg-primary border-primary text-white' :
-                idx === currentStep ? 'bg-white border-primary text-primary' :
-                                      'bg-white border-border text-text-muted'
+                idx === currentStep ? 'bg-surface border-primary text-primary' :
+                                      'bg-surface border-border text-text-muted'
               }`}>
                 {idx < currentStep ? <Check size={18} strokeWidth={4} /> : <span className="text-xs font-black">{idx + 1}</span>}
               </div>
@@ -233,7 +233,7 @@ function TutorSignupContent() {
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-[40px] shadow-[0_30px_100px_rgba(147,51,234,0.07)] p-12 md:p-16 border border-border">
+        <div className="bg-surface rounded-[40px] shadow-[0_30px_100px_rgba(147,51,234,0.07)] p-12 md:p-16 border border-border">
           <div className="mb-12 space-y-2">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-p-green text-[#27ae60] rounded-full text-[8px] font-black uppercase tracking-widest">
               <Sparkles size={10} /> Step {currentStep + 1} of {STEPS.length}
@@ -244,8 +244,8 @@ function TutorSignupContent() {
 
           {/* Error banner */}
           {error && (
-            <div className="mb-8 p-4 bg-[#fff5f5] border border-[#ffc9c9] rounded-2xl text-[#e03131] text-[10px] font-black uppercase tracking-widest flex items-start gap-3">
-              <AlertCircle size={16} className="shrink-0 mt-0.5" />
+            <div className="mb-8 p-4 bg-p-rose/70 border border-border text-text-main text-[10px] font-black uppercase tracking-widest flex items-start gap-3 rounded-2xl">
+              <AlertCircle size={16} className="shrink-0 mt-0.5 text-red-500" />
               <span>{error}</span>
             </div>
           )}
@@ -372,7 +372,7 @@ function GeneralDetails({ data, set }: StepProps) {
 
       <div className="md:col-span-2 flex flex-col gap-3">
         <div className="flex justify-between items-end">
-          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted ml-1">Short Bio <span className="text-[#adb5bd] font-normal normal-case">(min. 20 characters)</span></label>
+          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted ml-1">Short Bio <span className="text-text-muted/60 font-normal normal-case">(min. 20 characters)</span></label>
           <button 
             onClick={generateBio}
             disabled={aiGenerating}
@@ -387,13 +387,13 @@ function GeneralDetails({ data, set }: StepProps) {
           onChange={(e) => set((d) => ({ ...d, bio: e.target.value }))}
           placeholder="Tell students about yourself, your teaching style and experience..."
           rows={4}
-          className="w-full bg-[#f8f9fa] border border-[#f1f3f5] rounded-2xl px-6 py-4 text-sm font-bold text-text-main focus:outline-none focus:border-primary transition-all resize-none placeholder:text-[#adb5bd]/40"
+          className="w-full bg-surface-elevated border border-border rounded-2xl px-6 py-4 text-sm font-bold text-text-main focus:outline-none focus:border-primary transition-all resize-none placeholder:text-text-muted/40"
         />
         <div className="flex justify-between">
-          <p className={`text-[10px] font-bold ml-1 ${data.bio.length < 20 ? 'text-[#adb5bd]' : 'text-[#27ae60]'}`}>
+          <p className={`text-[10px] font-bold ml-1 ${data.bio.length < 20 ? 'text-text-muted/60' : 'text-[#27ae60]'}`}>
             {data.bio.length} / 20 min
           </p>
-          <p className="text-[10px] font-bold text-[#adb5bd]">
+          <p className="text-[10px] font-bold text-text-muted/60">
             ✨ Tip: Click "AI Generate" to automatically create a professional bio
           </p>
         </div>
@@ -426,7 +426,7 @@ function VideoIntro({ data, set }: StepProps) {
           <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted ml-1">Option 1: Record Inside App</label>
           <VideoRecorder onUpload={(url) => {
             set((d: TutorFormData) => ({ ...d, videoUrl: url }));
-            setPastedUrl(''); // clear paste field so they don’t conflict
+            setPastedUrl(''); // clear paste field so they don't conflict
           }} />
         </div>
 
@@ -508,10 +508,10 @@ function CertificationsStep({ data, set }: StepProps) {
 
       <div className="space-y-6">
         {data.certifications.map((cert, idx) => (
-          <div key={idx} className="p-8 bg-[#f8f9fa] rounded-4xl border border-[#f1f3f5] space-y-6 relative group">
+          <div key={idx} className="p-8 bg-surface-elevated rounded-4xl border border-border space-y-6 relative group">
             <button
               onClick={() => removeCert(idx)}
-              className="absolute top-6 right-6 p-2 text-[#adb5bd] hover:text-[#fa5252] transition-colors"
+              className="absolute top-6 right-6 p-2 text-text-muted hover:text-rose-500 transition-colors"
             >
               <Trash2 size={18} />
             </button>
@@ -551,7 +551,7 @@ function CertificationsStep({ data, set }: StepProps) {
                     className={`w-full flex items-center justify-center gap-3 py-5 rounded-2xl border-2 border-dashed transition-all cursor-pointer ${
                       cert.certificateUrl
                         ? 'bg-p-green/30 border-[#27ae60] text-[#27ae60]'
-                        : 'bg-white border-[#f1f3f5] text-[#adb5bd] hover:border-primary hover:text-primary'
+                        : 'bg-surface border-border text-text-muted hover:border-primary hover:text-primary'
                     }`}
                   >
                     {cert.certificateUrl ? (
@@ -567,9 +567,9 @@ function CertificationsStep({ data, set }: StepProps) {
         ))}
 
         {data.certifications.length === 0 && (
-          <div className="py-20 text-center bg-[#f8f9fa] rounded-[40px] border-2 border-dashed border-[#f1f3f5]">
-            <FileText size={40} className="mx-auto text-[#adb5bd] mb-4 opacity-20" />
-            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[#adb5bd]">No certifications added yet</p>
+          <div className="py-20 text-center bg-surface-elevated/50 rounded-[40px] border-2 border-dashed border-border">
+            <FileText size={40} className="mx-auto text-text-muted mb-4 opacity-20" />
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-text-muted">No certifications added yet</p>
           </div>
         )}
       </div>
@@ -685,7 +685,7 @@ function VideoRecorder({ onUpload }: { onUpload: (url: string) => void }) {
         )}
         {previewUrl && !recording && (
           <>
-            <button onClick={startRecording} className="flex-1 py-4 bg-[#f1f3f5] text-text-muted rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2">
+            <button onClick={startRecording} className="flex-1 py-4 bg-surface-elevated text-text-muted rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2">
               <RefreshCw size={14} /> Redo
             </button>
             <button onClick={handleUpload} disabled={uploading} className="flex-2 py-4 bg-[#27ae60] text-white rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 disabled:opacity-50">
@@ -752,7 +752,7 @@ function AvailabilitySelector({ data, set }: StepProps) {
               className={`py-5 rounded-2xl transition-all font-black text-[10px] uppercase tracking-widest border-2 ${
                 isSelected
                   ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20'
-                  : 'bg-[#f8f9fa] border-[#f1f3f5] text-[#adb5bd] hover:border-primary hover:text-primary'
+                  : 'bg-surface-elevated border-border text-text-muted hover:border-primary hover:text-primary'
               }`}
             >
               {day}
@@ -783,7 +783,7 @@ function AvailabilitySelector({ data, set }: StepProps) {
                 return (
                   <div
                     key={dayIdx}
-                    className="flex items-center gap-3 p-4 bg-[#f8f9fa] rounded-2xl border border-[#f1f3f5]"
+                    className="flex items-center gap-3 p-4 bg-surface-elevated rounded-2xl border border-border"
                   >
                     <span className="font-black text-xs text-primary uppercase tracking-widest min-w-[40px]">
                       {DAYS[dayIdx]}
@@ -791,7 +791,7 @@ function AvailabilitySelector({ data, set }: StepProps) {
                     <select
                       value={startTime}
                       onChange={(e) => updateSlotTime(dayIdx, 'startTime', e.target.value)}
-                      className="flex-1 bg-white border border-border rounded-xl px-3 py-2 text-[10px] font-bold text-text-main focus:outline-none focus:border-primary cursor-pointer"
+                      className="flex-1 bg-surface border border-border rounded-xl px-3 py-2 text-[10px] font-bold text-text-main focus:outline-none focus:border-primary cursor-pointer"
                     >
                       {TIME_OPTIONS.map((t) => (
                         <option key={t} value={t}>{t}</option>
@@ -801,7 +801,7 @@ function AvailabilitySelector({ data, set }: StepProps) {
                     <select
                       value={endTime}
                       onChange={(e) => updateSlotTime(dayIdx, 'endTime', e.target.value)}
-                      className="flex-1 bg-white border border-border rounded-xl px-3 py-2 text-[10px] font-bold text-text-main focus:outline-none focus:border-primary cursor-pointer"
+                      className="flex-1 bg-surface border border-border rounded-xl px-3 py-2 text-[10px] font-bold text-text-main focus:outline-none focus:border-primary cursor-pointer"
                     >
                       {TIME_OPTIONS.map((t) => (
                         <option key={t} value={t}>{t}</option>
@@ -815,7 +815,7 @@ function AvailabilitySelector({ data, set }: StepProps) {
       )}
 
       {data.availability.length === 0 && (
-        <div className="p-6 bg-[#fffbe6] rounded-2xl border border-[#ffe066] flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-[#e67700]">
+        <div className="p-6 bg-p-yellow rounded-2xl border border-[#ffe066] flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-[#e67700]">
           <Clock size={16} className="shrink-0" />
           Please select at least one day to continue.
         </div>
@@ -867,7 +867,7 @@ function SubjectsStep({ data, set }: StepProps) {
               className={`px-4 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest border-2 transition-all ${
                 isSelected
                   ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20 scale-105'
-                  : 'bg-[#f8f9fa] border-[#f1f3f5] text-[#adb5bd] hover:border-primary hover:text-primary'
+                  : 'bg-surface-elevated border-border text-text-muted hover:border-primary hover:text-primary'
               }`}
             >
               {sub}
@@ -886,7 +886,7 @@ function SubjectsStep({ data, set }: StepProps) {
       )}
 
       {data.subjects.length === 0 && (
-        <div className="p-6 bg-[#fffbe6] rounded-2xl border border-[#ffe066] flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-[#e67700]">
+        <div className="p-6 bg-p-yellow rounded-2xl border border-[#ffe066] flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-[#e67700]">
           <AlertCircle size={16} className="shrink-0" />
           Please select at least one subject to continue.
         </div>
@@ -901,7 +901,7 @@ function PricingStep({ data, set }: StepProps) {
       <div className="text-center space-y-2">
         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted">Hourly Rate (USD)</p>
         <div className="flex items-center justify-center gap-4">
-          <span className="text-4xl font-black text-[#f1f3f5]">$</span>
+          <span className="text-4xl font-black text-text-muted/30">$</span>
           <input
             type="number"
             value={data.price}
@@ -911,12 +911,12 @@ function PricingStep({ data, set }: StepProps) {
             className="w-40 text-7xl font-black text-primary bg-transparent border-none focus:outline-none text-center tracking-tighter [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           />
         </div>
-        <p className="text-[10px] font-bold text-[#adb5bd] uppercase tracking-widest">per hour</p>
+        <p className="text-[10px] font-bold text-text-muted/60 uppercase tracking-widest">per hour</p>
       </div>
       <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-primary/10 text-primary px-6 py-3 rounded-full">
         <DollarSign size={14} /> Recommended: $15 – $30 / hour for new tutors
       </div>
-      <div className="p-4 bg-[#f8f9fa] rounded-2xl border border-[#f1f3f5] text-center space-y-1 max-w-sm">
+      <div className="p-4 bg-surface-elevated rounded-2xl border border-border text-center space-y-1 max-w-sm">
         <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">Review your application</p>
         <p className="text-xs font-bold text-text-main">Once you submit, our team will review your profile within 1–3 business days.</p>
       </div>
@@ -933,7 +933,7 @@ function Field({ label, value, onChange, placeholder, type = 'text', icon: Icon 
     <div className="flex flex-col gap-3">
       <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted ml-1">{label}</label>
       <div className="relative group">
-        {Icon && <Icon className="absolute left-5 top-1/2 -translate-y-1/2 text-[#adb5bd] group-focus-within:text-primary transition-colors pointer-events-none" size={16} />}
+        {Icon && <Icon className="absolute left-5 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-primary transition-colors pointer-events-none" size={16} />}
         <input
           type={type}
           value={value}
