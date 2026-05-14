@@ -405,32 +405,48 @@ function Education({ data, set }: StepProps) {
 }
 
 function VideoIntro({ data, set }: StepProps) {
+  // Track which source last set the URL so they don't fight each other
+  const [pastedUrl, setPastedUrl] = useState(data.videoUrl || '');
+
   return (
     <div className="space-y-8">
       <div className="p-4 bg-primary/5 border border-primary/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-primary leading-relaxed">
-        Tutors with video introductions receive 85% more student interest. Record one now or paste a link.
+        Tutors with video introductions receive 85% more student interest. Record one now or paste a YouTube/Vimeo link.
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="space-y-6">
+        <div className="space-y-4">
           <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted ml-1">Option 1: Record Inside App</label>
-          <VideoRecorder onUpload={(url) => set(d => ({ ...d, videoUrl: url }))} />
+          <VideoRecorder onUpload={(url) => {
+            set((d: TutorFormData) => ({ ...d, videoUrl: url }));
+            setPastedUrl(''); // clear paste field so they don’t conflict
+          }} />
         </div>
 
-        <div className="space-y-6">
-          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted ml-1">Option 2: Paste Link</label>
+        <div className="space-y-4">
+          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted ml-1">Option 2: Paste a Link</label>
           <Field
             label="Video Link (YouTube / Vimeo)"
-            value={data.videoUrl}
-            onChange={(v) => set((d) => ({ ...d, videoUrl: v }))}
+            value={pastedUrl}
+            onChange={(v) => {
+              setPastedUrl(v);
+              set((d: TutorFormData) => ({ ...d, videoUrl: v }));
+            }}
             placeholder="https://youtube.com/watch?v=..."
             icon={Video}
           />
           {data.videoUrl && (
-            <div className="aspect-video bg-[#f8f9fa] rounded-[28px] border-2 border-[#f1f3f5] flex flex-col items-center justify-center text-center p-8">
-              <Video size={40} className="mb-4 text-primary" />
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Video link saved</p>
-              <p className="text-xs text-[#adb5bd] mt-1 break-all">{data.videoUrl}</p>
+            <div className="aspect-video bg-surface-elevated rounded-[28px] border-2 border-border flex flex-col items-center justify-center text-center p-8 gap-3">
+              <Video size={36} className="text-primary" />
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Video saved</p>
+              <p className="text-[9px] text-text-muted font-bold break-all line-clamp-2">{data.videoUrl}</p>
+              <button
+                type="button"
+                onClick={() => { set((d: TutorFormData) => ({ ...d, videoUrl: '' })); setPastedUrl(''); }}
+                className="text-[9px] font-black uppercase tracking-widest text-rose-500 hover:underline"
+              >
+                Remove
+              </button>
             </div>
           )}
         </div>

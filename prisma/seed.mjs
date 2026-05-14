@@ -11,19 +11,25 @@ const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
-// Philippine K-12 subjects
-const K12_SUBJECTS = [
-  'Filipino', 'English', 'Mathematics', 'Science',
-  'Araling Panlipunan', 'Edukasyon sa Pagpapakatao', 'Music', 'Arts',
-  'Physical Education', 'Health', 'Home Economics', 'Industrial Arts',
-  'ICT', 'Agriculture', 'Algebra', 'Geometry', 'Trigonometry',
-  'Statistics', 'Probability', 'Calculus', 'Biology', 'Chemistry',
-  'Physics', 'Earth Science', 'General Science', 'Integrated Science',
-  'Philippine History', 'Asian Studies', 'World History', 'Economics',
-  'Contemporary Issues', 'Media and Information Literacy',
-  'Oral Communication', 'Reading and Writing', 'English for Academic Purposes',
-  'Filipino sa Piling Larangan', 'Panitikan', 'STEM', 'ABM', 'HUMSS',
-  'TVL', 'Disaster Readiness', 'Environmental Science',
+// Subjects matching the Python backend question bank
+const SUBJECTS = [
+  'Filipino',
+  'English',
+  'Algebra',
+  'Geometry',
+  'Trigonometry',
+  'Statistics',
+  'Integrated Science',
+  'Biology',
+  'Chemistry',
+  'Physics',
+  'Earth Science',
+  'Philippine History',
+  'Asian Studies',
+  'World History',
+  'Economics',
+  'MAPEH',
+  'Edukasyon sa Pagpapakatao',
 ];
 
 const MOCK_TUTORS = [
@@ -32,7 +38,7 @@ const MOCK_TUTORS = [
     name: 'Dr. Aris Smith',
     email: 'aris@example.com',
     headline: 'Mathematics & Physics Specialist',
-    subjects: ['Algebra', 'Calculus', 'Physics'],
+    subjects: ['Algebra', 'Geometry', 'Trigonometry', 'Physics'],
     rating: 4.9,
     price: 25,
     bio: 'Over 10 years of experience in teaching advanced mathematics and physics.',
@@ -42,7 +48,7 @@ const MOCK_TUTORS = [
     name: 'Prof. Maria Clara',
     email: 'maria@example.com',
     headline: 'General Science & Biology Expert',
-    subjects: ['Biology', 'Chemistry', 'Earth Science'],
+    subjects: ['Biology', 'Chemistry', 'Earth Science', 'Integrated Science'],
     rating: 4.8,
     price: 20,
     bio: 'Making science fun and accessible for elementary students.',
@@ -52,7 +58,7 @@ const MOCK_TUTORS = [
     name: 'Ms. Lea Salonga',
     email: 'lea@example.com',
     headline: 'English & Literature Coach',
-    subjects: ['English', 'Literature', 'Reading and Writing'],
+    subjects: ['English', 'Philippine History', 'Asian Studies'],
     rating: 5.0,
     price: 22,
     bio: 'Helping students find their voice through the power of language.',
@@ -60,17 +66,17 @@ const MOCK_TUTORS = [
 ];
 
 async function main() {
-  console.log('Seeding K-12 subjects...');
+  console.log('Seeding subjects...');
 
-  // Seed all K-12 subjects
-  for (const s of K12_SUBJECTS) {
+  // Seed subjects matching Python backend
+  for (const s of SUBJECTS) {
     await prisma.subject.upsert({
       where: { name: s },
       update: {},
       create: { name: s },
     });
   }
-  console.log(`Seeded ${K12_SUBJECTS.length} subjects`);
+  console.log(`Seeded ${SUBJECTS.length} subjects`);
 
   console.log('Seeding tutors...');
 

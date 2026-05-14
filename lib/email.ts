@@ -25,25 +25,11 @@ export async function sendEmail({ to, subject, html }: EmailPayload): Promise<bo
   }
 
   try {
-    // Resend free tier only allows sending to verified email addresses
-    // Catch domain verification errors gracefully
     const recipients = Array.isArray(to) ? to : [to];
-    const allowedEmail = 'seancarlomasaya@gmail.com';
     
-    // Filter recipients to only allowed addresses in development
-    const allowedRecipients = recipients.filter(email => 
-      email.toLowerCase().trim() === allowedEmail
-    );
-
-    if (allowedRecipients.length === 0) {
-      // No verified recipients, fall back to console logging
-      console.log('\n📧 [EMAIL - skipped (unverified recipient)]');
-      console.log('To:', to);
-      console.log('Subject:', subject);
-      console.log('---');
-      return true;
-    }
-
+    // If RESEND_API_KEY is set to 're_...', it's the default dev key which might have restrictions
+    // but we should still attempt to send if it's provided.
+    
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -52,7 +38,7 @@ export async function sendEmail({ to, subject, html }: EmailPayload): Promise<bo
       },
       body: JSON.stringify({
         from: 'Brighton <onboarding@resend.dev>',
-        to: allowedRecipients,
+        to: recipients,
         subject,
         html,
       }),
@@ -77,6 +63,51 @@ export async function sendEmail({ to, subject, html }: EmailPayload): Promise<bo
     console.error('[EMAIL SEND ERROR]', err);
     return false;
   }
+}
+
+export function emailVerificationEmail({
+  name,
+  email,
+  verificationUrl,
+}: {
+  name: string;
+  email: string;
+  verificationUrl: string;
+}) {
+  return `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#fdfcfb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <div style="max-width:560px;margin:40px auto;background:white;border-radius:32px;overflow:hidden;border:1px solid #f1f3f5;box-shadow:0 20px 60px rgba(0,0,0,0.04);">
+    <div style="background:linear-gradient(135deg,#748ffc,#5c7cfa);padding:40px 48px;">
+      <p style="margin:0 0 8px;font-size:11px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.7);">Brighton Academic</p>
+      <h1 style="margin:0;font-size:28px;font-weight:900;color:white;letter-spacing:-0.5px;">Verify Your Email 📧</h1>
+    </div>
+    <div style="padding:40px 48px;gap:24px;display:flex;flex-direction:column;">
+      <p style="margin:0;font-size:15px;color:#7f8c8d;line-height:1.6;">
+        Hi <strong style="color:#2c3e50;">${name}</strong>, welcome to Brighton Academic!
+      </p>
+      <p style="margin:0;font-size:14px;color:#7f8c8d;line-height:1.6;">
+        Please verify your email address by clicking the button below. This link expires in 24 hours.
+      </p>
+      <a href="${verificationUrl}" style="display:block;text-align:center;background:#748ffc;color:white;text-decoration:none;padding:18px 32px;border-radius:16px;font-weight:900;font-size:13px;letter-spacing:0.15em;text-transform:uppercase;margin-top:8px;">
+        Verify Email →
+      </a>
+      <p style="margin:0;font-size:12px;color:#adb5bd;text-align:center;line-height:1.6;">
+        Or paste this link in your browser:<br/>
+        <span style="font-size:11px;word-break:break-all;color:#748ffc;">${verificationUrl}</span>
+      </p>
+      <p style="margin:0;font-size:12px;color:#adb5bd;text-align:center;line-height:1.6;">
+        If you did not create an account, you can safely ignore this email.
+      </p>
+    </div>
+    <div style="padding:24px 48px;background:#f8f9fa;border-top:1px solid #f1f3f5;">
+      <p style="margin:0;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.2em;color:#adb5bd;text-align:center;">Brighton Academic • 2026</p>
+    </div>
+  </div>
+</body>
+</html>`;
 }
 
 // ── Email Templates ─────────────────────────────────────────────────────────

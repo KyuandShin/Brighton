@@ -116,16 +116,15 @@ function ProfilePhoto({ data, set }: StepProps) {
 
 function ProfileDescription({ data, set }: StepProps) {
   const sections = [
-    { title: 'Introduce yourself', description: 'Share your teaching experience and passion for education', icon: GraduationCap, key: 'introduction' },
-    { title: 'Teaching experience', description: 'Tell students about your background and teaching style', icon: BookOpen, key: 'experience' },
-    { title: 'Motivate potential students', description: 'Explain what students will achieve by learning with you', icon: Sparkles, key: 'motivation' },
-    { title: 'Write a catchy headline', description: 'Create a professional headline that stands out', icon: FileText, key: 'headline' },
+    { title: 'Introduce yourself',         description: 'Share your teaching experience and passion for education', icon: GraduationCap, key: 'introduction' },
+    { title: 'Teaching experience',        description: 'Tell students about your background and teaching style',   icon: BookOpen,      key: 'experience'   },
+    { title: 'Motivate potential students', description: 'Explain what students will achieve by learning with you',  icon: Sparkles,      key: 'motivation'   },
   ];
 
   return (
     <div className="space-y-8">
       <div className="p-4 bg-primary/5 border border-primary/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-primary leading-relaxed mb-8">
-        Great descriptions increase your response rate by 3x. Take your time with this section.
+        Great descriptions increase your response rate by 3x. These sections combine into your full profile bio.
       </div>
 
       {sections.map((section, idx) => {
@@ -140,7 +139,7 @@ function ProfileDescription({ data, set }: StepProps) {
                 <h3 className="text-sm font-black text-text-main">{idx + 1}. {section.title}</h3>
                 <p className="text-[10px] text-[#adb5bd]">{section.description}</p>
               </div>
-              <Check size={18} className="ml-auto text-[#27ae60]" />
+              {data[section.key] && <Check size={18} className="ml-auto text-[#27ae60]" />}
             </div>
             <textarea
               placeholder="Start writing..."

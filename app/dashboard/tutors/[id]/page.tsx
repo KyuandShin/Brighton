@@ -45,11 +45,44 @@ interface NormalizedTutor {
 function generateTimeSlots(startTime: string, endTime: string): string[] {
   const slots: string[] = [];
   const [startH] = startTime.split(':').map(Number);
-  const [endH] = endTime.split(':').map(Number);
+  const [endH]   = endTime.split(':').map(Number);
   for (let h = startH; h < endH; h++) {
-    slots.push(`${h % 12 === 0 ? 12 : h % 12}:00 ${h < 12 ? 'AM' : 'PM'}`);
+    const display = `${h % 12 === 0 ? 12 : h % 12}:00 ${h < 12 ? 'AM' : 'PM'}`;
+    slots.push(display);
   }
   return slots;
+}
+
+// Returns the set of day-of-week indices (0=Sun…6=Sat) the tutor is available on
+function getAvailableDaySet(availability: { dayOfWeek: number }[]): Set<number> {
+  // DB stores: 0=Mon … 6=Sun  →  convert to JS Date.getDay() (0=Sun … 6=Sat)
+  const jsDay = (dbDay: number) => (dbDay + 1) % 7;
+  return new Set(availability.map((a) => jsDay(a.dayOfWeek)));
+}
+
+// Returns the minimum selectable date string (today or next available weekday)
+function getMinSelectableDate(availability: { dayOfWeek: number }[]): string {
+  const availableJS = getAvailableDaySet(availability);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  // Look ahead up to 60 days for the next available day
+  for (let i = 0; i < 60; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() + i);
+    if (availableJS.has(d.getDay())) {
+      return d.toISOString().split('T')[0];
+    }
+  }
+  return today.toISOString().split('T')[0];
+}
+
+// Returns true if the given date string (YYYY-MM-DD) is an available day for the tutor
+function isDateAvailable(dateStr: string, availability: { dayOfWeek: number }[]): boolean {
+  if (!dateStr || availability.length === 0) return false;
+  const date = new Date(dateStr + 'T00:00:00');
+  const jsDay = date.getDay(); // 0=Sun…6=Sat
+  const availableJS = getAvailableDaySet(availability);
+  return availableJS.has(jsDay);
 }
 
 export default function TutorProfilePage() {
@@ -122,17 +155,42 @@ export default function TutorProfilePage() {
   };
 
   const today = new Date();
-  const selectedDateObj = selectedDate ? new Date(selectedDate + 'T00:00:00') : null;
-  const dayOfWeek = selectedDateObj !== null 
-    ? (selectedDateObj.getDay() === 0 ? 6 : selectedDateObj.getDay() - 1)
-    : -1;
-  const availabilityForDay = tutor?.availability.find((a) => a.dayOfWeek === dayOfWeek);
-  const timeSlots = availabilityForDay
-    ? generateTimeSlots(availabilityForDay.startTime, availabilityForDay.endTime)
-    : ['9:00 AM', '10:00 AM', '11:00 AM', '1:00 PM', '2:00 PM', '3:00 PM'];
+  today.setHours(0, 0, 0, 0);
 
+  // Availability-aware date calculations
+  const hasAvailability = (tutor?.availability ?? []).length > 0;
+  const minDate = hasAvailability
+    ? getMinSelectableDate(tutor!.availability)
+    : new Date().toISOString().split('T')[0];
+
+  // Map selected date to tutor's DB availability slot
+  // DB dayOfWeek: 0=Mon…6=Sun; JS Date.getDay(): 0=Sun…6=Sat
+  const selectedDateObj = selectedDate ? new Date(selectedDate + 'T00:00:00') : null;
+  const jsDay = selectedDateObj?.getDay() ?? -1; // 0=Sun…6=Sat
+  // Convert JS day to DB day: 0=Sun→6=Sun in DB = (jsDay + 6) % 7
+  const dbDay = jsDay >= 0 ? (jsDay + 6) % 7 : -1;
+  const availabilityForDay = tutor?.availability.find((a) => a.dayOfWeek === dbDay);
+
+  // Only show time slots if the selected date is actually an available day
+  const dateIsAvailable = selectedDate && isDateAvailable(selectedDate, tutor?.availability ?? []);
+  const timeSlots = dateIsAvailable && availabilityForDay
+    ? generateTimeSlots(availabilityForDay.startTime, availabilityForDay.endTime)
+    : [];
+
+  // Human-readable available days for display
+  const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const DB_TO_JS  = (d: number) => (d + 1) % 7;
+  const availableDayNames = (tutor?.availability ?? [])
+    .sort((a, b) => a.dayOfWeek - b.dayOfWeek)
+    .map((a) => DAY_NAMES[DB_TO_JS(a.dayOfWeek)]);
+
+  // Validate booking: also block unavailable dates at submit time
   const handleBooking = async () => {
     if (!selectedDate) { setBookingError('Please select a date.'); return; }
+    if (hasAvailability && !dateIsAvailable) {
+      setBookingError('This tutor is not available on the selected date.');
+      return;
+    }
     if (!selectedTime) { setBookingError('Please select a time slot.'); return; }
     if (!user) { setBookingError('You must be logged in to book.'); return; }
 
@@ -172,7 +230,7 @@ export default function TutorProfilePage() {
   if (loadingTutor) return <div className="py-20 text-center font-black uppercase tracking-widest text-text-muted">Loading Profile...</div>;
   if (!tutor) return <div className="py-20 text-center font-black uppercase tracking-widest text-text-muted">Tutor not found.</div>;
 
-  const minDate = today.toISOString().split('T')[0];
+  // minDate is already computed above
 
   return (
     <div className="max-w-7xl mx-auto space-y-12">
@@ -278,37 +336,106 @@ export default function TutorProfilePage() {
 
         {/* Right: Booking Card */}
         <div className="lg:col-span-4">
-          <div className="bg-surface border-2 border-border rounded-[48px] p-10 sticky top-32 shadow-xl space-y-8 overflow-hidden">
-            <div className="flex justify-between items-center">
+          <div className="bg-surface border-2 border-border rounded-[48px] p-8 sticky top-32 shadow-xl space-y-6 overflow-hidden">
+
+            {/* Rate header */}
+            <div className="flex justify-between items-center pb-4 border-b border-border">
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted">Hourly Rate</p>
-              <p className="text-3xl font-black text-text-main">${tutor.price}<span className="text-sm opacity-20">/hr</span></p>
+              <p className="text-3xl font-black text-text-main">${tutor.price}<span className="text-sm text-text-muted opacity-40">/hr</span></p>
             </div>
 
+            {/* Available days chips */}
+            {hasAvailability && (
+              <div className="space-y-2">
+                <p className="text-[9px] font-black uppercase tracking-widest text-text-muted">Available days</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {availableDayNames.map((day) => (
+                    <span key={day} className="px-2.5 py-1 bg-primary/10 text-primary rounded-full text-[9px] font-black uppercase tracking-widest border border-primary/20">
+                      {day}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {!confirmedBookingId ? (
-              <div className="space-y-5">
-                <div className="flex flex-col gap-2">
+              <div className="space-y-4">
+
+                {/* Date picker */}
+                <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] font-black uppercase tracking-widest text-text-muted ml-1">Select Date</label>
                   <input
                     type="date"
                     value={selectedDate}
                     min={minDate}
-                    onChange={(e) => { setSelectedDate(e.target.value); setSelectedTime(''); }}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setSelectedDate(val);
+                      setSelectedTime('');
+                      setBookingError('');
+                      // Warn immediately if unavailable
+                      if (val && hasAvailability && !isDateAvailable(val, tutor.availability)) {
+                        setBookingError('Tutor is not available on this day. Please pick a highlighted day.');
+                      }
+                    }}
                     className="w-full bg-surface-elevated border-2 border-border rounded-2xl px-4 py-3 text-sm font-bold text-text-main focus:outline-none focus:border-primary transition-all"
                   />
+                  {selectedDate && !dateIsAvailable && hasAvailability && (
+                    <p className="text-[9px] font-black text-rose-500 ml-1 uppercase tracking-wider">
+                      ⚠ Not available — pick from: {availableDayNames.join(', ')}
+                    </p>
+                  )}
                 </div>
 
-                {selectedDate && (
-                  <div className="flex flex-col gap-2">
+                {/* Time slots — only shown when date is valid + available */}
+                {selectedDate && dateIsAvailable && (
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center justify-between ml-1">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-text-muted">Select Time</label>
+                      {availabilityForDay && (
+                        <span className="text-[9px] text-text-muted font-bold">
+                          {availabilityForDay.startTime}–{availabilityForDay.endTime}
+                        </span>
+                      )}
+                    </div>
+                    {timeSlots.length > 0 ? (
+                      <div className="grid grid-cols-2 gap-2">
+                        {timeSlots.map((slot) => (
+                          <button
+                            key={slot}
+                            type="button"
+                            onClick={() => { setSelectedTime(slot); setBookingError(''); }}
+                            className={`py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border-2 ${
+                              selectedTime === slot
+                                ? 'bg-primary text-white border-primary shadow-md shadow-primary/20'
+                                : 'bg-surface-elevated border-border text-text-muted hover:border-primary hover:text-primary'
+                            }`}
+                          >
+                            {slot}
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-[9px] font-black uppercase tracking-wider text-amber-700">
+                        No time slots configured for this day.
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* No availability at all fallback */}
+                {!hasAvailability && selectedDate && (
+                  <div className="flex flex-col gap-1.5">
                     <label className="text-[10px] font-black uppercase tracking-widest text-text-muted ml-1">Select Time</label>
                     <div className="grid grid-cols-2 gap-2">
-                      {timeSlots.map((slot) => (
+                      {['9:00 AM','10:00 AM','11:00 AM','1:00 PM','2:00 PM','3:00 PM'].map((slot) => (
                         <button
                           key={slot}
                           type="button"
-                          onClick={() => setSelectedTime(slot)}
+                          onClick={() => { setSelectedTime(slot); setBookingError(''); }}
                           className={`py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border-2 ${
                             selectedTime === slot
-                              ? 'bg-primary text-white border-primary shadow-md'
+                              ? 'bg-primary text-white border-primary shadow-md shadow-primary/20'
                               : 'bg-surface-elevated border-border text-text-muted hover:border-primary hover:text-primary'
                           }`}
                         >
@@ -320,25 +447,25 @@ export default function TutorProfilePage() {
                 )}
 
                 {bookingError && (
-                  <div className="flex items-center gap-2 p-3 bg-[#fff5f5] border border-[#ffc9c9] rounded-2xl text-[#e03131] text-[10px] font-black uppercase tracking-widest">
-                    <AlertCircle size={14} className="shrink-0" /> {bookingError}
+                  <div className="flex items-start gap-2 p-3 bg-rose-50 border border-rose-200 rounded-2xl text-rose-600 text-[10px] font-black uppercase tracking-widest">
+                    <AlertCircle size={14} className="shrink-0 mt-0.5" /> {bookingError}
                   </div>
                 )}
 
                 <button
                   onClick={handleBooking}
-                  disabled={booking}
-                  className="w-full bg-primary text-white py-5 rounded-3xl font-black text-sm uppercase tracking-widest shadow-2xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                  disabled={booking || (hasAvailability && !!selectedDate && !dateIsAvailable)}
+                  className="w-full bg-primary text-white py-5 rounded-3xl font-black text-sm uppercase tracking-widest shadow-2xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-40"
                 >
                   {booking
                     ? <><Bell className="animate-bounce" size={18} /> Confirming...</>
                     : <>Confirm Booking <ChevronRight size={18} /></>}
                 </button>
 
-                <div className="flex items-center gap-2 p-3 bg-[#f0f4ff] border border-primary/20 rounded-2xl">
+                <div className="flex items-center gap-2 p-3 bg-primary/5 border border-primary/15 rounded-2xl">
                   <Video size={14} className="text-primary shrink-0" />
                   <p className="text-[9px] font-black uppercase tracking-widest text-primary leading-relaxed">
-                    Powered by Jitsi Meet — real video, mic & screen share
+                    Powered by Jitsi Meet — real video, mic &amp; screen share
                   </p>
                 </div>
               </div>
@@ -348,38 +475,31 @@ export default function TutorProfilePage() {
                 animate={{ opacity: 1, scale: 1 }}
                 className="space-y-5"
               >
-                <div className="bg-p-yellow p-6 rounded-[28px] space-y-4 border-2 border-amber-200">
-                  <div className="flex items-center gap-3 text-amber-600">
-                    <div className="w-10 h-10 bg-surface rounded-xl flex items-center justify-center shadow-sm shrink-0">
-                      <AlertCircle size={20} />
+                <div className="bg-p-mint/40 p-6 rounded-[28px] space-y-3 border-2 border-teal-200">
+                  <div className="flex items-center gap-3 text-teal-700">
+                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm shrink-0">
+                      <CheckCircle size={20} className="text-teal-600" />
                     </div>
                     <div>
-                      <p className="text-sm font-black uppercase tracking-tight text-amber-700">Request Sent!</p>
-                      <p className="text-[10px] font-bold text-amber-600/60 uppercase">{selectedDate} · {selectedTime}</p>
+                      <p className="text-sm font-black uppercase tracking-tight">Request Sent!</p>
+                      <p className="text-[10px] font-bold text-teal-600/70 uppercase">{selectedDate} · {selectedTime}</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-[9px] font-black uppercase tracking-[0.2em] text-text-muted ml-1">Status</label>
-                  <div className="bg-p-yellow p-4 rounded-2xl flex items-center gap-3 border-2 border-amber-200">
-                    <AlertCircle size={18} className="text-amber-600 shrink-0" />
-                    <div>
-                      <p className="text-xs font-black text-amber-700 uppercase tracking-tight">Waiting for Confirmation</p>
-                      <p className="text-[9px] font-bold text-amber-600/70">
-                        The tutor needs to accept your booking request. You'll be notified once confirmed.
-                      </p>
-                    </div>
+                <div className="p-4 rounded-2xl flex items-center gap-3 border-2 border-amber-200 bg-p-yellow">
+                  <AlertCircle size={18} className="text-amber-600 shrink-0" />
+                  <div>
+                    <p className="text-xs font-black text-amber-700 uppercase tracking-tight">Waiting for Confirmation</p>
+                    <p className="text-[9px] font-bold text-amber-600/70">
+                      The tutor needs to accept your request. You'll be notified once confirmed.
+                    </p>
                   </div>
                 </div>
 
                 <button
-                  onClick={() => { 
-                    setConfirmedBookingId(''); 
-                    setSelectedDate(''); 
-                    setSelectedTime('');
-                  }}
-                  className="w-full py-3 text-[10px] font-black uppercase tracking-widest text-text-muted hover:text-text-main transition-colors"
+                  onClick={() => { setConfirmedBookingId(''); setSelectedDate(''); setSelectedTime(''); setBookingError(''); }}
+                  className="w-full py-3 text-[10px] font-black uppercase tracking-widest text-text-muted hover:text-primary transition-colors"
                 >
                   Book Another Session
                 </button>

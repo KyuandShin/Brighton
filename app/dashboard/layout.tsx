@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { useCurrentUser, getInitials } from '@/lib/hooks/useCurrentUser';
 import { authClient } from '@/lib/auth/client';
-import AnimeOnboarding from './_components/AnimeOnboarding';
+import AnimeOnboarding from './_components/Tutorial';
 
 const navItems = [
   { name: 'Home',     href: '/dashboard',          icon: Home },
@@ -21,8 +21,9 @@ const navItems = [
 ];
 
 const adminNavItems = [
-  { name: 'Tutor Approvals', href: '/dashboard/admin/tutors',   icon: UserCheck },
-  { name: 'Students',         href: '/dashboard/admin/students', icon: Users },
+  { name: 'Dashboard',       href: '/dashboard/admin',           icon: Home },
+  { name: 'Tutor Approvals', href: '/dashboard/admin/tutors',    icon: UserCheck },
+  { name: 'Students',        href: '/dashboard/admin/students',  icon: Users },
 ];
 
 interface Notification {
@@ -177,9 +178,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="relative w-10 h-10">
-            <div className="absolute inset-0 rounded-full border-2 border-p-purple" />
-            <div className="absolute inset-0 rounded-full border-2 border-t-primary border-r-transparent border-b-transparent border-l-transparent animate-spin" />
+          <div className="relative w-12 h-12">
+            {/* Track ring */}
+            <div className="absolute inset-0 rounded-full border-[3px] border-p-purple" />
+            {/* Spinning arc — uses a single border with 3 transparent sides */}
+            <div className="absolute inset-0 rounded-full border-[3px] border-transparent border-t-primary animate-spin" />
           </div>
           <p className="text-primary text-xs font-black uppercase tracking-widest">Loading...</p>
         </div>
@@ -323,7 +326,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <div className="max-h-80 overflow-y-auto divide-y divide-border">
                     {notifications.length === 0 ? (
                       <div className="py-10 text-center">
-                        <span className="text-3xl block mb-2 opacity-30">🔔</span>
+                        <div className="w-10 h-10 bg-p-purple rounded-xl flex items-center justify-center mx-auto mb-3">
+                          <Bell size={16} className="text-text-muted" />
+                        </div>
                         <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">No notifications yet</p>
                       </div>
                     ) : (

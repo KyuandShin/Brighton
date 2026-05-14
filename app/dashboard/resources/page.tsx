@@ -120,7 +120,7 @@ export default function ResourcesPage() {
                   value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
                   placeholder="e.g. Algebra Cheat Sheet"
-                  className="w-full bg-[#f8f9fa] border-2 border-[#f1f3f5] rounded-2xl px-4 py-3 text-sm font-bold text-text-main focus:outline-none focus:border-primary transition-all"
+                  className="w-full bg-surface border-2 border-border rounded-2xl px-4 py-3 text-sm font-bold text-text-main focus:outline-none focus:border-primary transition-all"
                 />
               </div>
               <div className="space-y-1.5">
@@ -129,7 +129,7 @@ export default function ResourcesPage() {
                   value={form.fileUrl}
                   onChange={(e) => setForm({ ...form, fileUrl: e.target.value })}
                   placeholder="https://..."
-                  className="w-full bg-[#f8f9fa] border-2 border-[#f1f3f5] rounded-2xl px-4 py-3 text-sm font-bold text-text-main focus:outline-none focus:border-primary transition-all"
+                  className="w-full bg-surface border-2 border-border rounded-2xl px-4 py-3 text-sm font-bold text-text-main focus:outline-none focus:border-primary transition-all"
                 />
               </div>
               <div className="space-y-1.5">
@@ -138,7 +138,7 @@ export default function ResourcesPage() {
                   value={form.subject}
                   onChange={(e) => setForm({ ...form, subject: e.target.value })}
                   placeholder="e.g. Mathematics"
-                  className="w-full bg-[#f8f9fa] border-2 border-[#f1f3f5] rounded-2xl px-4 py-3 text-sm font-bold text-text-main focus:outline-none focus:border-primary transition-all"
+                  className="w-full bg-surface border-2 border-border rounded-2xl px-4 py-3 text-sm font-bold text-text-main focus:outline-none focus:border-primary transition-all"
                 />
               </div>
               <div className="space-y-1.5">
@@ -146,7 +146,7 @@ export default function ResourcesPage() {
                 <select
                   value={form.level}
                   onChange={(e) => setForm({ ...form, level: e.target.value })}
-                  className="w-full bg-[#f8f9fa] border-2 border-[#f1f3f5] rounded-2xl px-4 py-3 text-sm font-bold text-text-main focus:outline-none focus:border-primary transition-all"
+                  className="w-full bg-surface border-2 border-border rounded-2xl px-4 py-3 text-sm font-bold text-text-main focus:outline-none focus:border-primary transition-all"
                 >
                   <option value="">All Levels</option>
                   <option value="ELEMENTARY">Elementary</option>
@@ -160,7 +160,7 @@ export default function ResourcesPage() {
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                   placeholder="Brief description of this resource..."
                   rows={2}
-                  className="w-full bg-[#f8f9fa] border-2 border-[#f1f3f5] rounded-2xl px-4 py-3 text-sm font-bold text-text-main focus:outline-none focus:border-primary transition-all resize-none"
+                  className="w-full bg-surface border-2 border-border rounded-2xl px-4 py-3 text-sm font-bold text-text-main focus:outline-none focus:border-primary transition-all resize-none"
                 />
               </div>
             </div>

@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
     });
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
-    // ── Auto-expire past CONFIRMED bookings to COMPLETED ──────────────────
+    // Auto-complete past CONFIRMED bookings
     await prisma.booking.updateMany({
       where: {
         status: 'CONFIRMED',
@@ -136,6 +136,9 @@ export async function POST(req: NextRequest) {
     if (isNaN(bookingDate.getTime())) {
       return NextResponse.json({ error: 'Invalid date format' }, { status: 400 });
     }
+    if (bookingDate <= new Date()) {
+      return NextResponse.json({ error: 'Cannot book a session in the past' }, { status: 400 });
+    }
 
     // Check for duplicate booking (same student + tutor + time)
     const existing = await prisma.booking.findFirst({
@@ -211,7 +214,7 @@ export async function POST(req: NextRequest) {
     // ── Email notifications (fire and forget — don't block response) ──────
     sendEmail({
       to: tutorRecord.user.email,
-      subject: `📚 New Booking Request from ${studentName}`,
+      subject: `New Booking Request from ${studentName}`,
       html: bookingNotificationTutor({
         tutorName: tutorName ?? 'Tutor',
         studentName: studentName ?? 'Student',
@@ -226,7 +229,7 @@ export async function POST(req: NextRequest) {
     // Send confirmation to student as well
     sendEmail({
       to: studentUser.email,
-      subject: `📚 Booking Request Sent to ${tutorName}`,
+      subject: `Booking Request Sent to ${tutorName}`,
       html: bookingConfirmationStudent({
         studentName: studentName ?? 'Student',
         tutorName: tutorName ?? 'Tutor',

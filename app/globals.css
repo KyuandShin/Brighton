@@ -1,6 +1,9 @@
 @import 'tailwindcss';
 @import '@neondatabase/auth/ui/tailwind';
 
+/* Use .dark class for dark mode instead of prefers-color-scheme media query */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #fdf8ff;
   --foreground: #1e0a3c;

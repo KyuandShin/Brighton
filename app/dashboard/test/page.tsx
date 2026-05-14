@@ -370,7 +370,7 @@ export default function PlacementTestPage() {
 
     const pct = result.percentage;
     const scoreColor = pct >= 80 ? '#2f9e44' : pct >= 60 ? '#e67700' : '#e03131';
-    const scoreEmoji = pct >= 80 ? '🏆' : pct >= 60 ? '📈' : '💪';
+    const scoreEmoji = pct >= 80 ? '★' : pct >= 60 ? '◆' : '●';
     const levelLabel = level === 'HIGH_SCHOOL' ? 'High School' : 'Elementary';
 
     const masteryColors: Record<string, string> = {
@@ -387,7 +387,9 @@ export default function PlacementTestPage() {
         {/* Score Card */}
         <div className="bg-surface border-2 border-border rounded-[40px] p-8 md:p-10 shadow-sm space-y-8 hover:shadow-md transition-shadow duration-300">
           <div className="text-center space-y-4">
-            <div className="text-5xl animate-bounce-cute">{scoreEmoji}</div>
+            <div className="w-16 h-16 bg-gradient-to-br from-primary to-pink-400 rounded-3xl flex items-center justify-center mx-auto shadow-lg shadow-primary/20">
+              <Star size={32} className="text-white" />
+            </div>
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1 bg-p-sakura rounded-full text-[9px] font-black uppercase tracking-widest text-pink-600 mb-3">
                 <Brain size={12} /> Assessment Complete

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { User, GraduationCap, ChevronRight, Mail, Lock, Sparkles, UserCircle, School, Calendar, Upload, X, Star, Rocket, Heart, Search } from 'lucide-react';
+import { User, GraduationCap, ChevronRight, Mail, Lock, Sparkles, UserCircle, School, Calendar, Upload, X, Star, Rocket, Heart, Search, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { authClient } from '@/lib/auth/client';
 import { useCurrentUser } from '@/lib/hooks/useCurrentUser';
 import { uploadToCloudinary } from '@/lib/cloudinary';
@@ -37,6 +37,8 @@ export default function SignupPage() {
   const [parentEmail, setParentEmail] = useState('');
   const [loading, setLoading]         = useState(false);
   const [error, setError]             = useState('');
+  const [showPw, setShowPw]           = useState(false);
+  const [verificationSent, setVerificationSent] = useState(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -130,6 +132,7 @@ export default function SignupPage() {
         return;
       }
 
+      // For tutors, redirect to tutor onboarding
       if (role === 'TUTOR') {
         sessionStorage.setItem(
           'tutor_draft',
@@ -173,14 +176,91 @@ export default function SignupPage() {
         return;
       }
 
-      // Account created & auto-signed in - go to dashboard
-      window.location.href = '/dashboard';
+      // Account created — show verification prompt instead of auto-login
+      setVerificationSent(true);
     } catch {
       setError('An unexpected error occurred');
     } finally {
       setLoading(false);
     }
   };
+
+  // ── Verification sent screen ──────────────────────────────────────────
+  if (verificationSent) {
+    return (
+      <div className="flex flex-col gap-6">
+        <div className="text-center space-y-3 pb-2">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-p-mint rounded-full shadow-sm">
+            <Sparkles size={14} className="text-teal-600" />
+            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-teal-700">Verify Your Email</span>
+          </div>
+          <h2 className="text-3xl font-black tracking-tight">
+            <span className="gradient-text">Almost There!</span>
+          </h2>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted">
+            Check your inbox for the verification link
+          </p>
+        </div>
+
+        <div className="bg-white border-2 border-border rounded-[32px] p-8 text-center space-y-6">
+          <div className="w-20 h-20 bg-p-mint rounded-3xl flex items-center justify-center mx-auto">
+            <Mail size={36} className="text-teal-700" />
+          </div>
+          <div className="space-y-2">
+            <p className="text-lg font-black text-text-main tracking-tight">We sent you a verification email</p>
+            <p className="text-xs font-bold text-text-muted leading-relaxed max-w-sm mx-auto">
+              Click the link in the email we sent to <span className="text-primary font-black">{email}</span> to verify your account and get started.
+            </p>
+          </div>
+
+          <div className="p-4 bg-p-yellow rounded-2xl border border-[#fcc419]/20 flex items-start gap-3 text-left">
+            <AlertCircle size={16} className="text-[#f08c00] mt-0.5 shrink-0" />
+            <p className="text-[10px] font-black uppercase tracking-widest text-[#f08c00] leading-relaxed">
+              You cannot log in until you verify your email address.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-3 pt-2">
+            <Link href="/login" className="block w-full py-4 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20 hover:bg-accent-strong transition-all">
+              Go to Login
+            </Link>
+            <p className="text-[9px] font-bold text-text-muted">
+              Didn't receive it? Check your spam folder or{' '}
+              <button onClick={async () => {
+                setLoading(true);
+                setError('');
+                try {
+                  const res = await fetch('/api/signup/student', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      email, password, fullName, schoolName, age,
+                      parentEmail: age ? (parseInt(age) < 18 ? parentEmail : null) : null,
+                      schoolLevel, gradeLevel, image: profileImage,
+                    }),
+                  });
+                  const data = await res.json();
+                  if (!res.ok) setError(data.error || 'Failed to resend');
+                } catch { setError('Network error'); }
+                setLoading(false);
+              }} className="text-primary hover:underline font-black">
+                {loading ? 'Sending...' : 'send again'}
+              </button>
+            </p>
+          </div>
+        </div>
+
+        <div className="text-center pt-2 pb-6">
+          <p className="text-[10px] font-bold tracking-widest text-text-muted">
+            Already verified?{' '}
+            <Link href="/login" className="text-primary hover:text-accent-strong font-black hover:underline transition-all ml-1">
+              Login
+            </Link>
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -441,9 +521,13 @@ export default function SignupPage() {
             <div className="absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center group-focus-within:bg-primary/20 transition-colors">
               <Lock className="text-primary" size={14} />
             </div>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-surface-elevated border-2 border-border rounded-2xl pl-16 pr-4 py-4 text-sm font-bold focus:outline-none focus:border-primary focus:bg-white transition-all placeholder:text-text-muted/30"
+            <input type={showPw ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)}
+              className="w-full bg-surface-elevated border-2 border-border rounded-2xl pl-16 pr-12 py-4 text-sm font-bold focus:outline-none focus:border-primary focus:bg-white transition-all placeholder:text-text-muted/30"
               placeholder="••••••••" required minLength={8} />
+            <button type="button" onClick={() => setShowPw((v) => !v)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted hover:text-primary transition-colors">
+              {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
           </div>
         </div>
 

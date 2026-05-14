@@ -1,11 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth/server';
+import { sendEmail, emailVerificationEmail } from '@/lib/email';
+import crypto from 'crypto';
+
+// Get base URL for verification links
+function getBaseUrl(req: NextRequest) {
+  // 1. Explicit env var
+  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
+  if (process.env.NEXT_PUBLIC_BASE_URL) return process.env.NEXT_PUBLIC_BASE_URL;
+  
+  // 2. Derive from request (most reliable for production)
+  const protocol = req.headers.get('x-forwarded-proto') || 'http';
+  const host = req.headers.get('host');
+  if (host) return `${protocol}://${host}`;
+  
+  // 3. Fallback
+  return 'http://localhost:3000';
+}
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { email, password, fullName, schoolName, age, parentEmail, schoolLevel, image, gradeLevel } = body;
+
+    console.log('[SIGNUP] Starting student signup for:', email);
 
     if (!email || !password || !fullName || !age || !schoolLevel) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -15,51 +34,59 @@ export async function POST(req: NextRequest) {
     if (password.length < 8) {
       return NextResponse.json({ error: 'Password must be at least 8 characters long' }, { status: 400 });
     }
-    if (!/[a-z]/.test(password)) {
-      return NextResponse.json({ error: 'Password must contain at least one lowercase letter' }, { status: 400 });
-    }
-    if (!/[0-9]/.test(password)) {
-      return NextResponse.json({ error: 'Password must contain at least one number' }, { status: 400 });
-    }
 
     const parsedAge = parseInt(age);
     if (isNaN(parsedAge) || parsedAge < 5 || parsedAge > 100) {
       return NextResponse.json({ error: 'Invalid age' }, { status: 400 });
     }
-    if (parsedAge < 18 && !parentEmail) {
-      return NextResponse.json(
-        { error: 'Parent/guardian email is required for students under 18' },
-        { status: 400 }
-      );
-    }
 
     let authUserId: string | null = null;
     
     // 1. Register with Neon Auth
-    const { data: authData, error: authError } = await auth.signUp.email({
-      email,
-      password,
-      name: fullName,
-    });
+    try {
+      const { data: authData, error: authError } = await auth.signUp.email({
+        email: email.trim(),
+        password,
+        name: fullName.trim(),
+      });
 
-    if (authError) {
-      const msg = authError.message || '';
-      if (msg.toLowerCase().includes('already') || msg.toLowerCase().includes('exists')) {
-        // Attempt to continue registration for existing auth user
-        authUserId = (authError as any)?.userId || (authError as any)?.user?.id || (authError as any)?.data?.id;
+      if (authError) {
+        const msg = authError.message || '';
+        console.warn('[SIGNUP] Neon Auth signUp error:', msg);
         
-        if (authUserId) {
-          // Proceed to create database profile for existing auth user
-          console.log('[SIGNUP] Auth user already exists, creating database profile:', authUserId);
+        if (msg.toLowerCase().includes('already') || msg.toLowerCase().includes('exists')) {
+          // Attempt to continue registration for existing auth user
+          authUserId = (authError as any)?.userId || (authError as any)?.user?.id || (authError as any)?.data?.id;
+          
+          if (!authUserId) {
+            // Check if user exists in our DB at least
+            const existingUser = await prisma.user.findUnique({ where: { email: email.trim() } });
+            authUserId = existingUser?.id || null;
+          }
+          
+          if (authUserId) {
+            console.log('[SIGNUP] Auth user already exists, proceeding with ID:', authUserId);
+          } else {
+            return NextResponse.json({ error: 'An account with this email already exists. Please log in instead.' }, { status: 400 });
+          }
         } else {
-          return NextResponse.json({ error: 'An account with this email already exists. Please log in instead.' }, { status: 400 });
+          return NextResponse.json({ error: msg || 'Registration failed.' }, { status: 400 });
         }
       } else {
-        return NextResponse.json({ error: msg || 'Registration failed.' }, { status: 400 });
+        authUserId = authData?.user?.id ?? (authData as any)?.id;
+        console.log('[SIGNUP] New auth user created:', authUserId);
       }
-    } else {
-      authUserId = authData?.user?.id ?? (authData as any)?.id;
+    } catch (authErr) {
+      console.error('[SIGNUP] Neon Auth service error:', authErr);
+      // If auth fails, we might still want to check if the user exists in our DB
+      const existingUser = await prisma.user.findUnique({ where: { email: email.trim() } });
+      if (existingUser) {
+        authUserId = existingUser.id;
+      } else {
+        return NextResponse.json({ error: 'Authentication service unavailable. Please try again later.' }, { status: 500 });
+      }
     }
+
     if (!authUserId) {
       return NextResponse.json({ error: 'Could not retrieve auth user ID' }, { status: 500 });
     }
@@ -67,11 +94,11 @@ export async function POST(req: NextRequest) {
     // Validate and parse grade level
     const parsedGrade = gradeLevel ? parseInt(gradeLevel) : null;
 
-    // 2. Create User + Student profile — save ALL fields including age & schoolName
+    // 2. Create User + Student profile — isVerified remains false
     await prisma.user.upsert({
       where: { id: authUserId },
       update: {
-        name: fullName,
+        name: fullName.trim(),
         role: 'STUDENT',
         image: image ?? null,
         studentProfile: {
@@ -95,10 +122,10 @@ export async function POST(req: NextRequest) {
       },
       create: {
         id: authUserId,
-        email,
-        name: fullName,
+        email: email.trim(),
+        name: fullName.trim(),
         role: 'STUDENT',
-        isVerified: true,
+        isVerified: false,
         image: image ?? null,
         studentProfile: {
           create: {
@@ -110,26 +137,48 @@ export async function POST(req: NextRequest) {
           },
         },
       },
-      include: { studentProfile: true },
     });
 
-    // Auto sign-in after successful registration
-    const signInResult = await auth.signIn.email({
-      email,
-      password,
+    // 3. Generate verification token and send email
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+    // Delete old tokens for this email to keep it clean
+    await prisma.verificationToken.deleteMany({ where: { email: email.trim() } });
+
+    await prisma.verificationToken.create({
+      data: {
+        email: email.trim(),
+        token: verificationToken,
+        expiresAt,
+      },
     });
 
-    if (signInResult.error) {
-      console.warn('[SIGNUP] Registration succeeded but auto sign-in failed', signInResult.error);
-      // Still return success but tell frontend to manually login
-      return NextResponse.json({ 
-        success: true, 
-        requiresManualLogin: true 
-      });
+    const baseUrl = getBaseUrl(req);
+    const verificationUrl = `${baseUrl}/api/verify-email?token=${verificationToken}`;
+
+    const emailSent = await sendEmail({
+      to: email.trim(),
+      subject: 'Verify your Brighton Academic account',
+      html: emailVerificationEmail({
+        name: fullName,
+        email: email.trim(),
+        verificationUrl,
+      }),
+    });
+
+    if (!emailSent) {
+      console.error('[SIGNUP] Failed to send verification email to:', email);
+      // We still return success but maybe with a warning in logs
     }
 
-    // Neon Auth automatically sets session cookies
-    return NextResponse.json({ success: true });
+    console.log('[SIGNUP] Verification email sent to:', email, 'URL:', verificationUrl);
+
+    return NextResponse.json({ 
+      success: true, 
+      requiresVerification: true,
+      message: 'Account created! Please check your email to verify your account before logging in.'
+    });
   } catch (err: unknown) {
     console.error('[STUDENT SIGNUP]', err);
     const message = err instanceof Error ? err.message : 'Server error';

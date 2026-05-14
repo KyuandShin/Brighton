@@ -73,7 +73,24 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Block unverified tutors
+    // Block unverified users
+    if (!user.isVerified) {
+      const errorType = user.role === 'TUTOR' ? 'TUTOR_PENDING' : 'STUDENT_UNVERIFIED';
+      const errorMessage = user.role === 'TUTOR'
+        ? 'Your tutor account is pending verification. You will be notified once approved.'
+        : 'Please verify your email address before logging in. Check your inbox for the verification link.';
+      return NextResponse.json(
+        { error: errorType, message: errorMessage },
+        { status: 403,
+          headers: {
+            'Cache-Control': 'no-store, max-age=0',
+            'Retry-After': '0'
+          }
+        }
+      );
+    }
+
+    // Block unverified tutors (additional check for tutor verification status)
     if (user.role === 'TUTOR' && user.tutorProfile?.verificationStatus !== 'APPROVED') {
       return NextResponse.json(
         {

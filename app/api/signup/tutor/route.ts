@@ -48,13 +48,14 @@ export async function POST(req: NextRequest) {
     }
 
     // ── 2. Construct final bio ─────────────────────────────────────────
-    // If the user filled out the multi-section description, join them
-    let finalBio = bio || '';
-    if (introduction || experience || motivation) {
+    // If the user filled out the multi-section description (Step 5), join them;
+    // otherwise fall back to the bio written in Step 0 (General Details)
+    let finalBio = bio?.trim() || '';
+    if (introduction?.trim() || experience?.trim() || motivation?.trim()) {
       finalBio = [
-        introduction && `Introduction: ${introduction}`,
-        experience && `Experience: ${experience}`,
-        motivation && `Motivation: ${motivation}`
+        introduction?.trim() && `${introduction.trim()}`,
+        experience?.trim()   && `Experience: ${experience.trim()}`,
+        motivation?.trim()   && `${motivation.trim()}`,
       ].filter(Boolean).join('\n\n');
     }
 
@@ -129,17 +130,17 @@ export async function POST(req: NextRequest) {
       const tutor = await tx.tutor.upsert({
         where: { userId: authUserId! },
         update: {
-          headline: headline?.trim() ?? '',
+          headline: headline?.trim() || '',
           bio: finalBio.trim(),
-          introVideoUrl: videoUrl?.trim() ?? '',
+          introVideoUrl: videoUrl?.trim() || null,
           pricingPerHour: finalPrice,
           verificationStatus: 'PENDING',
         },
         create: {
           userId: authUserId!,
-          headline: headline?.trim() ?? '',
+          headline: headline?.trim() || '',
           bio: finalBio.trim(),
-          introVideoUrl: videoUrl?.trim() ?? '',
+          introVideoUrl: videoUrl?.trim() || null,
           pricingPerHour: finalPrice,
           verificationStatus: 'PENDING',
         },

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma';
 import { sendEmail } from '@/lib/email';
+import { deleteNeonAuthUser } from '@/lib/neon-auth';
 
 export async function PATCH(
   request: Request,
@@ -136,7 +137,7 @@ export async function DELETE(
       await tx.user.delete({ where: { id: tutor.userId } });
     });
 
-    // Neon Auth automatically syncs deletions when User record is removed from database
+    await deleteNeonAuthUser(tutor.userId);
 
     return NextResponse.json({ success: true });
   } catch (error) {

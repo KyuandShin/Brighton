@@ -59,6 +59,19 @@ export function Sidebar() {
               </li>
               <li>
                 <Link
+                  href="/dashboard/admin"
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold text-sm ${
+                    pathname === '/dashboard/admin'
+                      ? 'bg-[#3dbbee] text-white shadow-lg shadow-[#3dbbee]/20' 
+                      : 'text-[#9fadbd] hover:bg-[#0b1622] hover:text-white'
+                  }`}
+                >
+                  <Home size={18} />
+                  <span>Dashboard</span>
+                </Link>
+              </li>
+              <li>
+                <Link
                   href="/dashboard/admin/tutors"
                   className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold text-sm ${
                     pathname.startsWith('/dashboard/admin/tutors')

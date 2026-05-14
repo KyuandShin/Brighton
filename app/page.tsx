@@ -2,10 +2,17 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCurrentUser } from '@/lib/hooks/useCurrentUser';
-import { Search, Check, Zap, Lightbulb, Star, ArrowRight, Sparkles, GraduationCap, BookOpen, Heart, Rocket, Shield, Users, TrendingUp, ChevronRight } from 'lucide-react';
+import SearchTutorModal from '@/app/_components/SearchTutorModal';
+import {
+  Search, Check, Zap, Lightbulb, Star, ArrowRight, Sparkles,
+  GraduationCap, BookOpen, Heart, Rocket, Shield, Users,
+  TrendingUp, ChevronRight, ChevronDown, Sun, Moon,
+  BarChart3, MessageSquare, Quote, Loader2,
+  CalendarCheck, UserPlus
+} from 'lucide-react';
 
 const HERO_DECOS = [
   { char: '✦', top: '15%',  left: '4%',   size: '2rem',   color: '#f472b6', delay: '0s',   dur: '5s'  },
@@ -23,6 +30,151 @@ const features = [
   { icon: TrendingUp, title: 'Track Progress', desc: 'Monitor improvement with detailed analytics, AI assessments, and weekly performance reports.', gradient: 'from-teal-500 to-blue-500' },
 ];
 
+const howItWorks = [
+  { step: 1, title: 'Sign Up Free', desc: 'Create your account as a student or parent — no cost, no commitment.', icon: UserPlus },
+  { step: 2, title: 'Find Your Tutor', desc: 'Search by subject, level, and availability. View profiles, ratings, and reviews.', icon: Search },
+  { step: 3, title: 'Book a Session', desc: 'Pick a time that works for you and book instantly with your chosen tutor.', icon: CalendarCheck },
+  { step: 4, title: 'Learn & Excel', desc: 'Attend live sessions, track progress with AI analytics, and ace your exams.', icon: TrendingUp },
+];
+
+interface Stats {
+  tutors: number;
+  totalTutors: number;
+  students: number;
+  completedSessions: number;
+  reviews: number;
+}
+
+interface FeaturedReview {
+  id: string;
+  rating: number;
+  comment: string | null;
+  createdAt: string;
+  student: {
+    user: { name: string | null; image: string | null };
+  };
+  tutor: {
+    user: { name: string | null };
+  };
+}
+
+const FAQ_ITEMS = [
+  { q: 'How does Brighton match me with a tutor?', a: 'Our AI-powered system considers your subject needs, academic level, learning style, and schedule preferences to recommend the best tutor match for you.' },
+  { q: 'Is Brighton free to use for students?', a: 'Yes! Signing up as a student is completely free. You only pay the tutor for the sessions you book, at rates you can see upfront.' },
+  { q: 'What subjects are available?', a: 'We cover the full Philippine K-12 curriculum including Mathematics, Science, English, Filipino, History, MAPEH, and more.' },
+  { q: 'Can parents track their child\'s progress?', a: 'Absolutely. Parents get a dedicated dashboard showing session history, performance analytics, AI assessment results, and tutor feedback.' },
+  { q: 'How are tutors verified?', a: 'Every tutor goes through a rigorous verification process including credential checks, background screening, and a teaching demo before they can start.' },
+  { q: 'What if I need to cancel a booking?', a: 'You can cancel or reschedule bookings up to 24 hours before the session at no cost. Late cancellations may be subject to a fee.' },
+];
+
+// ── Helper components ────────────────────────────────────────────────────
+
+function SkillTag({ label, color, icon }: { label: string; color: string; icon: string }) {
+  return (
+    <div className={`group relative overflow-hidden px-4 py-2.5 ${color} rounded-full text-[10px] font-black uppercase tracking-widest border border-white/60 shadow-sm cursor-default hover:scale-105 hover:shadow-md transition-all flex items-center gap-2`}>
+      <span className="text-xs">{icon}</span>
+      <span>{label}</span>
+    </div>
+  );
+}
+
+function AnimatedCounter({ value, suffix = '', label }: { value: number; suffix?: string; label: string }) {
+  const [count, setCount] = useState(0);
+  const ref = useRef<HTMLDivElement>(null);
+  const counted = useRef(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !counted.current) {
+          counted.current = true;
+          const duration = 1500;
+          const steps = 30;
+          const increment = value / steps;
+          let current = 0;
+          const timer = setInterval(() => {
+            current += increment;
+            if (current >= value) {
+              setCount(value);
+              clearInterval(timer);
+            } else {
+              setCount(Math.floor(current));
+            }
+          }, duration / steps);
+        }
+      },
+      { threshold: 0.3 }
+    );
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, [value]);
+
+  return (
+    <div ref={ref} className="text-center space-y-1">
+      <p className="text-3xl md:text-4xl font-black gradient-text">
+        {count}{suffix}
+      </p>
+      <p className="text-[9px] font-black uppercase tracking-widest text-text-muted">{label}</p>
+    </div>
+  );
+}
+
+function TestimonialCard({ review }: { review: FeaturedReview }) {
+  const name = review.student.user.name ?? 'Anonymous Student';
+  const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+  const tutorName = review.tutor.user.name ?? 'Tutor';
+  const comment = review.comment ?? 'Great experience!';
+
+  return (
+    <div className="bg-white/80 backdrop-blur-sm border-2 border-p-purple/30 rounded-3xl p-6 space-y-4 hover:shadow-lg transition-all min-w-[300px] md:min-w-[340px]">
+      <div className="flex items-center gap-1 text-[#fcc419]">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Star key={i} size={12} fill={i < review.rating ? 'currentColor' : 'none'} className={i >= review.rating ? 'text-gray-300' : ''} />
+        ))}
+      </div>
+      <div className="relative">
+        <Quote size={18} className="text-p-purple/30 absolute -top-1 -left-1" />
+        <p className="text-xs font-medium text-text-muted leading-relaxed pl-4 line-clamp-3">
+          "{comment}"
+        </p>
+      </div>
+      <div className="flex items-center gap-3 pt-2 border-t border-p-purple/20">
+        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-p-purple to-pink-300 flex items-center justify-center text-white text-[10px] font-black">
+          {initials}
+        </div>
+        <div className="text-left">
+          <p className="text-[10px] font-black text-text-main">{name}</p>
+          <p className="text-[8px] font-bold text-text-muted uppercase tracking-widest">Student · {tutorName}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FaqItem({ question, answer, open, onToggle }: { question: string; answer: string; open: boolean; onToggle: () => void }) {
+  return (
+    <div className={`bg-white/70 backdrop-blur-sm border-2 rounded-2xl transition-all ${open ? 'border-primary/30 shadow-md' : 'border-p-purple/30 hover:border-p-purple/60'}`}>
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center justify-between px-6 py-5 text-left gap-4"
+        aria-expanded={open}
+      >
+        <span className="text-[11px] font-black text-text-main leading-tight">{question}</span>
+        <ChevronDown
+          size={16}
+          className={`shrink-0 text-primary transition-transform duration-300 ${open ? 'rotate-180' : ''}`}
+        />
+      </button>
+      <div
+        className={`overflow-hidden transition-all duration-300 ${open ? 'max-h-96 pb-5' : 'max-h-0'}`}
+      >
+        <p className="px-6 text-[10px] font-medium text-text-muted leading-relaxed">{answer}</p>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Landing Page ────────────────────────────────────────────────────
 export default function LandingPage() {
   const { user } = useCurrentUser();
   const logoHref = user ? '/dashboard' : '/';
@@ -33,8 +185,34 @@ export default function LandingPage() {
   const [tutorCount, setTutorCount] = useState<number | null>(null);
   const [bestTutors, setBestTutors] = useState<any[]>([]);
   const [loadingBest, setLoadingBest] = useState(false);
+  const [showSearchModal, setShowSearchModal] = useState(false);
+  const [searchModalQuery, setSearchModalQuery] = useState('');
+  const [searchModalLevel, setSearchModalLevel] = useState<'ALL' | 'ELEMENTARY' | 'HIGH_SCHOOL'>('ALL');
+  const [dark, setDark] = useState(false);
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [featuredReviews, setFeaturedReviews] = useState<FeaturedReview[]>([]);
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [testimonialIdx, setTestimonialIdx] = useState(0);
 
-  useEffect(() => { setMounted(true); }, []);
+  // Mount + dark mode init
+  useEffect(() => {
+    setMounted(true);
+    const stored = localStorage.getItem('brighton-theme');
+    if (stored === 'dark' || (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      setDark(true);
+    }
+  }, []);
+
+  // Toggle dark mode
+  useEffect(() => {
+    if (!mounted) return;
+    if (dark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('brighton-theme', dark ? 'dark' : 'light');
+  }, [dark, mounted]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -43,27 +221,53 @@ export default function LandingPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch real tutor count and best tutors on mount
+  // Fetch tutors — single consolidated call
   useEffect(() => {
-    fetch('/api/tutors')
+    const controller = new AbortController();
+    fetch('/api/tutors', { signal: controller.signal })
       .then(r => r.json())
       .then(data => {
-        if (Array.isArray(data)) setTutorCount(data.length);
+        if (Array.isArray(data)) {
+          setTutorCount(data.length);
+          // Find best rated tutors (top 3)
+          const sorted = [...data]
+            .filter((t: any) => t.verificationStatus === 'APPROVED')
+            .sort((a: any, b: any) => (b.rating ?? 0) - (a.rating ?? 0))
+            .slice(0, 3);
+          setBestTutors(sorted);
+        }
       })
-      .catch(() => setTutorCount(0));
+      .catch(() => {})
+      .finally(() => setLoadingBest(false));
+    return () => controller.abort();
   }, []);
 
-  // Fetch best tutors for the showcase
+  // Fetch stats
   useEffect(() => {
-    setLoadingBest(true);
-    fetch('/api/tutors?sort=best&limit=3')
+    fetch('/api/stats')
+      .then(r => r.json())
+      .then(setStats)
+      .catch(() => {});
+  }, []);
+
+  // Fetch featured reviews
+  useEffect(() => {
+    fetch('/api/reviews/featured')
       .then(r => r.json())
       .then(data => {
-        if (Array.isArray(data)) setBestTutors(data);
+        if (Array.isArray(data)) setFeaturedReviews(data);
       })
-      .catch(console.error)
-      .finally(() => setLoadingBest(false));
+      .catch(() => {});
   }, []);
+
+  // Auto-rotate testimonials
+  useEffect(() => {
+    if (featuredReviews.length === 0) return;
+    const interval = setInterval(() => {
+      setTestimonialIdx(prev => (prev + 1) % featuredReviews.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [featuredReviews.length]);
 
   return (
     <div className="min-h-screen bg-background text-text-main selection:bg-primary/20 relative overflow-x-hidden">
@@ -89,7 +293,16 @@ export default function LandingPage() {
           <Link href="#how-it-works" className="hover:text-primary transition-colors">How It Works</Link>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          {/* Dark mode toggle */}
+          <button
+            onClick={() => setDark(!dark)}
+            className="w-9 h-9 rounded-xl bg-p-purple/50 flex items-center justify-center hover:bg-p-purple transition-colors"
+            aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {dark ? <Sun size={14} className="text-amber-400" /> : <Moon size={14} className="text-text-muted" />}
+          </button>
+
           <Link href="/login" className="px-4 py-2 font-black text-[10px] text-text-muted uppercase tracking-widest hover:text-primary transition-colors">Login</Link>
           <Link
             href="/signup"
@@ -106,7 +319,6 @@ export default function LandingPage() {
 
       {/* ── Hero ─────────────────────────────────────────────────────── */}
       <header className="relative z-10 max-w-5xl mx-auto px-6 pt-20 pb-28 flex flex-col items-center text-center">
-
         {/* Floating anime decorations */}
         {HERO_DECOS.map((d, i) => (
           <span key={i} className="absolute pointer-events-none select-none hidden md:block"
@@ -120,104 +332,125 @@ export default function LandingPage() {
           </span>
         ))}
 
-        <AnimatePresence mode="wait">
-          {mounted && (
+        {mounted && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, ease: 'easeOut' }}
+            className="space-y-10 w-full"
+          >
+            {/* Badge */}
             <motion.div
-              key="hero"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, ease: 'easeOut' }}
-              className="space-y-10 w-full"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+              className="inline-flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-p-purple/60 to-p-sakura/40 border border-white rounded-full shadow-sm"
             >
-              {/* Badge */}
-              <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.2, duration: 0.5 }}
-                className="inline-flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-p-purple/60 to-p-sakura/40 border border-white rounded-full shadow-sm"
-              >
-                <Zap size={12} className="text-amber-500" fill="currentColor" />
-                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary">
-                  🎯 Find Your Perfect Tutor Match
-                </span>
-              </motion.div>
+              <Zap size={12} className="text-amber-500" fill="currentColor" />
+              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary">
+                🎯 Find Your Perfect Tutor Match
+              </span>
+            </motion.div>
 
-              {/* Title */}
-              <div className="space-y-4">
-                <h1 className="text-5xl md:text-7xl font-black tracking-tight leading-tight">
-                  What subject do you want{' '}
-                  <span className="gradient-text">to master?</span>
-                </h1>
-                <p className="text-sm font-bold text-text-muted uppercase tracking-widest max-w-xl mx-auto">
-                  Philippine K-12 Tutoring Platform — Elementary to High School
-                </p>
-              </div>
+            {/* Title */}
+            <div className="space-y-4">
+              <h1 className="text-5xl md:text-7xl font-black tracking-tight leading-tight">
+                What subject do you want{' '}
+                <span className="gradient-text">to master?</span>
+              </h1>
+              <p className="text-sm font-bold text-text-muted uppercase tracking-widest max-w-xl mx-auto">
+                Philippine K-12 Tutoring Platform — Elementary to High School
+              </p>
+            </div>
 
-              {/* Search Box */}
-              <motion.form
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.4, duration: 0.5 }}
-                onSubmit={(e) => {
-                  e.preventDefault();
+            {/* Search Box */}
+            <motion.form
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.4, duration: 0.5 }}
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (user) {
                   const params = new URLSearchParams();
                   if (heroSearch.trim()) params.set('q', heroSearch.trim());
                   if (heroLevel !== 'ALL') params.set('level', heroLevel);
                   const qs = params.toString();
-                  window.location.href = user ? `/dashboard/tutors${qs ? `?${qs}` : ''}` : `/signup`;
-                }}
-                className="max-w-2xl mx-auto w-full bg-white/80 backdrop-blur-md p-2 rounded-2xl shadow-[0_20px_60px_rgba(147,51,234,0.1)] border-2 border-white/80 hover:border-primary/20 transition-all group"
-              >
-                <div className="flex flex-col md:flex-row gap-2">
-                  <div className="flex-1 relative">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-primary transition-colors" size={18} />
-                    <input
-                      type="text"
-                      value={heroSearch}
-                      onChange={(e) => setHeroSearch(e.target.value)}
-                      placeholder="Search subjects (e.g. Algebra, Physics...)"
-                      className="w-full pl-12 pr-4 py-4 bg-transparent border-none focus:outline-none font-bold text-sm text-text-main placeholder:text-text-muted/40"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <select
-                      value={heroLevel}
-                      onChange={(e) => setHeroLevel(e.target.value)}
-                      className="px-5 py-4 bg-p-purple/30 border-2 border-white/60 rounded-xl font-bold text-xs uppercase tracking-widest text-text-muted cursor-pointer focus:border-primary transition-all"
-                    >
-                      <option value="ALL">All Levels</option>
-                      <option value="ELEMENTARY">Elementary</option>
-                      <option value="HIGH_SCHOOL">High School</option>
-                    </select>
-                    <button
-                      type="submit"
-                      className="group/btn px-8 py-4 text-white rounded-xl font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 hover:scale-105"
-                      style={{ background: 'linear-gradient(135deg, #ec4899 0%, #9333ea 100%)', boxShadow: '0 6px 20px rgba(147,51,234,0.25)' }}
-                    >
-                      Find <ArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
-                    </button>
-                  </div>
+                  window.location.href = `/dashboard/tutors${qs ? `?${qs}` : ''}`;
+                } else {
+                  setSearchModalQuery(heroSearch);
+                  setSearchModalLevel(heroLevel as 'ALL' | 'ELEMENTARY' | 'HIGH_SCHOOL');
+                  setShowSearchModal(true);
+                }
+              }}
+              className="max-w-2xl mx-auto w-full bg-white/80 backdrop-blur-md p-2 rounded-2xl shadow-[0_20px_60px_rgba(147,51,234,0.1)] border-2 border-white/80 hover:border-primary/20 transition-all group"
+            >
+              <div className="flex flex-col md:flex-row gap-2">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-primary transition-colors" size={18} />
+                  <input
+                    type="text"
+                    value={heroSearch}
+                    onChange={(e) => setHeroSearch(e.target.value)}
+                    placeholder="Search subjects (e.g. Algebra, Physics...)"
+                    aria-label="Search for subjects"
+                    className="w-full pl-12 pr-4 py-4 bg-transparent border-none focus:outline-none font-bold text-sm text-text-main placeholder:text-text-muted/40"
+                  />
                 </div>
-              </motion.form>
+                <div className="flex gap-2">
+                  <select
+                    value={heroLevel}
+                    onChange={(e) => setHeroLevel(e.target.value)}
+                    aria-label="Filter by academic level"
+                    className="px-5 py-4 bg-p-purple/30 border-2 border-white/60 rounded-xl font-bold text-xs uppercase tracking-widest text-text-muted cursor-pointer focus:border-primary transition-all"
+                  >
+                    <option value="ALL">All Levels</option>
+                    <option value="ELEMENTARY">Elementary</option>
+                    <option value="HIGH_SCHOOL">High School</option>
+                  </select>
+                  <button
+                    type="submit"
+                    className="group/btn px-8 py-4 text-white rounded-xl font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 hover:scale-105"
+                    style={{ background: 'linear-gradient(135deg, #ec4899 0%, #9333ea 100%)', boxShadow: '0 6px 20px rgba(147,51,234,0.25)' }}
+                  >
+                    Find <ArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
+                  </button>
+                </div>
+              </div>
+            </motion.form>
 
-              {/* Skill tags */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.6, duration: 0.5 }}
-                className="flex flex-wrap justify-center gap-2.5 pt-2"
-              >
-                <SkillTag label="Mathematics"    color="bg-p-blue   text-blue-700"   icon="📐" />
-                <SkillTag label="Science"        color="bg-p-mint   text-teal-700"   icon="🔬" />
-                <SkillTag label="English"        color="bg-p-pink   text-pink-700"   icon="📖" />
-                <SkillTag label="History"        color="bg-p-yellow text-amber-700"  icon="🏛️" />
-                <SkillTag label="Filipino"       color="bg-p-purple text-purple-700" icon="🇵🇭" />
-                <SkillTag label="MAPEH"          color="bg-p-peach  text-orange-700" icon="🎨" />
-              </motion.div>
+            {/* Skill tags */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.6, duration: 0.5 }}
+              className="flex flex-wrap justify-center gap-2.5 pt-2"
+            >
+              <SkillTag label="Mathematics"    color="bg-p-blue   text-blue-700"   icon="📐" />
+              <SkillTag label="Science"        color="bg-p-mint   text-teal-700"   icon="🔬" />
+              <SkillTag label="English"        color="bg-p-pink   text-pink-700"   icon="📖" />
+              <SkillTag label="History"        color="bg-p-yellow text-amber-700"  icon="🏛️" />
+              <SkillTag label="Filipino"       color="bg-p-purple text-purple-700" icon="🇵🇭" />
+              <SkillTag label="MAPEH"          color="bg-p-peach  text-orange-700" icon="🎨" />
             </motion.div>
-          )}
-        </AnimatePresence>
+          </motion.div>
+        )}
       </header>
+
+      {/* ── Stats Counter Section ────────────────────────────────────── */}
+      {stats && (
+        <section className="relative z-10 pb-16">
+          <div className="max-w-5xl mx-auto px-6">
+            <div className="bg-white/70 backdrop-blur-md border-2 border-p-purple/30 rounded-[40px] p-8 md:p-12 shadow-lg">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12">
+                <AnimatedCounter value={stats.tutors} suffix="+" label="Verified Tutors" />
+                <AnimatedCounter value={stats.students} suffix="+" label="Active Students" />
+                <AnimatedCounter value={stats.completedSessions} suffix="+" label="Sessions Completed" />
+                <AnimatedCounter value={stats.reviews} suffix="+" label="Reviews" />
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ── Features Section ─────────────────────────────────────────── */}
       <section id="features" className="relative z-10 max-w-7xl mx-auto px-6 pb-28">
@@ -262,6 +495,68 @@ export default function LandingPage() {
           })}
         </div>
       </section>
+
+      {/* ── Testimonials Section ─────────────────────────────────────── */}
+      {featuredReviews.length > 0 && (
+        <section className="relative z-10 pb-28">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="text-center mb-12 space-y-3">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-p-yellow rounded-full">
+                <MessageSquare size={12} className="text-amber-500" />
+                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-amber-700">What Students Say</span>
+              </div>
+              <h2 className="text-3xl md:text-4xl font-black tracking-tight">
+                Real Reviews from{' '}
+                <span className="gradient-text">Real Students</span>
+              </h2>
+            </div>
+
+            {/* Desktop grid */}
+            <div className="hidden md:grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {featuredReviews.slice(0, 3).map((review) => (
+                <motion.div
+                  key={review.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.4 }}
+                >
+                  <TestimonialCard review={review} />
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Mobile carousel */}
+            <div className="md:hidden overflow-hidden">
+              <motion.div
+                key={testimonialIdx}
+                initial={{ opacity: 0, x: 40 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -40 }}
+                transition={{ duration: 0.3 }}
+                className="mx-auto max-w-sm"
+              >
+                <TestimonialCard review={featuredReviews[testimonialIdx]} />
+              </motion.div>
+              {/* Dots */}
+              <div className="flex justify-center gap-2 mt-6">
+                {featuredReviews.slice(0, 5).map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setTestimonialIdx(i)}
+                    className={`w-2 h-2 rounded-full transition-all ${
+                      i === testimonialIdx % featuredReviews.length
+                        ? 'bg-primary w-5'
+                        : 'bg-p-purple/50'
+                    }`}
+                    aria-label={`Go to testimonial ${i + 1}`}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ── Tutors Showcase ───────────────────────────────────────────── */}
       <section id="tutors" className="relative z-10 max-w-7xl mx-auto px-6 pb-28">
@@ -424,26 +719,59 @@ export default function LandingPage() {
       {/* ── How It Works ─────────────────────────────────────────────── */}
       <section id="how-it-works" className="relative z-10 bg-white/60 backdrop-blur-md py-24 border-y border-p-purple/30">
         <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-14 space-y-3">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-p-yellow rounded-full">
+              <Lightbulb size={12} className="text-amber-500" />
+              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-amber-700">The Brighton Methodology</span>
+            </div>
+            <h3 className="text-3xl md:text-4xl font-black tracking-tight">
+              Smarter Learning,{' '}
+              <span className="gradient-text">Better Results</span>
+            </h3>
+            <p className="text-text-muted font-medium leading-relaxed max-w-md mx-auto">
+              We don't just assign tutors. Our AI-driven platform ensures every student is matched with an educator who specializes in their specific needs and academic level.
+            </p>
+          </div>
+
+          {/* Numbered step cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-16">
+            {howItWorks.map((item, idx) => {
+              const Icon = item.icon;
+              return (
+                <motion.div
+                  key={item.step}
+                  initial={{ opacity: 0, y: 24 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: idx * 0.12, duration: 0.4 }}
+                  className="relative bg-white/80 backdrop-blur-sm border-2 border-p-purple/30 rounded-[28px] p-6 text-center space-y-4 hover:shadow-lg transition-all group"
+                >
+                  {/* Step number */}
+                  <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 text-white text-[11px] font-black flex items-center justify-center shadow-md">
+                    {item.step}
+                  </div>
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-p-purple to-pink-300 flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
+                    <Icon size={20} className="text-white" />
+                  </div>
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-black text-text-main">{item.title}</h4>
+                    <p className="text-[10px] font-medium text-text-muted leading-relaxed">{item.desc}</p>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+
+          {/* Visual dashboard mockup + features list */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
-              className="space-y-7"
+              className="space-y-4"
             >
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-p-yellow rounded-full">
-                <Lightbulb size={12} className="text-amber-500" />
-                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-amber-700">The Brighton Methodology</span>
-              </div>
-              <h3 className="text-3xl md:text-4xl font-black tracking-tight">
-                Smarter Learning,{' '}
-                <span className="gradient-text">Better Results</span>
-              </h3>
-              <p className="text-text-muted font-medium leading-relaxed max-w-md">
-                We don't just assign tutors. Our AI-driven platform ensures every student is matched with an educator who specializes in their specific needs and academic level.
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {[
                   { text: 'AI Level Assessment', icon: Sparkles },
                   { text: 'Smart Tutor Matching', icon: Search },
@@ -506,8 +834,36 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── CTA Section ──────────────────────────────────────────────── */}
+      {/* ── FAQ Section ──────────────────────────────────────────────── */}
       <section className="relative z-10 py-24">
+        <div className="max-w-3xl mx-auto px-6">
+          <div className="text-center mb-12 space-y-3">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-p-sky rounded-full">
+              <Lightbulb size={12} className="text-blue-500" />
+              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-blue-700">Got Questions?</span>
+            </div>
+            <h2 className="text-3xl md:text-4xl font-black tracking-tight">
+              Frequently Asked{' '}
+              <span className="gradient-text">Questions</span>
+            </h2>
+          </div>
+
+          <div className="space-y-3">
+            {FAQ_ITEMS.map((item, idx) => (
+              <FaqItem
+                key={idx}
+                question={item.q}
+                answer={item.a}
+                open={openFaq === idx}
+                onToggle={() => setOpenFaq(openFaq === idx ? null : idx)}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── CTA Section ──────────────────────────────────────────────── */}
+      <section className="relative z-10 pb-24">
         <div className="max-w-3xl mx-auto px-6 text-center space-y-8">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
@@ -569,15 +925,14 @@ export default function LandingPage() {
           <p className="text-[9px] font-black uppercase tracking-[0.4em] opacity-40">© 2026 Brighton · College of Computer Studies · LSPU</p>
         </div>
       </footer>
-    </div>
-  );
-}
 
-function SkillTag({ label, color, icon }: { label: string; color: string; icon: string }) {
-  return (
-    <div className={`group relative overflow-hidden px-4 py-2.5 ${color} rounded-full text-[10px] font-black uppercase tracking-widest border border-white/60 shadow-sm cursor-default hover:scale-105 hover:shadow-md transition-all flex items-center gap-2`}>
-      <span className="text-xs">{icon}</span>
-      <span>{label}</span>
+      {/* Search Results Modal (for non-logged-in users) */}
+      <SearchTutorModal
+        open={showSearchModal}
+        onClose={() => setShowSearchModal(false)}
+        query={searchModalQuery}
+        level={searchModalLevel}
+      />
     </div>
   );
 }

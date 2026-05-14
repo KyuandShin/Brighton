@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { authClient } from '@/lib/auth/client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Mail, Lock, ChevronRight, AlertCircle, ArrowLeft, Eye, EyeOff, Loader2, RefreshCw } from 'lucide-react';
+import { Mail, Lock, ChevronRight, AlertCircle, ArrowLeft, Eye, EyeOff, Loader2, RefreshCw, Check } from 'lucide-react';
 import { useCurrentUser } from '@/lib/hooks/useCurrentUser';
 
 type LoginMode = 'password' | 'otp' | 'forgot';
@@ -19,6 +19,7 @@ export default function LoginPage() {
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState('');
   const [mode, setMode]         = useState<LoginMode>('password');
+  const [verificationMessage, setVerificationMessage] = useState('');
 
   // password login
   const [password, setPassword] = useState('');
@@ -33,6 +34,22 @@ export default function LoginPage() {
 
   useEffect(() => {
     setMode('password');
+
+    // Check for verification success/error query params
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('verified') === 'true') {
+      setVerificationMessage('Email verified! You can now log in.');
+    }
+    const errorParam = params.get('error');
+    if (errorParam === 'already_verified') {
+      setVerificationMessage('Your email is already verified. You can log in.');
+    } else if (errorParam === 'expired_token') {
+      setError('The verification link has expired. Please sign up again to receive a new link.');
+    } else if (errorParam === 'invalid_token' || errorParam === 'missing_token') {
+      setError('Invalid verification link. Please try signing up again.');
+    } else if (errorParam === 'verification_failed') {
+      setError('Verification failed. Please try signing up again.');
+    }
   }, []);
 
   // ── Improved afterSignIn with retry logic for race condition ────────────
@@ -49,7 +66,13 @@ export default function LoginPage() {
           const meData = await meRes.json();
           if (meData.error === 'TUTOR_PENDING') {
             setError('Your tutor account is pending verification. You will be notified once approved.');
-            await authClient.signOut();
+            try { await authClient.signOut(); } catch {}
+            setLoading(false);
+            return;
+          }
+          if (meData.error === 'STUDENT_UNVERIFIED') {
+            setError('Please verify your email address before logging in. Check your inbox for the verification link.');
+            try { await authClient.signOut(); } catch {}
             setLoading(false);
             return;
           }
@@ -106,14 +129,21 @@ export default function LoginPage() {
       const { error: signInError } = await authClient.signIn.email({ email, password });
       if (signInError) { setError(signInError.message || 'Invalid email or password.'); setLoading(false); return; }
       await afterSignIn();
-    } catch { setError('An unexpected error occurred. Please try again.'); setLoading(false); }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : (err as any)?.statusText || 'An unexpected error occurred. Please try again.';
+      setError(message);
+      setLoading(false);
+    }
   };
 
   const handleGoogleLogin = async () => {
     setLoading(true); setError('');
     try {
       await authClient.signIn.social({ provider: 'google', callbackURL: '/login?auth=complete' });
-    } catch { setError('Google sign-in failed. Please try again.'); setLoading(false); }
+    } catch (err: unknown) {
+      setError((err instanceof Error ? err.message : null) || 'Google sign-in failed. Please try again.');
+      setLoading(false);
+    }
   };
 
   const handleSendOtp = async (e: React.FormEvent) => {
@@ -123,7 +153,9 @@ export default function LoginPage() {
       const { error: sendError } = await authClient.emailOtp.sendVerificationOtp({ email, type: 'sign-in' });
       if (sendError) { setError(sendError.message || 'Failed to send verification code.'); setLoading(false); return; }
       setOtpStep('otp');
-    } catch { setError('An unexpected error occurred. Please try again.'); }
+    } catch (err: unknown) {
+      setError((err instanceof Error ? err.message : null) || 'An unexpected error occurred. Please try again.');
+    }
     finally { setLoading(false); }
   };
 
@@ -134,7 +166,9 @@ export default function LoginPage() {
       const { error: signInError } = await authClient.signIn.emailOtp({ email, otp });
       if (signInError) { setError(signInError.message || 'Invalid verification code.'); setLoading(false); return; }
       await afterSignIn();
-    } catch { setError('An unexpected error occurred. Please try again.'); }
+    } catch (err: unknown) {
+      setError((err instanceof Error ? err.message : null) || 'An unexpected error occurred. Please try again.');
+    }
     finally { setLoading(false); }
   };
 
@@ -142,9 +176,11 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true); setError('');
     try {
-      await authClient.requestPasswordReset({ email, redirectTo: '/reset-password' });
+      await (authClient as any).forgetPassword?.({ email, redirectTo: '/reset-password' });
       setForgotSent(true);
-    } catch { setError('Failed to send reset email. Please try again.'); }
+    } catch (err: unknown) {
+      setError((err instanceof Error ? err.message : null) || 'Failed to send reset email. Please try again.');
+    }
     finally { setLoading(false); }
   };
 
@@ -165,6 +201,13 @@ export default function LoginPage() {
         <h2 className="text-3xl font-black tracking-tight text-text-main">{title}</h2>
         <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted">{subtitle}</p>
       </div>
+
+      {verificationMessage && (
+        <div className="bg-[#d3f9d8] border border-[#8ce99a] text-[#2b8a3e] p-4 rounded-2xl flex items-start gap-3">
+          <Check size={16} className="shrink-0 mt-0.5" />
+          <p className="text-[10px] font-black uppercase tracking-widest leading-relaxed">{verificationMessage}</p>
+        </div>
+      )}
 
       {error && (
         <div className="bg-p-yellow border border-[#fcc419]/20 text-[#f08c00] p-4 rounded-2xl flex items-start gap-3">
