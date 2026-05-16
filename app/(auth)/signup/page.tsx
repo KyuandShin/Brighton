@@ -208,27 +208,32 @@ export default function SignupPage() {
     setOtpLoading(true);
     setOtpError('');
     try {
-      const { error: verifyError } = await authClient.emailOtp.verifyEmail({ email, otp });
+      const result = await authClient.emailOtp.verifyEmail({ email, otp });
+      const verifyError = (result as any)?.error;
       if (verifyError) {
         console.error('[SIGNUP] OTP verify error:', verifyError);
         setOtpError(verifyError.message || 'Invalid code. Please check and try again.');
         return;
       }
       // Mark as verified in our DB
-      const verifyRes = await fetch('/api/verify-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-      if (!verifyRes.ok) {
-        const verifyData = await verifyRes.json();
-        console.error('[SIGNUP] DB verify error:', verifyData);
+      try {
+        const verifyRes = await fetch('/api/verify-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email }),
+        });
+        if (!verifyRes.ok) {
+          const verifyData = await verifyRes.json();
+          console.error('[SIGNUP] DB verify error:', verifyData);
+        }
+      } catch (dbErr) {
+        console.error('[SIGNUP] DB verify exception:', dbErr);
         // Non-fatal - OTP was valid, DB update may have failed
       }
       setVerified(true);
-    } catch (err) {
+    } catch (err: any) {
       console.error('[SIGNUP] OTP verify exception:', err);
-      setOtpError('Something went wrong. Please try again.');
+      setOtpError(err?.message || 'Something went wrong. Please try again.');
     } finally {
       setOtpLoading(false);
     }
@@ -313,7 +318,7 @@ export default function SignupPage() {
           <button
             type="submit"
             disabled={otpLoading || otp.length !== 6}
-            className="group relative overflow-hidden bg-gradient-to-r from-primary to-pink-500 text-white font-black text-[10px] uppercase tracking-[0.2em] py-3.5 rounded-xl transition-all shadow-xl shadow-primary/25 disabled:opacity-50 flex items-center justify-center gap-2"
+            className="group relative overflow-hidden bg-primary hover:bg-accent-strong text-white font-black text-[10px] uppercase tracking-[0.2em] py-3.5 rounded-xl transition-all shadow-xl shadow-primary/25 disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {otpLoading ? (
               <><Loader2 size={14} className="animate-spin" /> Verifying...</>
@@ -576,7 +581,7 @@ export default function SignupPage() {
               <label className="text-[9px] font-black uppercase tracking-[0.2em] text-text-muted ml-1 flex items-center gap-1.5">
                 <GraduationCap size={10} /> Grade Level
               </label>
-              <div className="grid grid-cols-5 gap-1.5">
+              <div className="grid grid-cols-5 gap-1.5 max-[400px]:grid-cols-3">
                 {PH_GRADES.map((g) => {
                   const isElementary = g.value <= 6;
                   const isSelected = gradeLevel === g.value;
@@ -607,7 +612,7 @@ export default function SignupPage() {
                   <Heart size={10} /> Parent/Guardian Email
                 </label>
                 <div className="relative group">
-                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#e03131] group-focus-within:text-[#e03131]" size={14} />
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#e03131]" size={14} />
               <input type="email" value={parentEmail} onChange={(e) => setParentEmail(e.target.value)}
                     className="w-full bg-surface border-2 border-[#ffc9c9] rounded-xl pl-10 pr-3 py-3 text-sm font-bold focus:outline-none focus:border-[#e03131] focus:bg-surface transition-all placeholder:text-[#ff8787]/40"
                     placeholder="parent@email.com" required />
@@ -621,11 +626,9 @@ export default function SignupPage() {
         <div className="flex flex-col gap-1.5">
           <label className="text-[9px] font-black uppercase tracking-[0.2em] text-text-muted ml-1">Account Email</label>
           <div className="relative group">
-            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center group-focus-within:bg-primary/20 transition-colors">
-              <Mail className="text-primary" size={12} />
-            </div>
+            <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-primary transition-colors" size={14} />
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-surface-elevated border-2 border-border rounded-xl pl-[44px] pr-3 py-3 text-sm font-bold focus:outline-none focus:border-primary focus:bg-surface transition-all placeholder:text-text-muted/30"
+              className="w-full bg-surface-elevated border-2 border-border rounded-xl pl-10 pr-3 py-3 text-sm font-bold focus:outline-none focus:border-primary focus:bg-surface transition-all placeholder:text-text-muted/30"
               placeholder="you@email.com" required />
           </div>
         </div>
@@ -634,11 +637,9 @@ export default function SignupPage() {
         <div className="flex flex-col gap-1.5">
           <label className="text-[9px] font-black uppercase tracking-[0.2em] text-text-muted ml-1">Secure Password</label>
           <div className="relative group">
-            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center group-focus-within:bg-primary/20 transition-colors">
-              <Lock className="text-primary" size={12} />
-            </div>
+            <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-primary transition-colors" size={14} />
             <input type={showPw ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-surface-elevated border-2 border-border rounded-xl pl-[44px] pr-10 py-3 text-sm font-bold focus:outline-none focus:border-primary focus:bg-surface transition-all placeholder:text-text-muted/30"
+              className="w-full bg-surface-elevated border-2 border-border rounded-xl pl-10 pr-10 py-3 text-sm font-bold focus:outline-none focus:border-primary focus:bg-surface transition-all placeholder:text-text-muted/30"
               placeholder="••••••••" required minLength={8} />
             <button type="button" onClick={() => setShowPw((v) => !v)}
               className="absolute right-3.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-primary transition-colors">
@@ -649,8 +650,7 @@ export default function SignupPage() {
 
         {/* Submit Button */}
         <button type="submit" disabled={loading}
-          className="group relative overflow-hidden bg-gradient-to-r from-primary to-pink-500 hover:from-accent-strong hover:to-pink-600 text-white font-black text-xs uppercase tracking-[0.2em] py-4 rounded-xl mt-1 transition-all duration-300 shadow-xl shadow-primary/25 disabled:opacity-50 flex items-center justify-center gap-2.5">
-          <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+          className="w-full bg-primary hover:bg-accent-strong text-white font-black text-xs uppercase tracking-[0.2em] py-4 rounded-xl mt-1 transition-all duration-300 shadow-xl shadow-primary/25 disabled:opacity-50 flex items-center justify-center gap-2.5">
           {loading ? (
             <>
               <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -658,9 +658,9 @@ export default function SignupPage() {
             </>
           ) : (
             <>
-              <Rocket size={14} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+              <Rocket size={14} />
               <span>{role === 'TUTOR' ? 'Proceed to Onboarding' : 'Create Account'}</span>
-              <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
+              <ChevronRight size={14} />
             </>
           )}
         </button>
