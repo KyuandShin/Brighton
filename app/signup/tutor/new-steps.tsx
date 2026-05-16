@@ -130,21 +130,21 @@ function ProfileDescription({ data, set }: StepProps) {
       {sections.map((section, idx) => {
         const Icon = section.icon;
         return (
-          <div key={idx} className="p-6 bg-[#f8f9fa] rounded-3xl border border-[#f1f3f5]">
+          <div key={idx} className="p-6 bg-surface-elevated rounded-3xl border border-border">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
                 <Icon size={16} className="text-primary" />
               </div>
               <div>
                 <h3 className="text-sm font-black text-text-main">{idx + 1}. {section.title}</h3>
-                <p className="text-[10px] text-[#adb5bd]">{section.description}</p>
+                <p className="text-[10px] text-text-muted">{section.description}</p>
               </div>
               {data[section.key] && <Check size={18} className="ml-auto text-[#27ae60]" />}
             </div>
             <textarea
               placeholder="Start writing..."
               rows={3}
-              className="w-full bg-white border border-[#f1f3f5] rounded-2xl px-4 py-3 text-sm font-bold text-text-main focus:outline-none focus:border-primary transition-all resize-none placeholder:text-[#adb5bd]/40"
+              className="w-full bg-surface border border-border rounded-2xl px-4 py-3 text-sm font-bold text-text-main focus:outline-none focus:border-primary transition-all resize-none placeholder:text-text-muted/40"
               value={data[section.key] || ''}
               onChange={(e) => set((prev: any) => ({ ...prev, [section.key]: e.target.value }))}
             />

@@ -69,15 +69,15 @@ export default function ProfilePage() {
       headline: user.tutorProfile?.headline ?? '',
       bio: user.tutorProfile?.bio ?? '',
       pricingPerHour: user.tutorProfile?.pricingPerHour?.toString() ?? '',
-      introVideoUrl: (user as any).tutorProfile?.introVideoUrl ?? '',
+      introVideoUrl: user.tutorProfile?.introVideoUrl ?? '',
       university: '',
       degree: '',
       photoUrl: '',
     });
 
     // Load education if exists
-    if ((user as any).tutorProfile?.education?.length > 0) {
-      const edu = (user as any).tutorProfile.education[0];
+    if (user.tutorProfile?.education && user.tutorProfile.education.length > 0) {
+      const edu = user.tutorProfile.education[0];
       setForm(prev => ({
         ...prev,
         university: edu.university || '',
@@ -86,8 +86,8 @@ export default function ProfilePage() {
     }
 
     // Load availability
-    if ((user as any).tutorProfile?.availability) {
-      setAvailability((user as any).tutorProfile.availability.map((a: any) => ({
+    if (user.tutorProfile?.availability) {
+      setAvailability(user.tutorProfile.availability.map((a) => ({
         dayOfWeek: a.dayOfWeek,
         startTime: a.startTime,
         endTime: a.endTime,
@@ -95,8 +95,8 @@ export default function ProfilePage() {
     }
 
     // Load subjects
-    if ((user as any).tutorProfile?.subjects) {
-      setSubjects((user as any).tutorProfile.subjects.map((ts: any) => ts.subject.name));
+    if (user.tutorProfile?.subjects) {
+      setSubjects(user.tutorProfile.subjects.map((ts) => ts.subject.name));
     }
   }, [user]);
 

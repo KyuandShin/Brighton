@@ -38,6 +38,7 @@ export async function GET(req: NextRequest) {
           include: {
             subjects: { include: { subject: true } },
             availability: true,
+            education: true,
           },
         },
       },
@@ -54,6 +55,7 @@ export async function GET(req: NextRequest) {
             include: {
               subjects: { include: { subject: true } },
               availability: true,
+              education: true,
             },
           },
         },

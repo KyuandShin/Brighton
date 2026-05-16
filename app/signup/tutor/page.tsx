@@ -5,7 +5,7 @@ import {
   Video, ChevronRight, ChevronLeft, GraduationCap, DollarSign,
   BookOpen, Clock, Check, Sparkles, AlertCircle, Loader2,
   Plus, Trash2, FileText, Camera, StopCircle, RefreshCw, UploadCloud,
-  Mail
+  Mail, KeyRound, ArrowLeft
 } from 'lucide-react';
 import Link from 'next/link';
 import { uploadToCloudinary } from '@/lib/cloudinary';
@@ -86,6 +86,10 @@ function TutorSignupContent() {
   const [loading,   setLoading]   = useState(false);
   const [error,     setError]     = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [otpStep,   setOtpStep]   = useState(false);
+  const [otp,       setOtp]       = useState('');
+  const [otpError,  setOtpError]  = useState('');
+  const [otpLoading,setOtpLoading]= useState(false);
 
   // ── Per-step validation ──────────────────────────────────────────────
   const validate = (): string => {
@@ -154,13 +158,117 @@ function TutorSignupContent() {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || 'Submission failed. Please try again.'); return; }
-      setSubmitted(true);
+      // Send Neon Auth OTP for email verification
+      try {
+        const { authClient } = await import('@/lib/auth/client');
+        await authClient.emailOtp.sendVerificationOtp({
+          email: formData.email,
+          type: 'email-verification',
+        });
+      } catch {
+        // OTP send failure is non-fatal — we still show the OTP screen
+      }
+      setOtpStep(true);
     } catch {
       setError('Network error — please check your connection and try again.');
     } finally {
       setLoading(false);
     }
   };
+
+  // ── Verify OTP after submission ──────────────────────────────────────
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setOtpLoading(true);
+    setOtpError('');
+    try {
+      // Use Neon Auth client to verify the email OTP
+      const { authClient } = await import('@/lib/auth/client');
+      const { error: verifyError } = await authClient.signIn.emailOtp({
+        email: formData.email,
+        otp,
+      });
+      if (verifyError) {
+        setOtpError(verifyError.message || 'Invalid code. Please check and try again.');
+        return;
+      }
+      // Mark verified in our DB too
+      await fetch('/api/verify-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: formData.email }),
+      });
+      setSubmitted(true);
+    } catch {
+      setOtpError('Something went wrong. Please try again.');
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    setOtpError('');
+    try {
+      const { authClient } = await import('@/lib/auth/client');
+      await authClient.emailOtp.sendVerificationOtp({ email: formData.email, type: 'email-verification' });
+    } catch {
+      setOtpError('Failed to resend code.');
+    }
+  };
+
+  // ── OTP verification screen ──────────────────────────────────────────
+  if (otpStep && !submitted) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-8">
+        <div className="max-w-md w-full bg-surface rounded-[40px] border border-border shadow-[0_30px_80px_rgba(147,51,234,0.1)] p-12 text-center space-y-6">
+          <div className="w-20 h-20 bg-p-purple rounded-3xl flex items-center justify-center mx-auto">
+            <KeyRound size={40} className="text-primary" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-3xl font-black text-text-main tracking-tight">Check Your Email</h2>
+            <p className="text-xs font-bold text-text-muted uppercase tracking-widest leading-relaxed">
+              We sent a 6-digit verification code to<br/>
+              <span className="text-primary font-black">{formData.email}</span>
+            </p>
+          </div>
+          {otpError && (
+            <div className="p-4 bg-p-rose/70 border border-border text-text-main text-[10px] font-black uppercase tracking-widest flex items-start gap-3 rounded-2xl text-left">
+              <AlertCircle size={16} className="shrink-0 mt-0.5 text-red-500" />
+              <span>{otpError}</span>
+            </div>
+          )}
+          <form onSubmit={handleVerifyOtp} className="space-y-4">
+            <div className="flex flex-col gap-3">
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted ml-1">Verification Code</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, ''))}
+                placeholder="000000"
+                className="w-full bg-surface-elevated border-2 border-border rounded-2xl px-6 py-5 text-3xl font-black text-text-main text-center tracking-[0.5em] focus:outline-none focus:border-primary transition-all"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={otpLoading || otp.length !== 6}
+              className="w-full py-4 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20 hover:bg-accent-strong transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {otpLoading ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+              {otpLoading ? 'Verifying...' : 'Verify Email'}
+            </button>
+          </form>
+          <button
+            onClick={handleResendOtp}
+            className="text-[10px] font-black uppercase tracking-widest text-text-muted hover:text-primary transition-colors"
+          >
+            Didn't receive it? Resend code
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // ── Success screen ───────────────────────────────────────────────────
   if (submitted) {
@@ -172,18 +280,18 @@ function TutorSignupContent() {
           </div>
           <h2 className="text-3xl font-black text-text-main tracking-tight">Application Submitted!</h2>
           <p className="text-sm font-bold text-text-muted uppercase tracking-wider leading-relaxed">
-            Almost done! Check your email to verify your account, then wait for admin approval.
+            Email verified! Your application is now under review.
           </p>
           <div className="p-4 bg-p-green/20 border border-p-green/30 rounded-2xl flex items-start gap-3 text-left">
             <Check size={16} className="text-[#27ae60] mt-0.5 shrink-0" />
             <p className="text-[10px] font-black uppercase tracking-widest text-[#27ae60] leading-relaxed">
-              Step 1: Click the verification link sent to {formData.email} to verify your email.
+              Email verified successfully!
             </p>
           </div>
           <div className="p-4 bg-p-yellow rounded-2xl border border-[#fcc419]/20 flex items-start gap-3 text-left">
             <AlertCircle size={16} className="text-[#f08c00] mt-0.5 shrink-0" />
             <p className="text-[10px] font-black uppercase tracking-widest text-[#f08c00] leading-relaxed">
-              Step 2: An admin will review and approve your tutor profile. You will be notified once verified.
+              An admin will review and approve your tutor profile. You will be notified once approved.
             </p>
           </div>
           <Link href="/login" className="block w-full py-4 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20 hover:bg-accent-strong transition-all">

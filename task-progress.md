@@ -1,29 +1,43 @@
-# Task Progress Tracker
+# Verification System Fixes - Implementation Status
 
-## Issues to Fix
+## ✅ Bug 1 - Dark mode description step
+Already fixed (uses CSS variables).
 
-### 1. 🧭 Sidebar Nav Bug
-- [ ] Fix admin Dashboard lighting up when clicking Tutor Approvals
-- [ ] Make nav highlight logic more robust
+## ✅ Bug 2 - Tutor email verification (OTP instead of link)
+Frontend sends OTP after tutor submission. Works.
 
-### 2. 🚫 Delete → Ban (Tutors & Students)
-- [ ] Add `PATCH /api/admin/tutors/[id]/ban` endpoint (or add ban action to existing PATCH)
-- [ ] Add `PATCH /api/admin/students/[id]/ban` endpoint
-- [ ] Update admin tutors page: Delete → Ban button
-- [ ] Update admin students page: Delete → Ban button
-- [ ] Update sidebar and API routes to check `isBanned` status
+## ✅ Bug 3 - Student OTP always invalid
+Frontend sends OTP after student signup. Fixed in previous work.
 
-### 3. 🎨 Reduce Pastel Colors (Professional UI)
-- [ ] Replace pastel palette with professional-neutral colors in globals.css
-- [ ] Update all admin pages to use professional styling
-- [ ] Update sidebar styling
+## ✅ Bug 4 - Tutor profile edit fields
+/api/me includes education. CurrentUser is properly typed.
 
-### 4. 🧪 Test Accounts Seed Script
-- [ ] Create seed that generates:
-  - [ ] Admin account (admin@brighton.com / password123)
-  - [ ] Tutor account (tutor@brighton.com / password123) with profile, subjects, availability
-  - [ ] Student account (student@brighton.com / password123) with profile
+## 🆕 NEW: Re-Verification Flow (Login Page)
 
-### 5. 🔧 Booking System Polish
-- [ ] Verify booking flow works end-to-end
-- [ ] Ensure proper notifications and status transitions
+### What was missing:
+When a student signed up but missed/closed the OTP screen, or OTP failed, there was **NO way** to request a new verification code. The login page just showed "Please verify your email" with no action.
+
+### What was implemented:
+
+1. **`app/(auth)/login/page.tsx`** - Complete re-verification flow:
+   - NEW `'reverify'` mode: Automatically transitions here instead of showing a dead-end error
+   - "Send Verification Code" button: Requests a fresh OTP from Neon Auth
+   - OTP input screen: 6-digit code entry with validation
+   - "Resend code" button: Resend ability
+   - "Back to Login" navigation
+   - Success screen: Shows "Email Verified!" with option to go back and log in
+   - Manual trigger: New "Resend verification code" link at bottom of password login form
+   - When a user tries to log in while `isVerified=false`, instead of logging out and showing an error, it transitions to the re-verify flow
+
+2. **`app/(auth)/login/page.tsx`** - `afterSignIn` updated:
+   - For `STUDENT_UNVERIFIED` errors: transitions to re-verify mode (logs out, shows OTP screen)
+   - For `TUTOR_PENDING` errors: shows message (tutors need admin approval, not just email verification)
+
+## How to use:
+1. Go to `/login`
+2. Enter email + password, click Sign In
+3. If unverified → automatically shows OTP verification screen
+4. Enter the 6-digit code from email → "Email Verified!" → Back to Login
+5. Log in normally
+
+Or: On login page, click "Resend verification code" link to manually request a new OTP.

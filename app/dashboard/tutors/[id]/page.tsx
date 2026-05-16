@@ -336,11 +336,20 @@ export default function TutorProfilePage() {
           </div>
         </div>
 
-        {/* Right: Booking Card */}
+        {/* Right: Booking Card — only shown to students and admins */}
         <div className="lg:col-span-4">
+          {user?.role === 'TUTOR' ? (
+            <div className="bg-surface border-2 border-border rounded-[48px] p-8 sticky top-32 space-y-4 text-center">
+              <div className="w-14 h-14 bg-p-purple rounded-3xl flex items-center justify-center mx-auto">
+                <ShieldCheck size={24} className="text-primary" />
+              </div>
+              <p className="text-sm font-black text-text-main uppercase tracking-widest">Colleague Profile</p>
+              <p className="text-xs text-text-muted font-bold leading-relaxed">
+                This is how students see your colleague's profile. Only students can make bookings.
+              </p>
+            </div>
+          ) : (
           <div className="bg-surface border-2 border-border rounded-[48px] p-8 sticky top-32 shadow-xl space-y-6 overflow-hidden">
-
-            {/* Rate header */}
             <div className="flex justify-between items-center pb-4 border-b border-border">
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted">Hourly Rate</p>
               <p className="text-3xl font-black text-text-main">${tutor.price}<span className="text-sm text-text-muted opacity-40">/hr</span></p>
@@ -512,6 +521,7 @@ export default function TutorProfilePage() {
               </motion.div>
             )}
           </div>
+          )}
         </div>
       </div>
     </div>

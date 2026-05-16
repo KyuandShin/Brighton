@@ -2,6 +2,29 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 /**
+ * POST /api/verify-email
+ * Called from client after Neon Auth OTP is successfully verified.
+ * Marks the user as verified in our own DB.
+ */
+export async function POST(req: NextRequest) {
+  try {
+    const { email } = await req.json();
+    if (!email) return NextResponse.json({ error: 'Email required' }, { status: 400 });
+
+    await prisma.user.updateMany({
+      where: { email: email.trim() },
+      data: { isVerified: true },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error('[VERIFY-EMAIL POST]', err);
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+  }
+}
+
+
+/**
  * Handles email verification links.
  * GET /api/verify-email?token=xxx
  * Marks the user as verified and marks the token as used.

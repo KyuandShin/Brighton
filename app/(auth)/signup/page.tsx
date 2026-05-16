@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { User, GraduationCap, ChevronRight, Mail, Lock, Sparkles, UserCircle, School, Calendar, Upload, X, Star, Rocket, Heart, Search, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { User, GraduationCap, ChevronRight, Mail, Lock, Sparkles, UserCircle, School, Calendar, Upload, X, Star, Rocket, Heart, Search, Eye, EyeOff, AlertCircle, KeyRound, Check as CheckIcon, Loader2 } from 'lucide-react';
 import { authClient } from '@/lib/auth/client';
 import { useCurrentUser } from '@/lib/hooks/useCurrentUser';
 import { uploadToCloudinary } from '@/lib/cloudinary';
@@ -39,6 +39,10 @@ export default function SignupPage() {
   const [error, setError]             = useState('');
   const [showPw, setShowPw]           = useState(false);
   const [verificationSent, setVerificationSent] = useState(false);
+  const [otpStep, setOtpStep] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpError, setOtpError] = useState('');
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -176,14 +180,111 @@ export default function SignupPage() {
         return;
       }
 
-      // Account created — show verification prompt instead of auto-login
-      setVerificationSent(true);
+      // Account created — send OTP and show verification input
+      try {
+        await authClient.emailOtp.sendVerificationOtp({ email, type: 'email-verification' });
+      } catch {
+        // non-fatal
+      }
+      setOtpStep(true);
     } catch {
       setError('An unexpected error occurred');
     } finally {
       setLoading(false);
     }
   };
+
+  const handleVerifyStudentOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setOtpLoading(true);
+    setOtpError('');
+    try {
+      const { error: verifyError } = await authClient.signIn.emailOtp({ email, otp });
+      if (verifyError) {
+        setOtpError(verifyError.message || 'Invalid code. Please check and try again.');
+        return;
+      }
+      // Mark as verified in our DB
+      await fetch('/api/verify-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      setVerificationSent(true);
+    } catch {
+      setOtpError('Something went wrong. Please try again.');
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  // ── OTP verification screen (student) ──────────────────────────────
+  if (otpStep && !verificationSent) {
+    return (
+      <div className="flex flex-col gap-6">
+        <div className="text-center space-y-3 pb-2">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-p-purple rounded-full shadow-sm">
+            <KeyRound size={14} className="text-primary" />
+            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-primary">Verify Email</span>
+          </div>
+          <h2 className="text-3xl font-black tracking-tight">
+            <span className="gradient-text">Enter Your Code</span>
+          </h2>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted">
+            We sent a 6-digit code to <span className="text-primary font-black">{email}</span>
+          </p>
+        </div>
+
+        {otpError && (
+          <div className="flex items-start gap-3 bg-p-yellow border-2 border-[#fcc419]/30 text-[#e67700] p-4 rounded-2xl">
+            <AlertCircle size={16} className="shrink-0 mt-0.5" />
+            <p className="text-[10px] font-black uppercase tracking-widest leading-relaxed">{otpError}</p>
+          </div>
+        )}
+
+        <form onSubmit={handleVerifyStudentOtp} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2">
+            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted ml-1">Verification Code</label>
+            <input
+              type="text"
+              inputMode="numeric"
+              maxLength={6}
+              value={otp}
+              onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, ''))}
+              placeholder="000000"
+              autoFocus
+              className="w-full bg-surface-elevated border-2 border-border rounded-2xl px-6 py-5 text-4xl font-black text-text-main text-center tracking-[0.5em] focus:outline-none focus:border-primary transition-all"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={otpLoading || otp.length !== 6}
+            className="group relative overflow-hidden bg-gradient-to-r from-primary to-pink-500 text-white font-black text-xs uppercase tracking-[0.2em] py-5 rounded-2xl transition-all shadow-xl shadow-primary/25 disabled:opacity-50 flex items-center justify-center gap-2.5"
+          >
+            {otpLoading ? (
+              <><Loader2 size={16} className="animate-spin" /> Verifying...</>
+            ) : (
+              <><CheckIcon size={16} /> Verify & Complete Signup</>
+            )}
+          </button>
+        </form>
+
+        <p className="text-[9px] font-bold text-text-muted text-center">
+          Didn't receive it?{' '}
+          <button
+            onClick={async () => {
+              setOtpError('');
+              try { await authClient.emailOtp.sendVerificationOtp({ email, type: 'email-verification' }); }
+              catch { setOtpError('Failed to resend. Please try again.'); }
+            }}
+            className="text-primary font-black hover:underline"
+          >
+            Resend code
+          </button>
+        </p>
+      </div>
+    );
+  }
 
   // ── Verification sent screen ──────────────────────────────────────────
   if (verificationSent) {
@@ -192,65 +293,38 @@ export default function SignupPage() {
         <div className="text-center space-y-3 pb-2">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-p-mint rounded-full shadow-sm">
             <Sparkles size={14} className="text-teal-600" />
-            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-teal-700">Verify Your Email</span>
+            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-teal-700">Email Verified!</span>
           </div>
           <h2 className="text-3xl font-black tracking-tight">
-            <span className="gradient-text">Almost There!</span>
+            <span className="gradient-text">You're All Set!</span>
           </h2>
           <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted">
-            Check your inbox for the verification link
+            Your account is verified and ready
           </p>
         </div>
 
         <div className="bg-surface border-2 border-border rounded-[32px] p-8 text-center space-y-6">
           <div className="w-20 h-20 bg-p-mint rounded-3xl flex items-center justify-center mx-auto">
-            <Mail size={36} className="text-teal-700" />
+            <CheckIcon size={36} className="text-teal-700" />
           </div>
           <div className="space-y-2">
-            <p className="text-lg font-black text-text-main tracking-tight">We sent you a verification email</p>
+            <p className="text-lg font-black text-text-main tracking-tight">Email Verified Successfully!</p>
             <p className="text-xs font-bold text-text-muted leading-relaxed max-w-sm mx-auto">
-              Click the link in the email we sent to <span className="text-primary font-black">{email}</span> to verify your account and get started.
+              Your account for <span className="text-primary font-black">{email}</span> is now active. You can log in right away.
             </p>
           </div>
-
-          <div className="p-4 bg-p-yellow rounded-2xl border border-[#fcc419]/20 flex items-start gap-3 text-left">
-            <AlertCircle size={16} className="text-[#f08c00] mt-0.5 shrink-0" />
-            <p className="text-[10px] font-black uppercase tracking-widest text-[#f08c00] leading-relaxed">
-              You cannot log in until you verify your email address.
-            </p>
-          </div>
-
           <div className="flex flex-col gap-3 pt-2">
             <Link href="/login" className="block w-full py-4 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20 hover:bg-accent-strong transition-all">
               Go to Login
             </Link>
-            <p className="text-[9px] font-bold text-text-muted">
-              Didn't receive it? Check your spam folder or{' '}
-              <button onClick={async () => {
-                setLoading(true);
-                setError('');
-                try {
-                  const res = await fetch('/api/auth/resend-verification', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email }),
-                  });
-                  const data = await res.json();
-                  if (!res.ok) setError(data.error || 'Failed to resend');
-                } catch { setError('Network error'); }
-                setLoading(false);
-              }} className="text-primary hover:underline font-black">
-                {loading ? 'Sending...' : 'send again'}
-              </button>
-            </p>
           </div>
         </div>
 
         <div className="text-center pt-2 pb-6">
           <p className="text-[10px] font-bold tracking-widest text-text-muted">
-            Already verified?{' '}
-            <Link href="/login" className="text-primary hover:text-accent-strong font-black hover:underline transition-all ml-1">
-              Login
+            Already logged in?{' '}
+            <Link href="/dashboard" className="text-primary hover:text-accent-strong font-black hover:underline transition-all ml-1">
+              Go to Dashboard
             </Link>
           </p>
         </div>

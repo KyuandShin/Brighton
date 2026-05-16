@@ -6,13 +6,33 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Home, Users, Calendar, BookOpen, Bell, LogOut,
-  User, X, ChevronRight, Sparkles, UserCheck, Moon, Sun, Heart, TrendingUp
+  User, X, ChevronRight, Sparkles, UserCheck, Moon, Sun, Heart, TrendingUp, ClipboardList
 } from 'lucide-react';
 import { useCurrentUser, getInitials } from '@/lib/hooks/useCurrentUser';
 import { authClient } from '@/lib/auth/client';
 import AnimeOnboarding from './_components/Tutorial';
 
-const navItems = [
+// ── Role-specific nav ────────────────────────────────────────────────
+// Students: browse tutors, view their own classes, calendar, favorites
+const studentNavItems = [
+  { name: 'Home',     href: '/dashboard',          icon: Home },
+  { name: 'Tutors',   href: '/dashboard/tutors',   icon: Users },
+  { name: 'Classes',  href: '/dashboard/classes',  icon: BookOpen },
+  { name: 'Calendar', href: '/dashboard/calendar', icon: Calendar },
+  { name: 'Favorites',href: '/dashboard/favorites',icon: Heart },
+];
+
+// Tutors: manage booking requests, view their classes, calendar, analytics
+const tutorNavItems = [
+  { name: 'Home',     href: '/dashboard',          icon: Home },
+  { name: 'Bookings', href: '/dashboard/bookings', icon: ClipboardList },
+  { name: 'Classes',  href: '/dashboard/classes',  icon: BookOpen },
+  { name: 'Calendar', href: '/dashboard/calendar', icon: Calendar },
+  { name: 'Analytics',href: '/dashboard/analytics',icon: TrendingUp },
+];
+
+// Admin: full access
+const baseNavItems = [
   { name: 'Home',     href: '/dashboard',          icon: Home },
   { name: 'Tutors',   href: '/dashboard/tutors',   icon: Users },
   { name: 'Classes',  href: '/dashboard/classes',  icon: BookOpen },
@@ -157,14 +177,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const initials    = loading ? '…' : getInitials(user?.name ?? user?.email);
   const isAdmin     = user?.role === 'ADMIN';
   const isStudent   = user?.role === 'STUDENT';
+  const isTutor     = user?.role === 'TUTOR';
 
-  const extraNavItems = [];
+  // Pick the correct nav set based on role
+  const navItems = isTutor ? tutorNavItems : isStudent ? studentNavItems : baseNavItems;
+
+  // Extra items for student test history
+  const extraNavItems: typeof navItems = [];
   if (isStudent) {
-    extraNavItems.push({ name: 'Favorites', href: '/dashboard/favorites', icon: Heart });
     extraNavItems.push({ name: 'Test History', href: '/dashboard/test-history', icon: TrendingUp });
   }
-  if (user?.role === 'TUTOR') {
-    extraNavItems.push({ name: 'Analytics', href: '/dashboard/analytics', icon: TrendingUp });
+  if (isTutor) {
     extraNavItems.push({ name: 'Resources', href: '/dashboard/resources', icon: BookOpen });
   }
 

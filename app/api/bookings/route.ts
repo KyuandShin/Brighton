@@ -50,9 +50,16 @@ export async function GET(req: NextRequest) {
             status: true,
             tutor: { 
               select: { 
+                id: true,
                 headline: true,
                 user: { select: { name: true, image: true } } 
               } 
+            },
+            notes: {
+              select: { id: true, content: true, createdAt: true }
+            },
+            review: {
+              select: { id: true, rating: true, comment: true }
             },
           },
           orderBy: { date: 'asc' },
@@ -63,6 +70,12 @@ export async function GET(req: NextRequest) {
         include: {
           student: { include: { user: { select: { name: true, image: true } } } },
           tutor: { include: { user: { select: { name: true, image: true } } } },
+          notes: {
+            select: { id: true, content: true, createdAt: true }
+          },
+          review: {
+            select: { id: true, rating: true, comment: true }
+          },
         },
         orderBy: { date: 'asc' },
       });

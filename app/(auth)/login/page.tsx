@@ -4,10 +4,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { authClient } from '@/lib/auth/client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Mail, Lock, ChevronRight, AlertCircle, ArrowLeft, Eye, EyeOff, Loader2, RefreshCw, Check } from 'lucide-react';
+import { Mail, Lock, ChevronRight, AlertCircle, ArrowLeft, Eye, EyeOff, Loader2, RefreshCw, Check, KeyRound, Sparkles } from 'lucide-react';
 import { useCurrentUser } from '@/lib/hooks/useCurrentUser';
 
-type LoginMode = 'password' | 'otp' | 'forgot';
+type LoginMode = 'password' | 'otp' | 'forgot' | 'reverify';
 type OtpStep = 'email' | 'otp';
 
 export default function LoginPage() {
@@ -25,12 +25,22 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPw, setShowPw]     = useState(false);
 
-  // OTP flow
+  // OTP flow (for sign-in)
   const [otpStep, setOtpStep]   = useState<OtpStep>('email');
   const [otp, setOtp]           = useState('');
 
   // forgot password
   const [forgotSent, setForgotSent] = useState(false);
+
+  // ── Re-verification flow (when user signs in but is unverified) ──
+  const [reVerifyOtp, setReVerifyOtp] = useState('');
+  const [reVerifyOtpSent, setReVerifyOtpSent] = useState(false);
+  const [reVerifyLoading, setReVerifyLoading] = useState(false);
+  const [reVerifyError, setReVerifyError] = useState('');
+  const [reVerifyVerified, setReVerifyVerified] = useState(false);
+
+  // Track which email the last sign-in attempt used (for re-verify)
+  const [lastLoginEmail, setLastLoginEmail] = useState('');
 
   useEffect(() => {
     setMode('password');
@@ -52,26 +62,28 @@ export default function LoginPage() {
     }
   }, []);
 
-  // ── Improved afterSignIn with retry logic for race condition ────────────
+  // ── afterSignIn with retry logic + re-verify support ──────────────
   const afterSignIn = useCallback(async (retries = 5) => {
     setError('');
     setLoading(true);
 
-    // Retry loop: the session cookie might not be ready immediately after auth
     for (let attempt = 0; attempt < retries; attempt++) {
       try {
         const meRes = await fetch('/api/me', { credentials: 'include' });
 
         if (meRes.status === 403) {
           const meData = await meRes.json();
-          if (meData.error === 'TUTOR_PENDING') {
-            setError('Your tutor account is pending verification. You will be notified once approved.');
+          if (meData.error === 'STUDENT_UNVERIFIED') {
+            // Transition to re-verify mode instead of showing an error and logging out
             try { await authClient.signOut(); } catch {}
             setLoading(false);
+            setMode('reverify');
+            setReVerifyOtp('');
+            setReVerifyOtpSent(false);
             return;
           }
-          if (meData.error === 'STUDENT_UNVERIFIED') {
-            setError('Please verify your email address before logging in. Check your inbox for the verification link.');
+          if (meData.error === 'TUTOR_PENDING') {
+            setError('Your tutor account is pending verification. You will be notified once approved.');
             try { await authClient.signOut(); } catch {}
             setLoading(false);
             return;
@@ -83,15 +95,13 @@ export default function LoginPage() {
           return;
         }
 
-        // If 401, session may not be ready yet — wait and retry
+        // If 401, session may not be ready yet
         if (meRes.status === 401 && attempt < retries - 1) {
-          // Exponential backoff: 500ms, 1s, 2s, 4s, ...
           const delay = Math.min(500 * Math.pow(2, attempt), 3000);
           await new Promise(r => setTimeout(r, delay));
           continue;
         }
 
-        // Other error — show it
         const meData = await meRes.json();
         setError(meData.error || 'Login failed. Please try again.');
         setLoading(false);
@@ -113,9 +123,8 @@ export default function LoginPage() {
   // Handle social auth callback return
   useEffect(() => {
     if (window.location.search.includes('auth=complete')) {
-      // Small delay to let OAuth cookies finish propogating
       const timer = setTimeout(() => {
-        afterSignIn(8); // More retries for OAuth
+        afterSignIn(8);
       }, 300);
       return () => clearTimeout(timer);
     }
@@ -125,6 +134,7 @@ export default function LoginPage() {
   const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true); setError('');
+    setLastLoginEmail(email);
     try {
       const { error: signInError } = await authClient.signIn.email({ email, password });
       if (signInError) { setError(signInError.message || 'Invalid email or password.'); setLoading(false); return; }
@@ -176,7 +186,6 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true); setError('');
     try {
-      // Better Auth client uses dynamic proxy — `forgetPassword` maps to `/forget-password`
       const { error: fpError } = await (authClient as any).forgetPassword({ email, redirectTo: '/reset-password' });
       if (fpError) {
         setError(fpError.message || 'Failed to send reset email. Please try again.');
@@ -190,11 +199,199 @@ export default function LoginPage() {
     finally { setLoading(false); }
   };
 
-  const resetMode = (m: LoginMode) => {
-    setMode(m); setError(''); setOtp(''); setOtpStep('email'); setForgotSent(false);
+  // ── Re-verification handlers ──────────────────────────────────────────
+  const handleReVerifySendOtp = async () => {
+    setReVerifyError('');
+    setReVerifyLoading(true);
+    try {
+      await authClient.emailOtp.sendVerificationOtp({
+        email: lastLoginEmail,
+        type: 'email-verification',
+      });
+      setReVerifyOtpSent(true);
+    } catch {
+      setReVerifyError('Failed to send verification code. Please try again.');
+    } finally {
+      setReVerifyLoading(false);
+    }
   };
 
-  // ── render ────────────────────────────────────────────────────────────
+  const handleReVerifySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setReVerifyError('');
+    setReVerifyLoading(true);
+    try {
+      const { error: verifyError } = await authClient.signIn.emailOtp({
+        email: lastLoginEmail,
+        otp: reVerifyOtp,
+      });
+      if (verifyError) {
+        setReVerifyError(verifyError.message || 'Invalid code. Please check and try again.');
+        return;
+      }
+      // Mark verified in DB
+      await fetch('/api/verify-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: lastLoginEmail }),
+      });
+      setReVerifyVerified(true);
+    } catch {
+      setReVerifyError('Something went wrong. Please try again.');
+    } finally {
+      setReVerifyLoading(false);
+    }
+  };
+
+  const handleReVerifyResendOtp = async () => {
+    setReVerifyError('');
+    try {
+      await authClient.emailOtp.sendVerificationOtp({
+        email: lastLoginEmail,
+        type: 'email-verification',
+      });
+    } catch {
+      setReVerifyError('Failed to resend code.');
+    }
+  };
+
+  const resetMode = (m: LoginMode) => {
+    setMode(m); setError('');
+    setOtp(''); setOtpStep('email'); setForgotSent(false);
+    setReVerifyOtp(''); setReVerifyOtpSent(false); setReVerifyError('');
+  };
+
+  // ── Re-verify success screen ─────────────────────────────────────────
+  if (mode === 'reverify' && reVerifyVerified) {
+    return (
+      <div className="flex flex-col gap-6">
+        <div className="text-center space-y-3 pb-2">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-p-mint rounded-full shadow-sm">
+            <Sparkles size={14} className="text-teal-600" />
+            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-teal-700">Email Verified!</span>
+          </div>
+          <h2 className="text-3xl font-black tracking-tight">
+            <span className="gradient-text">You're All Set!</span>
+          </h2>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted">
+            Your account is verified and ready
+          </p>
+        </div>
+
+        <div className="bg-surface border-2 border-border rounded-[32px] p-8 text-center space-y-6">
+          <div className="w-20 h-20 bg-p-mint rounded-3xl flex items-center justify-center mx-auto">
+            <Check size={36} className="text-teal-700" />
+          </div>
+          <div className="space-y-2">
+            <p className="text-lg font-black text-text-main tracking-tight">Email Verified Successfully!</p>
+            <p className="text-xs font-bold text-text-muted leading-relaxed max-w-sm mx-auto">
+              Your account for <span className="text-primary font-black">{lastLoginEmail}</span> is now active. You can log in right away.
+            </p>
+          </div>
+          <div className="flex flex-col gap-3 pt-2">
+            <button
+              onClick={() => resetMode('password')}
+              className="block w-full py-4 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20 hover:bg-accent-strong transition-all"
+            >
+              Back to Login
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Re-verify OTP screen ──────────────────────────────────────────────
+  if (mode === 'reverify') {
+    return (
+      <div className="flex flex-col gap-6">
+        <div className="text-center space-y-3 pb-2">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-p-purple rounded-full shadow-sm">
+            <KeyRound size={14} className="text-primary" />
+            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-primary">Verify Email</span>
+          </div>
+          <h2 className="text-3xl font-black tracking-tight">
+            <span className="gradient-text">Enter Your Code</span>
+          </h2>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted">
+            {!reVerifyOtpSent
+              ? 'We need to verify your email before you can sign in.'
+              : <>We sent a 6-digit code to <span className="text-primary font-black">{lastLoginEmail}</span></>
+            }
+          </p>
+        </div>
+
+        {reVerifyError && (
+          <div className="flex items-start gap-3 bg-p-yellow border-2 border-[#fcc419]/30 text-[#e67700] p-4 rounded-2xl">
+            <AlertCircle size={16} className="shrink-0 mt-0.5" />
+            <p className="text-[10px] font-black uppercase tracking-widest leading-relaxed">{reVerifyError}</p>
+          </div>
+        )}
+
+        {!reVerifyOtpSent ? (
+          <button
+            onClick={handleReVerifySendOtp}
+            disabled={reVerifyLoading}
+            className="w-full py-5 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20 hover:bg-accent-strong transition-all disabled:opacity-50 flex items-center justify-center gap-2.5"
+          >
+            {reVerifyLoading ? (
+              <><Loader2 size={16} className="animate-spin" /> Sending Code...</>
+            ) : (
+              <><Mail size={16} /> Send Verification Code</>
+            )}
+          </button>
+        ) : (
+          <form onSubmit={handleReVerifySubmit} className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted ml-1">Verification Code</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                value={reVerifyOtp}
+                onChange={(e) => setReVerifyOtp(e.target.value.replace(/[^0-9]/g, ''))}
+                placeholder="000000"
+                autoFocus
+                className="w-full bg-surface-elevated border-2 border-border rounded-2xl px-6 py-5 text-4xl font-black text-text-main text-center tracking-[0.5em] focus:outline-none focus:border-primary transition-all"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={reVerifyLoading || reVerifyOtp.length !== 6}
+              className="group relative overflow-hidden bg-gradient-to-r from-primary to-pink-500 text-white font-black text-xs uppercase tracking-[0.2em] py-5 rounded-2xl transition-all shadow-xl shadow-primary/25 disabled:opacity-50 flex items-center justify-center gap-2.5"
+            >
+              {reVerifyLoading ? (
+                <><Loader2 size={16} className="animate-spin" /> Verifying...</>
+              ) : (
+                <><Check size={16} /> Verify & Continue</>
+              )}
+            </button>
+          </form>
+        )}
+
+        {reVerifyOtpSent && (
+          <p className="text-[9px] font-bold text-text-muted text-center">
+            Didn't receive it?{' '}
+            <button
+              onClick={handleReVerifyResendOtp}
+              className="text-primary font-black hover:underline"
+            >
+              Resend code
+            </button>
+          </p>
+        )}
+
+        <button
+          onClick={() => resetMode('password')}
+          className="text-[10px] font-black uppercase tracking-widest text-text-muted hover:text-primary transition-all text-center"
+        >
+          ← Back to Login
+        </button>
+      </div>
+    );
+  }
+
+  // ── Normal render ─────────────────────────────────────────────────────
   const title = mode === 'forgot' ? 'Reset Password' : 'Welcome Back';
   const subtitle =
     mode === 'password' ? 'Sign in to your account' :
@@ -296,6 +493,28 @@ export default function LoginPage() {
             className="text-[10px] font-black uppercase tracking-widest text-text-muted hover:text-primary transition-colors text-center">
             Sign in with Email Code instead
           </button>
+
+          <div className="bg-p-yellow/50 border border-border rounded-2xl p-4">
+            <p className="text-[9px] font-bold text-text-muted text-center leading-relaxed">
+              Didn't verify your email during signup?{' '}
+              <button
+                type="button"
+                onClick={() => {
+                  if (!email.trim()) {
+                    setError('Please enter your email address first.');
+                    return;
+                  }
+                  setLastLoginEmail(email);
+                  setMode('reverify');
+                  setReVerifyOtp('');
+                  setReVerifyOtpSent(false);
+                }}
+                className="text-primary font-black hover:underline"
+              >
+                Resend verification code
+              </button>
+            </p>
+          </div>
         </>
       )}
 

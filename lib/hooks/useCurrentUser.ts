@@ -23,7 +23,17 @@ export interface CurrentUser {
     headline: string | null;
     bio: string | null;
     pricingPerHour: number;
+    introVideoUrl: string | null;
     verificationStatus: 'PENDING' | 'APPROVED' | 'REJECTED';
+    education: Array<{
+      id: string;
+      university: string;
+      degree: string;
+      specialization: string;
+      yearStart: number;
+    }>;
+    subjects: Array<{ subject: { name: string } }>;
+    availability: Array<{ dayOfWeek: number; startTime: string; endTime: string }>;
   } | null;
 }
 
