@@ -208,7 +208,7 @@ export default function SignupPage() {
     setOtpLoading(true);
     setOtpError('');
     try {
-      const { error: verifyError } = await authClient.signIn.emailOtp({ email, otp });
+      const { error: verifyError } = await authClient.emailOtp.verifyEmail({ email, otp });
       if (verifyError) {
         console.error('[SIGNUP] OTP verify error:', verifyError);
         setOtpError(verifyError.message || 'Invalid code. Please check and try again.');
