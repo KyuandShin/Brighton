@@ -1,23 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth/server';
-import { sendEmail, emailVerificationEmail } from '@/lib/email';
-import crypto from 'crypto';
-
-// Get base URL for verification links
-function getBaseUrl(req: NextRequest) {
-  // 1. Explicit env var
-  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
-  if (process.env.NEXT_PUBLIC_BASE_URL) return process.env.NEXT_PUBLIC_BASE_URL;
-  
-  // 2. Derive from request (most reliable for production)
-  const protocol = req.headers.get('x-forwarded-proto') || 'http';
-  const host = req.headers.get('host');
-  if (host) return `${protocol}://${host}`;
-  
-  // 3. Fallback
-  return 'http://localhost:3000';
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -138,46 +121,12 @@ export async function POST(req: NextRequest) {
         },
       },
     });
-
-    // 3. Generate verification token and send email
-    const verificationToken = crypto.randomBytes(32).toString('hex');
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-
-    // Delete old tokens for this email to keep it clean
-    await prisma.verificationToken.deleteMany({ where: { email: email.trim() } });
-
-    await prisma.verificationToken.create({
-      data: {
-        email: email.trim(),
-        token: verificationToken,
-        expiresAt,
-      },
-    });
-
-    const baseUrl = getBaseUrl(req);
-    const verificationUrl = `${baseUrl}/api/verify-email?token=${verificationToken}`;
-
-    const emailSent = await sendEmail({
-      to: email.trim(),
-      subject: 'Verify your Brighton Academic account',
-      html: emailVerificationEmail({
-        name: fullName,
-        email: email.trim(),
-        verificationUrl,
-      }),
-    });
-
-    if (!emailSent) {
-      console.error('[SIGNUP] Failed to send verification email to:', email);
-      // We still return success but maybe with a warning in logs
-    }
-
-    console.log('[SIGNUP] Verification email sent to:', email, 'URL:', verificationUrl);
+    console.log('[SIGNUP] Student account created successfully:', email);
 
     return NextResponse.json({ 
       success: true, 
       requiresVerification: true,
-      message: 'Account created! Please check your email to verify your account before logging in.'
+      message: 'Account created! Please check your email for the verification code to complete signup.'
     });
   } catch (err: unknown) {
     console.error('[STUDENT SIGNUP]', err);
