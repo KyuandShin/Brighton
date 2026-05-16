@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import {
   BookOpen, CheckCircle2, ChevronRight, Brain, Loader2, AlertCircle,
   Target, TrendingUp, Lightbulb, Star, Sparkles, GraduationCap, Rocket, Heart,
@@ -756,12 +757,12 @@ export default function PlacementTestPage() {
                 </a>
               ))}
             </div>
-            <a
+            <Link
               href="/dashboard/tutors"
               className="block w-full text-center py-4 bg-gradient-to-r from-amber-400 to-orange-500 text-white font-black text-xs uppercase tracking-widest rounded-2xl hover:shadow-xl hover:scale-[1.02] transition-all"
             >
               Browse All Tutors <ChevronRight size={14} className="inline" />
-            </a>
+            </Link>
           </div>
         )}
 
