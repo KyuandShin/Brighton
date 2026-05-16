@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 
-export type HoshiMood = 'hello' | 'happy' | 'waving' | 'excited' | 'thinking' | 'present';
+export type HoshiMood = 'hello' | 'hi' | 'happy' | 'waving' | 'excited' | 'thinking' | 'present';
 
 interface HoshiMascotProps {
   mood: HoshiMood;
@@ -16,6 +16,7 @@ interface HoshiMascotProps {
 
 const MOOD_MAP: Record<HoshiMood, string> = {
   hello: '/mascot-hello.png',
+  hi: '/mascot-hi.png',
   happy: '/mascot-happy.png',
   waving: '/mascot-waving.png',
   excited: '/mascot-excited.png',

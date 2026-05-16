@@ -11,25 +11,17 @@ const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
-// Subjects matching the Python backend question bank
+// General K-12 subject categories
 const SUBJECTS = [
-  'Filipino',
+  'Mathematics',
+  'Science',
   'English',
-  'Algebra',
-  'Geometry',
-  'Trigonometry',
-  'Statistics',
-  'Integrated Science',
-  'Biology',
-  'Chemistry',
-  'Physics',
-  'Earth Science',
-  'Philippine History',
-  'Asian Studies',
-  'World History',
-  'Economics',
+  'Filipino',
+  'Araling Panlipunan',
   'MAPEH',
   'Edukasyon sa Pagpapakatao',
+  'TLE',
+  'ICT',
 ];
 
 const MOCK_TUTORS = [
@@ -37,31 +29,31 @@ const MOCK_TUTORS = [
     id: 't1',
     name: 'Dr. Aris Smith',
     email: 'aris@example.com',
-    headline: 'Mathematics & Physics Specialist',
-    subjects: ['Algebra', 'Geometry', 'Trigonometry', 'Physics'],
+    headline: 'Mathematics & Science Specialist',
+    subjects: ['Mathematics', 'Science'],
     rating: 4.9,
     price: 25,
-    bio: 'Over 10 years of experience in teaching advanced mathematics and physics.',
+    bio: 'Over 10 years of experience in teaching mathematics and science.',
   },
   {
     id: 't2',
     name: 'Prof. Maria Clara',
     email: 'maria@example.com',
-    headline: 'General Science & Biology Expert',
-    subjects: ['Biology', 'Chemistry', 'Earth Science', 'Integrated Science'],
+    headline: 'Science & English Expert',
+    subjects: ['Science', 'English'],
     rating: 4.8,
     price: 20,
-    bio: 'Making science fun and accessible for elementary students.',
+    bio: 'Making science and language learning fun for all students.',
   },
   {
     id: 't3',
     name: 'Ms. Lea Salonga',
     email: 'lea@example.com',
-    headline: 'English & Literature Coach',
-    subjects: ['English', 'Philippine History', 'Asian Studies'],
+    headline: 'English & Filipino Coach',
+    subjects: ['English', 'Filipino', 'Araling Panlipunan'],
     rating: 5.0,
     price: 22,
-    bio: 'Helping students find their voice through the power of language.',
+    bio: 'Helping students find their voice through the power of language and history.',
   },
 ];
 

@@ -28,7 +28,7 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { verificationStatus, headline, bio, pricingPerHour, subjects } = body;
+    const { verificationStatus, headline, bio, pricingPerHour, isBanned } = body;
 
     const updateData: any = {};
 
@@ -45,33 +45,49 @@ export async function PATCH(
     if (bio !== undefined) updateData.bio = bio;
     if (pricingPerHour !== undefined) updateData.pricingPerHour = pricingPerHour;
 
+    // When banning, update the User's isBanned field directly
+    if (isBanned !== undefined) {
+      const tutor = await prisma.tutor.findUnique({
+        where: { id: params.id },
+        select: { userId: true }
+      });
+      if (tutor) {
+        await prisma.user.update({
+          where: { id: tutor.userId },
+          data: { isBanned }
+        });
+      }
+    }
+
     const updatedTutor = await prisma.tutor.update({
       where: { id: params.id },
       data: updateData,
       include: { user: true }
     });
 
-    // Sync User verification status with tutor status
-    await prisma.user.update({
-      where: { id: updatedTutor.userId },
-      data: { 
-        isVerified: verificationStatus === 'APPROVED',
-        role: verificationStatus === 'APPROVED' ? 'TUTOR' : 'STUDENT'
-      }
-    });
+    // Sync User verification status with tutor status (only if verificationStatus was provided)
+    if (verificationStatus) {
+      await prisma.user.update({
+        where: { id: updatedTutor.userId },
+        data: { 
+          isVerified: verificationStatus === 'APPROVED',
+          role: verificationStatus === 'APPROVED' ? 'TUTOR' : 'STUDENT'
+        }
+      });
+    }
 
     // Send approval email
     if (verificationStatus === 'APPROVED') {
       await sendEmail({
         to: updatedTutor.user.email,
-        subject: "✅ Your tutor application has been approved!",
+        subject: "Your tutor application has been approved!",
         html: `
           <div style="font-family: system-ui, sans-serif; max-width: 500px; margin: 40px auto; padding: 32px; background: white; border-radius: 16px;">
-            <h2 style="color: #5c7cfa; font-weight: 900;">Application Approved!</h2>
+            <h2 style="color: #2563eb; font-weight: 900;">Application Approved!</h2>
             <p>Hi ${updatedTutor.user.name},</p>
             <p>Great news! Your tutor application has been reviewed and approved.</p>
             <p>You can now login to your account and start accepting students.</p>
-            <p style="margin-top: 32px; font-size: 12px; color: #868e96;">Brighton Academic</p>
+            <p style="margin-top: 32px; font-size: 12px; color: #64748b;">Brighton Academic</p>
           </div>
         `
       });

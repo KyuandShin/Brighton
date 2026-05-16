@@ -5,73 +5,73 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --background: #fdf8ff;
-  --foreground: #1e0a3c;
+  --background: #f4f6fa;
+  --foreground: #0f172a;
   --surface: #ffffff;
-  --surface-elevated: #f9f3ff;
-  --border: #ede9fe;
-  --muted-foreground: #7c6ea8;
-  --accent: #9333ea;
-  --accent-strong: #7c3aed;
+  --surface-elevated: #f1f5f9;
+  --border: #e2e8f0;
+  --muted-foreground: #64748b;
+  --accent: #2563eb;
+  --accent-strong: #1d4ed8;
   --accent-foreground: #ffffff;
-  --text-main: #1e0a3c;
-  --text-muted: #7c6ea8;
-  --primary: #9333ea;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --primary: #2563eb;
 
-  /* Light pastel palette */
-  --p-blue:   #dbeafe;
-  --p-pink:   #fce7f3;
-  --p-yellow: #fef9c3;
-  --p-green:  #d1fae5;
-  --p-purple: #ede9fe;
-  --p-peach:  #ffedd5;
-  --p-sky:    #e0f2fe;
-  --p-rose:   #ffe4e6;
-  --p-mint:   #ccfbf1;
-  --p-sakura: #ffd7e8;
-  --p-cream:  #fffbf0;
+  /* Professional palette (slight hues, not eye-popping) */
+  --p-blue:   #dce3f0;
+  --p-pink:   #f0e2ea;
+  --p-yellow: #f0ecdc;
+  --p-green:  #d8e8de;
+  --p-purple: #e0e2f0;
+  --p-peach:  #f0e6da;
+  --p-sky:    #dee6f0;
+  --p-rose:   #f0e2e4;
+  --p-mint:   #d8eae2;
+  --p-sakura: #f0e2ec;
+  --p-cream:  #f0eee2;
 }
 
 /* ── Dark Mode ──────────────────────────────────────────────────────── */
 .dark {
-  --background: #0f0719;
-  --foreground: #f0e6ff;
-  --surface: #1a1028;
-  --surface-elevated: #231540;
-  --border: #2d1b4e;
-  --muted-foreground: #9b87b5;
-  --accent: #a855f7;
-  --accent-strong: #c084fc;
+  --background: #0b1120;
+  --foreground: #e2e8f0;
+  --surface: #121b2e;
+  --surface-elevated: #1a2744;
+  --border: #1e293b;
+  --muted-foreground: #8896ab;
+  --accent: #3b82f6;
+  --accent-strong: #60a5fa;
   --accent-foreground: #ffffff;
-  --text-main: #f0e6ff;
-  --text-muted: #9b87b5;
-  --primary: #a855f7;
+  --text-main: #e2e8f0;
+  --text-muted: #8896ab;
+  --primary: #3b82f6;
 
-  /* Dark pastel palette */
-  --p-blue:   #1e3a5f;
-  --p-pink:   #3d1f3a;
-  --p-yellow: #3d3520;
-  --p-green:  #1a3a2e;
-  --p-purple: #2a1a45;
-  --p-peach:  #3d2a1a;
-  --p-sky:    #1a2a3a;
-  --p-rose:   #3d1a1a;
-  --p-mint:   #1a3a3a;
-  --p-sakura: #3d1a3a;
-  --p-cream:  #1a1a0a;
+  /* Dark palette (with subtle hue hints) */
+  --p-blue:   #1e2e48;
+  --p-pink:   #382434;
+  --p-yellow: #383422;
+  --p-green:  #1e3830;
+  --p-purple: #202644;
+  --p-peach:  #382a22;
+  --p-sky:    #1e2e40;
+  --p-rose:   #38222a;
+  --p-mint:   #1e3c38;
+  --p-sakura: #382236;
+  --p-cream:  #2e2e24;
 }
 
 .dark .logo-halo {
-  background: linear-gradient(135deg, #2d1b4e 0%, #1a1028 100%);
-  box-shadow: 0 3px 18px rgba(168, 85, 247, 0.25);
+  background: linear-gradient(135deg, #1e2740 0%, #121b2e 100%);
+  box-shadow: 0 3px 18px rgba(59, 130, 246, 0.25);
 }
 
 .dark body {
   background-image:
-    radial-gradient(1200px circle at 15% -5%,   rgb(147 51 234 / 0.12), transparent 42%),
-    radial-gradient(900px  circle at 88% 5%,    rgb(124 58 237 / 0.10), transparent 40%),
-    radial-gradient(600px  circle at 65% 55%,   rgb(88 28 135 / 0.08), transparent 50%),
-    radial-gradient(700px  circle at 50% 108%,  rgb(107 33 168 / 0.10), transparent 52%);
+    radial-gradient(1200px circle at 15% -5%,   rgb(37 99 235 / 0.10), transparent 42%),
+    radial-gradient(900px  circle at 88% 5%,    rgb(29 78 216 / 0.08), transparent 40%),
+    radial-gradient(600px  circle at 65% 55%,   rgb(30 64 175 / 0.06), transparent 50%),
+    radial-gradient(700px  circle at 50% 108%,  rgb(30 58 138 / 0.08), transparent 52%);
 }
 
 @theme inline {
@@ -92,7 +92,7 @@
   --color-text-main: var(--text-main);
   --color-text-muted: var(--text-muted);
 
-  /* Anime pastel palette - uses var() to respond to light/dark theme */
+  /* Neutral palette - uses var() to respond to light/dark theme */
   --color-p-blue:   var(--p-blue);
   --color-p-pink:   var(--p-pink);
   --color-p-yellow: var(--p-yellow);
@@ -110,54 +110,22 @@
   --font-mono: var(--font-geist-mono);
 }
 
-/* ── Anime Keyframes ─────────────────────────────────────────────────── */
-@keyframes float-slow {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  33%       { transform: translateY(-10px) rotate(6deg); }
-  66%       { transform: translateY(-5px) rotate(-4deg); }
+/* ── Professional Keyframes ─────────────────────────────────────────── */
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes sparkle {
-  0%, 100% { opacity: 0.3; transform: scale(1) rotate(0deg); }
-  50%       { opacity: 0.9; transform: scale(1.25) rotate(20deg); }
-}
-
-@keyframes blob-drift {
-  0%, 100% { transform: translate(0, 0)   scale(1); }
-  33%       { transform: translate(18px, -12px) scale(1.06); }
-  66%       { transform: translate(-12px, 9px)  scale(0.96); }
-}
-
-@keyframes sakura-fall {
-  0%   { transform: translateY(-20px) rotate(0deg); opacity: 0; }
-  10%  { opacity: 0.6; }
-  90%  { opacity: 0.4; }
-  100% { transform: translateY(calc(100vh + 20px)) rotate(360deg); opacity: 0; }
-}
-
-/* ── Extra keyframes ─────────────────────────────────────────────────── */
 @keyframes shimmer {
   from { background-position: 0% center; }
   to   { background-position: 200% center; }
 }
 
-@keyframes bounce-cute {
-  0%, 100% { transform: translateY(0px); }
-  40%       { transform: translateY(-10px); }
-  60%       { transform: translateY(-6px); }
-}
-
-@keyframes float-right {
-  0%, 100% { transform: translate(0, 0) rotate(0deg); }
-  33%       { transform: translate(8px, -6px) rotate(12deg); }
-  66%       { transform: translate(-4px, 3px) rotate(-8deg); }
-}
-
 /* ── Logo halo ───────────────────────────────────────────────────────── */
 .logo-halo {
-  border-radius: 16px;
-  background: linear-gradient(135deg, #fce7f3 0%, #ede9fe 100%);
-  box-shadow: 0 3px 18px rgba(147, 51, 234, 0.18);
+  border-radius: 12px;
+  background: linear-gradient(135deg, #e0e7ff 0%, #dbeafe 100%);
+  box-shadow: 0 2px 12px rgba(37, 99, 235, 0.15);
 }
 
 /* Fix for logo */
@@ -172,10 +140,10 @@ body {
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
   background-image:
-    radial-gradient(1200px circle at 15% -5%,   rgb(244 114 182 / 0.16), transparent 42%),
-    radial-gradient(900px  circle at 88% 5%,    rgb(147 51 234  / 0.12), transparent 40%),
-    radial-gradient(600px  circle at 65% 55%,   rgb(252 231 243 / 0.10), transparent 50%),
-    radial-gradient(700px  circle at 50% 108%,  rgb(216 180 254 / 0.12), transparent 52%);
+    radial-gradient(1200px circle at 15% -5%,   rgb(37 99 235 / 0.05), transparent 42%),
+    radial-gradient(900px  circle at 88% 5%,    rgb(29 78 216 / 0.04), transparent 40%),
+    radial-gradient(600px  circle at 65% 55%,   rgb(30 64 175 / 0.03), transparent 50%),
+    radial-gradient(700px  circle at 50% 108%,  rgb(30 58 138 / 0.04), transparent 52%);
 }
 
 /* ── Transition for smooth theme switching ──────────────────────────── */
@@ -185,40 +153,15 @@ html {
 
 /* ── Gradient text utility ───────────────────────────────────────────── */
 @utility gradient-text {
-  background: linear-gradient(135deg, #ec4899, #9333ea);
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-/* ── Shimmer text ────────────────────────────────────────────────────── */
-@utility shimmer-text {
-  background: linear-gradient(90deg, #ec4899 0%, #9333ea 40%, #ec4899 100%);
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  animation: shimmer 3s linear infinite;
-}
-
-/* ── Anime gradient button ───────────────────────────────────────────── */
-@utility btn-anime {
-  background: linear-gradient(135deg, #ec4899 0%, #9333ea 100%);
-  box-shadow: 0 8px 24px rgba(147, 51, 234, 0.25);
-}
-
-/* ── Kawaii card hover lift ──────────────────────────────────────────── */
-@utility kawaii-lift {
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
-  &:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 16px 40px rgba(147, 51, 234, 0.14);
-  }
-}
-
-/* ── Pastel surface ──────────────────────────────────────────────────── */
+/* ── Utility classes ─────────────────────────────────────────────────── */
 @utility pastel-surface {
   background: var(--color-surface);
-  border: 2px solid var(--color-border);
-  border-radius: 2.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 1.5rem;
 }

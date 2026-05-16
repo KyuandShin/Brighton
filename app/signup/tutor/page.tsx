@@ -826,15 +826,9 @@ function AvailabilitySelector({ data, set }: StepProps) {
 
 // Philippine K-12 subject categories
 const PH_SUBJECTS = [
-  'Filipino', 'English', 'Mathematics', 'Science',
-  'Biology', 'Chemistry', 'Physics', 'Integrated Science',
-  'Algebra', 'Geometry', 'Trigonometry', 'Statistics', 'Calculus',
-  'Araling Panlipunan', 'Philippine History', 'Asian Studies', 'World History', 'Economics',
-  'Music', 'Arts', 'Physical Education', 'Health',
-  'Edukasyon sa Pagpapakatao',
-  'ICT', 'Agriculture', 'Home Economics', 'Industrial Arts',
-  'STEM', 'ABM', 'HUMSS', 'TVL',
-  'Filipino - Panitikan', 'English - Literature',
+  'Mathematics', 'Science', 'English', 'Filipino',
+  'Araling Panlipunan', 'MAPEH', 'Edukasyon sa Pagpapakatao',
+  'TLE', 'ICT',
 ];
 
 function SubjectsStep({ data, set }: StepProps) {

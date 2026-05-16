@@ -39,10 +39,10 @@ const COLORS = [
 ];
 
 const quickActions = [
-  { label: 'Find a Tutor', href: '/dashboard/tutors', icon: Users,        iconBg: '#9333ea', iconBgTo: '#a855f7', cardBg: '#faf5ff', cardBorder: '#e9d5ff', desc: 'Browse experts'   },
-  { label: 'Take Test',    href: '/dashboard/test',   icon: Brain,        iconBg: '#ec4899', iconBgTo: '#f472b6', cardBg: '#fdf2f8', cardBorder: '#fbcfe8', desc: 'AI assessment'    },
-  { label: 'My Classes',  href: '/dashboard/classes', icon: BookOpen,     iconBg: '#3b82f6', iconBgTo: '#6366f1', cardBg: '#eff6ff', cardBorder: '#bfdbfe', desc: 'View schedule'    },
-  { label: 'Bookings',    href: '/dashboard/bookings', icon: CalendarIcon, iconBg: '#0d9488', iconBgTo: '#14b8a6', cardBg: '#f0fdfa', cardBorder: '#99f6e4', desc: 'Manage sessions'  },
+  { label: 'Find a Tutor', href: '/dashboard/tutors', icon: Users,        iconBg: '#2563eb', iconBgTo: '#1d4ed8', cardBg: '#f8fafc', cardBorder: '#e2e8f0', desc: 'Browse experts'   },
+  { label: 'Take Test',    href: '/dashboard/test',   icon: Brain,        iconBg: '#2563eb', iconBgTo: '#1d4ed8', cardBg: '#f8fafc', cardBorder: '#e2e8f0', desc: 'AI assessment'    },
+  { label: 'My Classes',  href: '/dashboard/classes', icon: BookOpen,     iconBg: '#1d4ed8', iconBgTo: '#1e40af', cardBg: '#f8fafc', cardBorder: '#e2e8f0', desc: 'View schedule'    },
+  { label: 'Bookings',    href: '/dashboard/bookings', icon: CalendarIcon, iconBg: '#1d4ed8', iconBgTo: '#1e40af', cardBg: '#f8fafc', cardBorder: '#e2e8f0', desc: 'Manage sessions'  },
 ];
 
 export default function DashboardPage() {
@@ -130,9 +130,9 @@ export default function DashboardPage() {
   const upcomingClasses = confirmedSchedule.filter((item) => new Date(item.rawDate) >= now);
 
   const stats = [
-    { label: 'Upcoming', value: upcomingClasses.length, icon: TrendingUp, iconColor: '#9333ea', bg: 'rgba(147,51,234,0.10)',  border: 'rgba(147,51,234,0.18)' },
-    { label: 'Today',    value: todaysClasses.length,   icon: Sun,         iconColor: '#d97706', bg: 'rgba(251,191,36,0.13)',  border: 'rgba(217,119,6,0.20)'  },
-    { label: 'Total',    value: activeSchedule.length,  icon: BookOpen,    iconColor: '#2563eb', bg: 'rgba(59,130,246,0.10)',  border: 'rgba(37,99,235,0.18)'  },
+    { label: 'Upcoming', value: upcomingClasses.length, icon: TrendingUp, iconColor: '#3b82f6', bg: 'rgba(59,130,246,0.08)',  border: 'rgba(59,130,246,0.14)' },
+    { label: 'Today',    value: todaysClasses.length,   icon: Sun,         iconColor: '#2563eb', bg: 'rgba(59,130,246,0.08)',  border: 'rgba(59,130,246,0.14)' },
+    { label: 'Total',    value: activeSchedule.length,  icon: BookOpen,    iconColor: '#1d4ed8', bg: 'rgba(37,99,235,0.08)',  border: 'rgba(37,99,235,0.14)' },
   ];
 
   return (
@@ -141,20 +141,20 @@ export default function DashboardPage() {
       <header
         className="relative overflow-hidden rounded-[40px] p-6 sm:p-8 md:p-10"
         style={{
-          background: isDark
-            ? 'linear-gradient(135deg, #1e0a3c 0%, #2d1248 55%, #1a0f2e 100%)'
-            : 'linear-gradient(140deg, #f5f0ff 0%, #fce7f3 45%, #fff1f5 75%, #fff7ed 100%)',
-          border: isDark ? '1.5px solid #3b1f6b' : '1.5px solid #ddd6fe',
-          boxShadow: isDark ? '0 4px 32px rgba(147,51,234,0.18)' : '0 4px 32px rgba(147,51,234,0.08)',
+            background: isDark
+              ? 'linear-gradient(135deg, #0f172a 0%, #1e293b 55%, #0b1120 100%)'
+              : 'linear-gradient(140deg, #f8fafc 0%, #f1f5f9 45%, #f8fafc 75%, #ffffff 100%)',
+            border: isDark ? '1.5px solid #1e293b' : '1.5px solid #e2e8f0',
+            boxShadow: isDark ? '0 4px 32px rgba(0,0,0,0.25)' : '0 4px 32px rgba(0,0,0,0.04)',
         }}
       >
         {/* Decorative blobs */}
         <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full blur-3xl pointer-events-none"
-          style={{ background: isDark ? 'rgba(147,51,234,0.22)' : 'rgba(192,132,252,0.22)' }} />
+          style={{ background: isDark ? 'rgba(59,130,246,0.08)' : 'rgba(37,99,235,0.04)' }} />
         <div className="absolute -bottom-16 -left-16 w-56 h-56 rounded-full blur-3xl pointer-events-none"
-          style={{ background: isDark ? 'rgba(236,72,153,0.14)' : 'rgba(249,168,212,0.35)' }} />
+          style={{ background: isDark ? 'rgba(59,130,246,0.04)' : 'rgba(37,99,235,0.02)' }} />
         <div className="absolute top-1/2 left-1/3 w-40 h-40 rounded-full blur-2xl pointer-events-none"
-          style={{ background: isDark ? 'rgba(99,102,241,0.10)' : 'rgba(253,224,255,0.60)' }} />
+          style={{ background: isDark ? 'rgba(59,130,246,0.03)' : 'rgba(37,99,235,0.015)' }} />
         
         <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div className="space-y-2">
@@ -176,7 +176,7 @@ export default function DashboardPage() {
           </div>
           <Link
             href="/dashboard/test"
-            className="group relative overflow-hidden w-full sm:w-auto px-5 py-3 bg-gradient-to-r from-primary to-pink-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.15em] shadow-lg shadow-primary/20 hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center gap-2.5 shrink-0"
+            className="group relative overflow-hidden w-full sm:w-auto px-5 py-3 bg-gradient-to-r from-primary to-blue-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.15em] shadow-lg shadow-primary/20 hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center gap-2.5 shrink-0"
           >
             <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
             <Brain size={14} className="relative z-10" />
@@ -262,7 +262,7 @@ export default function DashboardPage() {
       <section className="space-y-5">
         <div className="flex justify-between items-center">
           <h3 className="text-sm sm:text-base font-black tracking-tight uppercase flex items-center gap-2.5 text-text-main">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #ec4899 0%, #9333ea 100%)' }}>
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)' }}>
               <CalendarIcon size={14} className="text-white" />
             </div>
             Your Academic Schedule
@@ -294,15 +294,15 @@ export default function DashboardPage() {
               <div className="relative">
                 <div
                   className="w-20 h-20 rounded-3xl flex items-center justify-center shadow-lg"
-                  style={{ background: 'linear-gradient(135deg, #c084fc 0%, #e879f9 50%, #f472b6 100%)' }}
+                  style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%)' }}
                 >
                   <BookOpen size={32} className="text-white drop-shadow-sm" />
                 </div>
                 <div
                   className="absolute -top-2 -right-2 w-8 h-8 rounded-full flex items-center justify-center animate-sparkle shadow-sm"
-                  style={{ background: 'linear-gradient(135deg, #fce7f3, #fbcfe8)' }}
+                  style={{ background: 'linear-gradient(135deg, #e2e8f0, #cbd5e1)' }}
                 >
-                  <Star size={12} className="text-pink-500" fill="currentColor" />
+                  <Star size={12} className="text-primary" fill="currentColor" />
                 </div>
               </div>
               <div className="space-y-2">
@@ -314,7 +314,7 @@ export default function DashboardPage() {
               <Link
                 href="/dashboard/tutors"
                 className="group px-8 py-4 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:shadow-xl hover:scale-105 transition-all flex items-center gap-2.5"
-                style={{ background: 'linear-gradient(135deg, #ec4899 0%, #9333ea 100%)', boxShadow: '0 8px 24px rgba(147,51,234,0.2)' }}
+                style={{ background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)', boxShadow: '0 8px 24px rgba(37,99,235,0.2)' }}
               >
                 <Users size={14} /> Find Tutors <Rocket size={14} className="group-hover:translate-x-0.5 transition-transform" />
               </Link>
@@ -364,7 +364,7 @@ export default function DashboardPage() {
                     </div>
                     <div
                       className="w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-sm transition-all group-hover:scale-110"
-                      style={{ background: 'linear-gradient(135deg, #9333ea, #ec4899)' }}
+                      style={{ background: 'linear-gradient(135deg, #2563eb, #1d4ed8)' }}
                     >
                       <ChevronRight size={14} />
                     </div>
@@ -391,7 +391,7 @@ export default function DashboardPage() {
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="w-full max-w-lg bg-surface rounded-[40px] shadow-[0_40px_100px_rgba(147,51,234,0.15)] border border-p-purple dark:border-[#2d1b4e] overflow-hidden relative z-10"
+              className="w-full max-w-lg bg-surface rounded-[40px] shadow-[0_40px_100px_rgba(0,0,0,0.08)] border border-border dark:border-[#1e293b] overflow-hidden relative z-10"
             >
               <div
                 className="h-28 relative"
@@ -423,11 +423,11 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="p-5 bg-gradient-to-br from-p-purple/30 to-p-purple/10 dark:from-[#2a1a45]/60 dark:to-[#1e1035]/30 rounded-2xl space-y-1.5 border border-p-purple/20 dark:border-[#2d1b4e]/50">
+                  <div className="p-5 bg-gradient-to-br from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10 rounded-2xl space-y-1.5 border border-border">
                     <p className="text-[9px] font-black uppercase tracking-widest text-text-muted">Time</p>
                     <p className="text-sm font-black text-text-main">{selectedClass.time}</p>
                   </div>
-                  <div className="p-5 bg-gradient-to-br from-p-pink/30 to-p-sakura/10 dark:from-[#3d1f3a]/60 dark:to-[#2d152a]/30 rounded-2xl space-y-1.5 border border-pink-200/20 dark:border-[#3d1f3a]/50">
+                  <div className="p-5 bg-gradient-to-br from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/5 rounded-2xl space-y-1.5 border border-border">
                     <p className="text-[9px] font-black uppercase tracking-widest text-text-muted">Date</p>
                     <p className="text-sm font-black text-text-main">{selectedClass.date}</p>
                   </div>
@@ -438,7 +438,7 @@ export default function DashboardPage() {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="group relative overflow-hidden w-full p-4 rounded-2xl flex items-center justify-between transition-all text-white hover:shadow-xl hover:scale-[1.02]"
-                  style={{ background: 'linear-gradient(135deg, #ec4899 0%, #9333ea 100%)', boxShadow: '0 8px 24px rgba(147,51,234,0.25)' }}
+                  style={{ background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)', boxShadow: '0 8px 24px rgba(37,99,235,0.25)' }}
                 >
                   <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
                   <div className="relative z-10 flex items-center gap-3">
@@ -449,7 +449,7 @@ export default function DashboardPage() {
                 </a>
               </div>
 
-              <div className="px-8 py-4 bg-gradient-to-r from-p-purple/20 to-p-sakura/10 dark:from-[#2a1a45]/40 dark:to-[#3d1a3a]/30 border-t border-p-purple/20 dark:border-[#2d1b4e]/50 text-center">
+              <div className="px-8 py-4 bg-gradient-to-r from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/5 border-t border-border text-center">
                 <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Brighton Academic Framework v2.0</p>
               </div>
             </motion.div>

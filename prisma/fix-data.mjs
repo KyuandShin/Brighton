@@ -18,12 +18,11 @@ const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
-// Only these subjects (matching Python backend)
+// General K-12 subject categories
 const KEEP_SUBJECTS = new Set([
-  'Filipino', 'English', 'Algebra', 'Geometry', 'Trigonometry', 'Statistics',
-  'Integrated Science', 'Biology', 'Chemistry', 'Physics', 'Earth Science',
-  'Philippine History', 'Asian Studies', 'World History', 'Economics',
-  'MAPEH', 'Edukasyon sa Pagpapakatao',
+  'Mathematics', 'Science', 'English', 'Filipino',
+  'Araling Panlipunan', 'MAPEH', 'Edukasyon sa Pagpapakatao',
+  'TLE', 'ICT',
 ]);
 
 async function main() {

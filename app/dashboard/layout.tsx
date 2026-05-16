@@ -21,9 +21,9 @@ const navItems = [
 ];
 
 const adminNavItems = [
-  { name: 'Dashboard',       href: '/dashboard/admin',           icon: Home },
-  { name: 'Tutor Approvals', href: '/dashboard/admin/tutors',    icon: UserCheck },
-  { name: 'Students',        href: '/dashboard/admin/students',  icon: Users },
+  { name: 'Dashboard',       href: '/dashboard/admin',           icon: Home,      exact: true },
+  { name: 'Tutor Approvals', href: '/dashboard/admin/tutors',    icon: UserCheck, exact: false },
+  { name: 'Students',        href: '/dashboard/admin/students',  icon: Users,     exact: false },
 ];
 
 interface Notification {
@@ -59,14 +59,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       setDarkMode(false);
       document.documentElement.classList.remove('dark');
     } else {
-      // Default to system preference
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       setDarkMode(prefersDark);
       if (prefersDark) document.documentElement.classList.add('dark');
     }
   }, []);
 
-  // Sync user theme from DB on mount
   useEffect(() => {
     if (user?.theme) {
       const isDark = user.theme === 'dark';
@@ -85,8 +83,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       document.documentElement.classList.remove('dark');
     }
     localStorage.setItem('brighton-theme', newTheme);
-    
-    // Persist to backend
     if (user?.id) {
       try {
         await fetch('/api/theme', {
@@ -121,7 +117,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   };
 
   const handleLogout = async () => {
-    // Preserve theme preference when logging out
     const theme = localStorage.getItem('brighton-theme');
     await authClient.signOut();
     localStorage.clear();
@@ -136,21 +131,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [user, loading, error]);
 
-  // ── Tutor pending screen ──────────────────────────────────────────────
   if (error === 'TUTOR_PENDING') {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-8">
-        <div className="max-w-md w-full bg-surface rounded-[40px] border border-p-purple shadow-[0_20px_60px_rgba(147,51,234,0.08)] p-12 text-center space-y-6">
-          <div className="w-20 h-20 bg-p-yellow rounded-3xl flex items-center justify-center mx-auto">
+        <div className="max-w-md w-full bg-surface rounded-2xl border border-border shadow-lg p-12 text-center space-y-6">
+          <div className="w-20 h-20 bg-amber-50 rounded-2xl flex items-center justify-center mx-auto">
             <Sparkles size={36} className="text-amber-500" />
           </div>
           <h2 className="text-2xl font-black text-text-main tracking-tight">Pending Verification</h2>
-          <p className="text-sm font-bold text-text-muted uppercase tracking-wider leading-relaxed">
+          <p className="text-sm font-medium text-text-muted leading-relaxed">
             Your tutor application is under review. You'll be notified once approved.
           </p>
           <button
             onClick={handleLogout}
-            className="w-full py-4 bg-p-purple border-2 border-border text-text-muted rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-primary hover:text-white hover:border-primary transition-all flex items-center justify-center gap-2"
+            className="w-full py-3.5 bg-surface border border-border text-text-muted rounded-xl font-semibold text-sm hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition-all flex items-center justify-center gap-2"
           >
             <LogOut size={14} /> Sign Out
           </button>
@@ -178,13 +172,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="relative w-12 h-12">
-            {/* Track ring */}
-            <div className="absolute inset-0 rounded-full border-[3px] border-p-purple" />
-            {/* Spinning arc — uses a single border with 3 transparent sides */}
+          <div className="relative w-10 h-10">
+            <div className="absolute inset-0 rounded-full border-[3px] border-border" />
             <div className="absolute inset-0 rounded-full border-[3px] border-transparent border-t-primary animate-spin" />
           </div>
-          <p className="text-primary text-xs font-black uppercase tracking-widest">Loading...</p>
+          <p className="text-text-muted text-xs font-semibold uppercase tracking-widest">Loading...</p>
         </div>
       </div>
     );
@@ -192,64 +184,48 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (!user && error !== 'TUTOR_PENDING') return null;
 
+  const navLinkClass = (active: boolean) =>
+    `px-3.5 py-2 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-all flex items-center gap-2 ${
+      active
+        ? 'bg-primary text-white shadow-sm'
+        : 'text-text-muted hover:bg-surface-elevated hover:text-text-main'
+    }`;
+
   return (
     <div className="min-h-screen bg-background">
       {/* ── Navbar ───────────────────────────────────────────────────── */}
-      <nav className="bg-surface/90 backdrop-blur-xl border-b border-border px-6 py-0 sticky top-0 z-50 h-16 flex items-center">
-        <div className="w-full max-w-7xl mx-auto flex justify-between items-center gap-6">
+      <nav className="bg-surface/95 backdrop-blur-xl border-b border-border px-6 sticky top-0 z-50 h-14 flex items-center">
+        <div className="w-full max-w-7xl mx-auto flex justify-between items-center gap-4">
 
           {/* Logo */}
-          <Link href="/dashboard" className="flex items-center gap-3 shrink-0 group">
-            <div className="w-10 h-10 logo-halo flex items-center justify-center border border-p-purple bg-surface transition-transform group-hover:scale-105">
-              <Image src="/logo.png" alt="Logo" width={24} height={24} className="object-contain" style={{ width: 'auto', height: 'auto' }} />
+          <Link href="/dashboard" className="flex items-center gap-2.5 shrink-0 group">
+            <div className="w-8 h-8 rounded-xl logo-halo flex items-center justify-center border border-border transition-transform group-hover:scale-105">
+              <Image src="/logo.png" alt="Logo" width={18} height={18} className="object-contain" style={{ width: 'auto', height: 'auto' }} />
             </div>
-            <span className="text-sm font-black tracking-[0.2em] text-text-main uppercase">Brighton</span>
+            <span className="text-sm font-bold tracking-[0.15em] text-text-main uppercase">Brighton</span>
           </Link>
 
           {/* Nav Links */}
-          <div className="hidden md:flex gap-1 items-center flex-1 justify-center">
+          <div className="hidden md:flex gap-0.5 items-center flex-1 justify-center">
             {navItems.map((item) => {
-              const Icon     = item.icon;
-              const isActive = pathname === item.href;
+              const Icon = item.icon;
+              const isActive = item.href === '/dashboard'
+                ? pathname === '/dashboard'
+                : pathname.startsWith(item.href);
               return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all flex items-center gap-2 ${
-                    isActive
-                      ? 'text-white shadow-md shadow-primary/20'
-                      : 'text-text-muted hover:bg-p-purple hover:text-primary'
-                  }`}
-                  style={isActive ? {
-                    background: 'linear-gradient(135deg, #ec4899 0%, #9333ea 100%)',
-                    boxShadow: '0 4px 14px rgba(147,51,234,0.25)',
-                  } : undefined}
-                >
-                  <Icon size={14} strokeWidth={2.5} />
+                <Link key={item.name} href={item.href} className={navLinkClass(isActive)}>
+                  <Icon size={13} strokeWidth={2} />
                   {item.name}
                 </Link>
               );
             })}
 
-            {/* Extra student/tutor nav items */}
             {extraNavItems.map((item) => {
-              const Icon     = item.icon;
-              const isActive = pathname.startsWith(item.href) || pathname === item.href;
+              const Icon = item.icon;
+              const isActive = pathname.startsWith(item.href);
               return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all flex items-center gap-2 ${
-                    isActive
-                      ? 'text-white shadow-md shadow-primary/20'
-                      : 'text-text-muted hover:bg-p-purple hover:text-primary'
-                  }`}
-                  style={isActive ? {
-                    background: 'linear-gradient(135deg, #ec4899 0%, #9333ea 100%)',
-                    boxShadow: '0 4px 14px rgba(147,51,234,0.25)',
-                  } : undefined}
-                >
-                  <Icon size={14} strokeWidth={2.5} />
+                <Link key={item.name} href={item.href} className={navLinkClass(isActive)}>
+                  <Icon size={13} strokeWidth={2} />
                   {item.name}
                 </Link>
               );
@@ -257,25 +233,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
             {isAdmin && (
               <>
-                <div className="mx-2 h-6 w-px bg-border" />
+                <div className="mx-2 h-5 w-px bg-border" />
                 {adminNavItems.map((item) => {
-                  const Icon     = item.icon;
-                  const isActive = pathname.startsWith(item.href);
+                  const Icon = item.icon;
+                  const isActive = item.exact
+                    ? pathname === item.href
+                    : pathname.startsWith(item.href);
                   return (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all flex items-center gap-2 ${
-                        isActive
-                          ? 'text-white shadow-md shadow-primary/20'
-                          : 'text-text-muted hover:bg-p-purple hover:text-primary'
-                      }`}
-                      style={isActive ? {
-                        background: 'linear-gradient(135deg, #ec4899 0%, #9333ea 100%)',
-                        boxShadow: '0 4px 14px rgba(147,51,234,0.25)',
-                      } : undefined}
-                    >
-                      <Icon size={14} strokeWidth={2.5} />
+                    <Link key={item.name} href={item.href} className={navLinkClass(isActive)}>
+                      <Icon size={13} strokeWidth={2} />
                       {item.name}
                     </Link>
                   );
@@ -284,69 +250,63 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             )}
           </div>
 
-          {/* Right: Dark Mode toggle + Notifications + Profile */}
-          <div className="flex items-center gap-2 shrink-0">
-            {/* Dark Mode Toggle */}
+          {/* Right: Theme toggle + Notifications + Profile */}
+          <div className="flex items-center gap-1.5 shrink-0">
             <button
               onClick={toggleTheme}
-              className="p-2.5 bg-p-purple border border-border rounded-xl text-text-muted hover:bg-primary hover:text-white hover:border-primary transition-all"
+              className="p-2 rounded-lg text-text-muted hover:bg-surface-elevated hover:text-text-main transition-all"
               aria-label="Toggle dark mode"
             >
-              {darkMode ? <Sun size={17} strokeWidth={2.5} /> : <Moon size={17} strokeWidth={2.5} />}
+              {darkMode ? <Sun size={16} strokeWidth={2} /> : <Moon size={16} strokeWidth={2} />}
             </button>
 
-            {/* Notifications Bell */}
             <div className="relative" ref={notifRef}>
               <button
                 onClick={() => {
-                  // Mark as read when closing the dropdown, not when opening
                   if (notifOpen && unreadCount > 0) markAllRead();
                   setNotifOpen(!notifOpen);
                   setProfileOpen(false);
                 }}
-                className="relative p-2.5 bg-p-purple border border-border rounded-xl text-text-muted hover:bg-primary hover:text-white hover:border-primary transition-all"
+                className="relative p-2 rounded-lg text-text-muted hover:bg-surface-elevated hover:text-text-main transition-all"
               >
-                <Bell size={17} strokeWidth={2.5} />
+                <Bell size={16} strokeWidth={2} />
                 {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full border-2 border-white text-[8px] font-black text-white flex items-center justify-center"
-                    style={{ background: 'linear-gradient(135deg, #ec4899, #9333ea)' }}>
+                  <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-primary border-2 border-surface text-[8px] font-bold text-white flex items-center justify-center">
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 )}
               </button>
 
               {notifOpen && (
-                <div className="absolute right-0 top-12 w-80 bg-surface rounded-[24px] shadow-[0_20px_60px_rgba(147,51,234,0.12)] border border-border overflow-hidden z-50">
-                  <div className="px-5 py-4 border-b border-border flex justify-between items-center">
-                    <span className="text-xs font-black uppercase tracking-widest text-text-main">Notifications</span>
-                    <button onClick={() => setNotifOpen(false)} className="p-1 hover:bg-p-purple rounded-lg transition-all">
-                      <X size={14} className="text-text-muted" />
+                <div className="absolute right-0 top-11 w-80 bg-surface rounded-xl shadow-lg border border-border overflow-hidden z-50">
+                  <div className="px-4 py-3 border-b border-border flex justify-between items-center">
+                    <span className="text-xs font-semibold text-text-main">Notifications</span>
+                    <button onClick={() => setNotifOpen(false)} className="p-1 hover:bg-surface-elevated rounded-md transition-all">
+                      <X size={13} className="text-text-muted" />
                     </button>
                   </div>
                   <div className="max-h-80 overflow-y-auto divide-y divide-border">
                     {notifications.length === 0 ? (
                       <div className="py-10 text-center">
-                        <div className="w-10 h-10 bg-p-purple rounded-xl flex items-center justify-center mx-auto mb-3">
-                          <Bell size={16} className="text-text-muted" />
-                        </div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">No notifications yet</p>
+                        <Bell size={20} className="mx-auto text-text-muted mb-3 opacity-40" />
+                        <p className="text-[11px] font-medium text-text-muted">No notifications yet</p>
                       </div>
                     ) : (
                       notifications.map((n) => (
                         <button
                           key={n.id}
                           onClick={() => { setNotifOpen(false); if (n.link) router.push(n.link); }}
-                          className={`w-full text-left px-5 py-4 hover:bg-p-purple transition-all flex items-start gap-3 ${!n.isRead ? 'bg-p-purple/50' : ''}`}
+                          className={`w-full text-left px-4 py-3 hover:bg-surface-elevated transition-all flex items-start gap-3 ${!n.isRead ? 'bg-primary/5' : ''}`}
                         >
-                          <div className={`mt-0.5 w-2 h-2 rounded-full shrink-0 ${!n.isRead ? 'bg-primary' : 'bg-transparent'}`} />
+                          <div className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${!n.isRead ? 'bg-primary' : 'bg-transparent'}`} />
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs font-black text-text-main leading-tight">{n.title}</p>
-                            <p className="text-[10px] text-text-muted mt-0.5 leading-snug line-clamp-2">{n.message}</p>
-                            <p className="text-[9px] text-text-muted/60 mt-1 font-bold uppercase tracking-wider">
+                            <p className="text-xs font-semibold text-text-main leading-tight">{n.title}</p>
+                            <p className="text-[11px] text-text-muted mt-0.5 leading-snug line-clamp-2">{n.message}</p>
+                            <p className="text-[10px] text-text-muted/60 mt-1">
                               {new Date(n.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                             </p>
                           </div>
-                          {n.link && <ChevronRight size={14} className="text-text-muted shrink-0 mt-1" />}
+                          {n.link && <ChevronRight size={12} className="text-text-muted shrink-0 mt-1" />}
                         </button>
                       ))
                     )}
@@ -359,44 +319,44 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div className="relative" ref={profileRef}>
               <button
                 onClick={() => { setProfileOpen(!profileOpen); setNotifOpen(false); }}
-                className="flex items-center gap-2.5 pl-1 pr-3 py-1 bg-p-purple border border-border rounded-xl hover:border-primary transition-all"
+                className="flex items-center gap-2 pl-1 pr-2.5 py-1 bg-surface-elevated border border-border rounded-lg hover:border-primary/50 transition-all"
               >
                 <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-black text-[11px] shadow-sm"
-                  style={{ background: 'linear-gradient(135deg, #f472b6 0%, #9333ea 100%)' }}
+                  className="w-7 h-7 rounded-md flex items-center justify-center text-white font-bold text-[10px]"
+                  style={{ background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)' }}
                 >
                   {initials}
                 </div>
-                <span className="text-[11px] font-black uppercase tracking-wider text-text-main hidden sm:block max-w-[100px] truncate">
+                <span className="text-[11px] font-semibold text-text-main hidden sm:block max-w-[90px] truncate">
                   {loading ? '...' : (user?.name?.split(' ')[0] ?? 'Account')}
                 </span>
               </button>
 
               {profileOpen && (
-                <div className="absolute right-0 top-12 w-52 bg-surface rounded-[20px] shadow-[0_20px_60px_rgba(147,51,234,0.12)] border border-border overflow-hidden z-50">
-                  <div className="px-4 py-3 border-b border-border">
-                    <p className="text-xs font-black text-text-main truncate">{displayName}</p>
+                <div className="absolute right-0 top-11 w-48 bg-surface rounded-xl shadow-lg border border-border overflow-hidden z-50">
+                  <div className="px-3.5 py-2.5 border-b border-border">
+                    <p className="text-xs font-semibold text-text-main truncate">{displayName}</p>
                     <p className="text-[10px] text-text-muted truncate">{user?.email}</p>
                   </div>
-                  <div className="p-1.5 space-y-0.5">
+                  <div className="p-1 space-y-0.5">
                     <Link
                       href="/dashboard/profile"
                       onClick={() => setProfileOpen(false)}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wider text-text-muted hover:bg-p-purple hover:text-primary transition-all"
+                      className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] font-medium text-text-muted hover:bg-surface-elevated hover:text-text-main transition-all"
                     >
-                      <User size={14} /> My Profile
+                      <User size={13} /> My Profile
                     </Link>
                     <button
                       onClick={() => { setProfileOpen(false); toggleTheme(); }}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wider text-text-muted hover:bg-p-purple hover:text-primary transition-all"
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] font-medium text-text-muted hover:bg-surface-elevated hover:text-text-main transition-all"
                     >
-                      {darkMode ? <Sun size={14} /> : <Moon size={14} />} {darkMode ? 'Light Mode' : 'Dark Mode'}
+                      {darkMode ? <Sun size={13} /> : <Moon size={13} />} {darkMode ? 'Light Mode' : 'Dark Mode'}
                     </button>
                     <button
                       onClick={handleLogout}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wider text-rose-500 hover:bg-rose-50 transition-all"
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] font-medium text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all"
                     >
-                      <LogOut size={14} /> Sign Out
+                      <LogOut size={13} /> Sign Out
                     </button>
                   </div>
                 </div>
@@ -407,13 +367,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </nav>
 
       {/* ── Page Content ─────────────────────────────────────────────── */}
-      <main className="max-w-7xl mx-auto px-6 py-10 pb-24 md:pb-10">{children}</main>
+      <main className="max-w-7xl mx-auto px-6 py-8 pb-24 md:pb-10">{children}</main>
 
       {/* ── Mobile Bottom Navigation ──────────────────────────────────── */}
       <nav className="fixed bottom-0 left-0 right-0 h-16 bg-surface/95 backdrop-blur-xl border-t border-border z-50 md:hidden flex items-center justify-around px-2">
         {[...navItems, ...extraNavItems].map((item) => {
           const Icon = item.icon;
-          const isActive = pathname === item.href || pathname.startsWith(item.href);
+          const isActive = item.href === '/dashboard'
+            ? pathname === '/dashboard'
+            : pathname.startsWith(item.href);
           return (
             <Link
               key={item.name}
@@ -422,14 +384,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 isActive ? 'text-primary' : 'text-text-muted'
               }`}
             >
-              <Icon size={20} strokeWidth={2.5} />
-              <span className="text-[9px] font-black uppercase tracking-wider mt-1">{item.name}</span>
+              <Icon size={19} strokeWidth={2} />
+              <span className="text-[9px] font-semibold uppercase tracking-wide mt-1">{item.name}</span>
             </Link>
           );
         })}
       </nav>
 
-      {/* ── Anime Onboarding tutorial ─────────────────────────────────── */}
       {user?.id && <AnimeOnboarding userId={user.id} />}
     </div>
   );

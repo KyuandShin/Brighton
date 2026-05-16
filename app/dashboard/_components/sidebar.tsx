@@ -3,9 +3,28 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { Home, BookOpen, Users, Calendar, Settings, LogOut, Shield, UserCheck } from 'lucide-react';
+import { Home, BookOpen, Users, Calendar, Settings, LogOut, Shield, UserCheck, Ban } from 'lucide-react';
 import { useCurrentUser } from '@/lib/hooks/useCurrentUser';
 import { authClient } from '@/lib/auth/client';
+
+function NavLink({ href, icon: Icon, children, exact }: { href: string; icon: React.ElementType; children: React.ReactNode; exact?: boolean }) {
+  const pathname = usePathname();
+  const isActive = exact ? pathname === href : pathname.startsWith(href);
+
+  return (
+    <Link
+      href={href}
+      className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold text-sm ${
+        isActive
+          ? 'bg-[#3dbbee] text-white shadow-lg shadow-[#3dbbee]/20'
+          : 'text-[#9fadbd] hover:bg-[#0b1622] hover:text-white'
+      }`}
+    >
+      <Icon size={18} />
+      <span>{children}</span>
+    </Link>
+  );
+}
 
 export function Sidebar() {
   const pathname = usePathname();

@@ -137,6 +137,7 @@ export default function BookingsPage() {
 
   const now = new Date();
   const isTutor = user?.role === 'TUTOR';
+  const isAdmin = user?.role === 'ADMIN';
   const isStudent = user?.role === 'STUDENT';
 
   const FILTER_TABS = ['ALL', 'PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'] as const;
@@ -287,7 +288,7 @@ export default function BookingsPage() {
                       </button>
                     )}
 
-                    {booking.status === 'PENDING' && isTutor && (
+                    {booking.status === 'PENDING' && (isTutor || isAdmin) && (
                       <div className="flex gap-1.5">
                         <button
                           onClick={() => handleAction(booking.id, 'CONFIRMED')}
@@ -306,6 +307,17 @@ export default function BookingsPage() {
                           Decline
                         </button>
                       </div>
+                    )}
+
+                    {/* Admin can mark confirmed bookings as completed */}
+                    {booking.status === 'CONFIRMED' && isAdmin && isPast && (
+                      <button
+                        onClick={() => handleAction(booking.id, 'COMPLETED')}
+                        disabled={actionLoading === booking.id}
+                        className="px-3 py-1.5 bg-p-blue text-blue-700 rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-blue-200 transition-all disabled:opacity-50 flex items-center gap-1"
+                      >
+                        <CheckCircle size={10} /> Complete
+                      </button>
                     )}
 
                     {/* Tutor can mark as completed */}

@@ -62,7 +62,7 @@ interface FeaturedReview {
 const FAQ_ITEMS = [
   { q: 'How does Brighton match me with a tutor?', a: 'Our AI-powered system considers your subject needs, academic level, learning style, and schedule preferences to recommend the best tutor match for you.' },
   { q: 'Is Brighton free to use for students?', a: 'Yes! Signing up as a student is completely free. You only pay the tutor for the sessions you book, at rates you can see upfront.' },
-  { q: 'What subjects are available?', a: 'We cover the full Philippine K-12 curriculum including Mathematics, Science, English, Filipino, History, MAPEH, and more.' },
+  { q: 'What subjects are available?', a: 'We cover the full Philippine K-12 curriculum including Mathematics, Science, English, Filipino, Araling Panlipunan, MAPEH, and more.' },
   { q: 'Can parents track their child\'s progress?', a: 'Absolutely. Parents get a dedicated dashboard showing session history, performance analytics, AI assessment results, and tutor feedback.' },
   { q: 'How are tutors verified?', a: 'Every tutor goes through a rigorous verification process including credential checks, background screening, and a teaching demo before they can start.' },
   { q: 'What if I need to cancel a booking?', a: 'You can cancel or reschedule bookings up to 24 hours before the session at no cost. Late cancellations may be subject to a fee.' },
@@ -284,9 +284,9 @@ export default function LandingPage() {
 
       {/* Global background blobs */}
       <div className="fixed pointer-events-none rounded-full z-0"
-        style={{ top: '-10%', left: '-5%', width: '35%', height: '35%', background: 'var(--color-p-purple)', filter: 'blur(140px)', opacity: 0.55, animation: 'blob-drift 12s ease-in-out infinite' }} />
+        style={{ top: '-10%', left: '-5%', width: '35%', height: '35%', background: 'var(--color-p-purple)', filter: 'blur(140px)', opacity: 0.30, animation: 'blob-drift 12s ease-in-out infinite' }} />
       <div className="fixed pointer-events-none rounded-full z-0"
-        style={{ bottom: '-10%', right: '-5%', width: '30%', height: '30%', background: 'var(--color-p-pink)', filter: 'blur(120px)', opacity: 0.50, animation: 'blob-drift 10s ease-in-out infinite reverse' }} />
+        style={{ bottom: '-10%', right: '-5%', width: '30%', height: '30%', background: 'var(--color-p-pink)', filter: 'blur(120px)', opacity: 0.25, animation: 'blob-drift 10s ease-in-out infinite reverse' }} />
 
       {/* ── Navbar ───────────────────────────────────────────────────── */}
       <nav className="bg-surface/70 backdrop-blur-xl sticky top-0 z-50 border-b border-p-purple/40 h-16 flex items-center">
@@ -359,7 +359,7 @@ export default function LandingPage() {
 
         {mounted && (
           <div className="flex flex-col md:flex-row items-center gap-6 md:gap-10">
-            {/* Left side: mascot */}
+            {/* Left side: mascot (static, no floating animation) */}
             <motion.div
               initial={{ opacity: 0, x: -30 }}
               animate={{ opacity: 1, x: 0 }}
@@ -367,9 +367,8 @@ export default function LandingPage() {
               className="hidden md:block shrink-0"
             >
               <HoshiMascot
-                mood="present"
+                mood="hi"
                 size={350}
-                floating
               />
             </motion.div>
 
@@ -381,9 +380,8 @@ export default function LandingPage() {
               className="md:hidden flex justify-center"
             >
               <HoshiMascot
-                mood="present"
+                mood="hi"
                 size={100}
-                floating
               />
             </motion.div>
 
@@ -402,9 +400,9 @@ export default function LandingPage() {
                 className="inline-flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-p-purple/60 to-p-sakura/40 border border-border rounded-full shadow-sm mx-auto md:mx-0"
               >
                 <Star size={12} className="text-amber-500" fill="currentColor" />
-                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary">
-                  Find Your Perfect Tutor Match
-                </span>
+            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary">
+              Hi! Find Your Perfect Tutor Match
+            </span>
               </motion.div>
 
               {/* Title */}
@@ -446,7 +444,7 @@ export default function LandingPage() {
                       type="text"
                       value={heroSearch}
                       onChange={(e) => setHeroSearch(e.target.value)}
-                      placeholder="Search subjects (e.g. Algebra, Physics...)"
+                      placeholder="Search subjects (e.g. Mathematics, Science...)"
                       aria-label="Search for subjects"
                       className="w-full pl-12 pr-4 py-4 bg-transparent border-none focus:outline-none font-bold text-sm text-text-main placeholder:text-text-muted/40"
                     />
@@ -722,11 +720,19 @@ export default function LandingPage() {
                             <h3 className="font-black text-base text-text-main group-hover:text-primary transition-colors leading-tight line-clamp-1">
                               {tutor.name}
                             </h3>
-                            <div className="flex items-center gap-1 text-[#fcc419] shrink-0">
-                              <Star size={12} fill="currentColor" />
-                              <span className="text-[11px] font-black text-text-main">
-                                {(tutor.rating ?? 5.0).toFixed(1)}
-                              </span>
+                            <div className="flex items-center gap-1 shrink-0">
+                              {tutor.rating !== null ? (
+                                <>
+                                  <Star size={12} fill="currentColor" className="text-[#fcc419]" />
+                                  <span className="text-[11px] font-black text-text-main">
+                                    {tutor.rating.toFixed(1)}
+                                  </span>
+                                </>
+                              ) : (
+                                <span className="text-[9px] font-bold text-text-muted uppercase tracking-widest">
+                                  New
+                                </span>
+                              )}
                             </div>
                           </div>
                           <p className="text-[10px] font-bold text-text-muted uppercase tracking-tight line-clamp-1">

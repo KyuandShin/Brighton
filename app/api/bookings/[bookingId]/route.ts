@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma';
-import { sendEmail } from '@/lib/email';
+import { sendEmail, bookingConfirmationStudent, bookingCancelledEmail } from '@/lib/email';
 
 // PATCH /api/bookings/[bookingId] — update booking status or reschedule
 export async function PATCH(
@@ -115,16 +115,13 @@ export async function PATCH(
       sendEmail({
         to: booking.student.user.email,
         subject: `✅ Session Confirmed with ${tutorName}`,
-        html: `
-          <div style="font-family: system-ui, sans-serif; max-width: 500px; margin: 40px auto; padding: 32px; background: white; border-radius: 16px;">
-            <h2 style="color: #5c7cfa; font-weight: 900;">Session Confirmed!</h2>
-            <p>Hi ${studentName},</p>
-            <p>Your session with <strong>${tutorName}</strong> on <strong>${formattedDate}</strong> at <strong>${formattedTime}</strong> has been confirmed.</p>
-            <p>Click the link below to join:</p>
-            <a href="${classroomUrl}" style="display: inline-block; padding: 12px 24px; background: #5c7cfa; color: white; border-radius: 12px; text-decoration: none; font-weight: bold;">Join Classroom</a>
-            <p style="margin-top: 32px; font-size: 12px; color: #868e96;">Brighton Academic</p>
-          </div>
-        `,
+        html: bookingConfirmationStudent({
+          studentName,
+          tutorName,
+          date: formattedDate,
+          time: formattedTime,
+          classroomUrl,
+        }),
       });
     } else if (status === 'CANCELLED') {
       const notifyUserId = isStudent ? booking.tutor.userId : booking.student.userId;
@@ -137,16 +134,17 @@ export async function PATCH(
         },
       });
 
+      const cancelledByName = isStudent ? studentName : tutorName;
+      const recipientName = isStudent ? booking.tutor.user.name ?? booking.tutor.user.email : booking.student.user.name ?? booking.student.user.email;
       sendEmail({
         to: isStudent ? booking.tutor.user.email : booking.student.user.email,
         subject: `❌ Session Cancelled`,
-        html: `
-          <div style="font-family: system-ui, sans-serif; max-width: 500px; margin: 40px auto; padding: 32px; background: white; border-radius: 16px;">
-            <h2 style="color: #e03131; font-weight: 900;">Session Cancelled</h2>
-            <p>The session on <strong>${formattedDate}</strong> at <strong>${formattedTime}</strong> has been cancelled.</p>
-            <p style="margin-top: 32px; font-size: 12px; color: #868e96;">Brighton Academic</p>
-          </div>
-        `,
+        html: bookingCancelledEmail({
+          recipientName,
+          cancelledByName,
+          date: formattedDate,
+          time: formattedTime,
+        }),
       });
     }
 

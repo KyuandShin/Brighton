@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { QUESTIONS } from './bank';
+import { QUESTIONS, GRADE_KEYS } from './bank';
 
-type Level = keyof typeof QUESTIONS;
+type GradeKey = keyof typeof QUESTIONS;
 
 // Fisher-Yates shuffle
 function shuffle<T>(arr: T[]): T[] {
@@ -15,19 +15,22 @@ function shuffle<T>(arr: T[]): T[] {
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const requestedLevel = (searchParams.get('level') ?? 'ELEMENTARY').toUpperCase();
-  const count = Math.min(parseInt(searchParams.get('count') ?? '30'), 40);
+  const requestedGrade = searchParams.get('grade') ?? 'GRADE_1';
+  const count = Math.min(parseInt(searchParams.get('count') ?? '20'), 32);
 
-  // Safe level validation with fallback
-  const level = (Object.keys(QUESTIONS).includes(requestedLevel) 
-    ? requestedLevel 
-    : 'ELEMENTARY') as Level;
+  // Validate grade
+  const grade = GRADE_KEYS.includes(requestedGrade) ? requestedGrade : 'GRADE_1';
 
-  const pool = QUESTIONS[level];
+  const pool = QUESTIONS[grade];
   const selected = shuffle(pool).slice(0, count);
 
   // Strip correctAnswer before sending to client
   const questions = selected.map(({ correctAnswer: _ca, ...q }) => q);
 
-  return NextResponse.json({ questions, total: questions.length });
+  return NextResponse.json({
+    questions,
+    total: questions.length,
+    grade,
+    subjects: [...new Set(selected.map(q => q.subject))],
+  });
 }

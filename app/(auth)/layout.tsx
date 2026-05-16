@@ -31,7 +31,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         style={{
           top: '-15%', left: '-8%', width: '42%', height: '42%',
           background: 'var(--color-p-purple)',
-          filter: 'blur(120px)', opacity: 0.75,
+          filter: 'blur(120px)', opacity: 0.40,
           animation: 'blob-drift 10s ease-in-out infinite',
         }}
       />
@@ -40,7 +40,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         style={{
           bottom: '-10%', right: '-8%', width: '42%', height: '42%',
           background: 'var(--color-p-pink)',
-          filter: 'blur(120px)', opacity: 0.75,
+          filter: 'blur(120px)', opacity: 0.40,
           animation: 'blob-drift 12s ease-in-out infinite reverse',
         }}
       />
@@ -49,7 +49,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         style={{
           top: '35%', right: '-5%', width: '28%', height: '28%',
           background: 'var(--color-p-sky)',
-          filter: 'blur(80px)', opacity: 0.55,
+          filter: 'blur(80px)', opacity: 0.30,
           animation: 'blob-drift 14s ease-in-out infinite 3s',
         }}
       />
@@ -75,7 +75,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       ))}
 
       {/* Auth card - using CSS variables so it responds to dark mode */}
-      <div className="w-full max-w-md bg-surface/92 backdrop-blur-sm rounded-4xl shadow-[0_24px_90px_rgba(147,51,234,0.11)] p-10 border border-p-purple/40 relative z-10 dark:shadow-[0_24px_90px_rgba(168,85,247,0.15)]">
+      <div className="w-full max-w-md bg-surface/92 backdrop-blur-sm rounded-4xl shadow-[0_24px_90px_rgba(147,51,234,0.08)] p-10 border border-p-purple/20 relative z-10 dark:shadow-[0_24px_90px_rgba(168,85,247,0.10)]">
         <div className="flex flex-col items-center mb-10">
           <Link href="/" className="flex flex-col items-center group transition-transform hover:scale-105">
             <div className="w-14 h-14 logo-halo flex items-center justify-center border-2 border-p-purple mb-6">

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma';
-import { sendEmail, bookingConfirmationStudent, bookingNotificationTutor } from '@/lib/email';
+import { sendEmail, bookingConfirmationStudent, bookingNotificationTutor, bookingRequestSentStudent, bookingRequestSentTutor } from '@/lib/email';
 
 export async function GET(req: NextRequest) {
   try {
@@ -153,13 +153,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'You already have a booking request for this time slot.' }, { status: 409 });
     }
 
-    // Create booking with PENDING status — tutor must accept
+    // If admin is booking, auto-confirm. Otherwise PENDING — tutor must accept
+    const isAdmin = studentUser.role === 'ADMIN';
     const booking = await prisma.booking.create({
       data: {
         studentId: studentUser.studentProfile.id,
         tutorId: tutorDbId,
         date: bookingDate,
-        status: 'PENDING',
+        status: isAdmin ? 'CONFIRMED' : 'PENDING',
       },
     });
 
@@ -194,52 +195,102 @@ export async function POST(req: NextRequest) {
     const tutorName = tutorRecord.user.name ?? tutorRecord.user.email;
 
     // ── In-app notifications ──────────────────────────────────────────────
-    await prisma.notification.createMany({
-      data: [
-        {
-          userId: studentUser.id,
-          title: 'Booking Request Sent!',
-          message: `Your session request with ${tutorName} on ${formattedDate} at ${formattedTime} has been sent. Waiting for tutor to confirm.`,
-          link: '/dashboard/classes',
-        },
-        {
-          userId: tutorRecord.user.id,
-          title: 'New Booking Request!',
-          message: `${studentName} wants to book a session with you on ${formattedDate} at ${formattedTime}. Review and confirm.`,
-          link: '/dashboard/bookings',
-        },
-      ],
-    });
+    if (isAdmin) {
+      await prisma.notification.createMany({
+        data: [
+          {
+            userId: studentUser.id,
+            title: 'Session Booked! ✅',
+            message: `You booked a session with ${tutorName} on ${formattedDate} at ${formattedTime}. It has been auto-confirmed.`,
+            link: '/dashboard/classes',
+          },
+          {
+            userId: tutorRecord.user.id,
+            title: 'New Session Confirmed!',
+            message: `${studentName} (admin) has booked a session with you on ${formattedDate} at ${formattedTime}. It's automatically confirmed.`,
+            link: '/dashboard/bookings',
+          },
+        ],
+      });
+    } else {
+      await prisma.notification.createMany({
+        data: [
+          {
+            userId: studentUser.id,
+            title: 'Booking Request Sent!',
+            message: `Your session request with ${tutorName} on ${formattedDate} at ${formattedTime} has been sent. Waiting for tutor to confirm.`,
+            link: '/dashboard/classes',
+          },
+          {
+            userId: tutorRecord.user.id,
+            title: 'New Booking Request!',
+            message: `${studentName} wants to book a session with you on ${formattedDate} at ${formattedTime}. Review and confirm.`,
+            link: '/dashboard/bookings',
+          },
+        ],
+      });
+    }
 
     // ── Email notifications (fire and forget — don't block response) ──────
-    sendEmail({
-      to: tutorRecord.user.email,
-      subject: `New Booking Request from ${studentName}`,
-      html: bookingNotificationTutor({
-        tutorName: tutorName ?? 'Tutor',
-        studentName: studentName ?? 'Student',
-        date: formattedDate,
-        time: formattedTime,
-        classroomUrl,
-      }),
-    }).catch((emailErr) => {
-      console.error('[POST /api/bookings] Failed to send tutor email:', emailErr);
-    });
+    if (isAdmin) {
+      // Admin auto-confirm: send confirmation to both
+      sendEmail({
+        to: tutorRecord.user.email,
+        subject: `New Session Booked by ${studentName}`,
+        html: bookingNotificationTutor({
+          tutorName: tutorName ?? 'Tutor',
+          studentName: studentName ?? 'Student',
+          date: formattedDate,
+          time: formattedTime,
+          classroomUrl,
+        }),
+      }).catch((emailErr) => {
+        console.error('[POST /api/bookings] Failed to send tutor email:', emailErr);
+      });
 
-    // Send confirmation to student as well
-    sendEmail({
-      to: studentUser.email,
-      subject: `Booking Request Sent to ${tutorName}`,
-      html: bookingConfirmationStudent({
-        studentName: studentName ?? 'Student',
-        tutorName: tutorName ?? 'Tutor',
-        date: formattedDate,
-        time: formattedTime,
-        classroomUrl,
-      }),
-    }).catch((emailErr) => {
-      console.error('[POST /api/bookings] Failed to send student email:', emailErr);
-    });
+      sendEmail({
+        to: studentUser.email,
+        subject: `Session Confirmed with ${tutorName}`,
+        html: bookingConfirmationStudent({
+          studentName: studentName ?? 'Student',
+          tutorName: tutorName ?? 'Tutor',
+          date: formattedDate,
+          time: formattedTime,
+          classroomUrl,
+        }),
+      }).catch((emailErr) => {
+        console.error('[POST /api/bookings] Failed to send student email:', emailErr);
+      });
+    } else {
+      // Student-initiated PENDING: send request notifications
+      const bookingUrl = `${origin}/dashboard/bookings`;
+      sendEmail({
+        to: tutorRecord.user.email,
+        subject: `New Booking Request from ${studentName}`,
+        html: bookingRequestSentTutor({
+          tutorName: tutorName ?? 'Tutor',
+          studentName: studentName ?? 'Student',
+          date: formattedDate,
+          time: formattedTime,
+          bookingUrl,
+        }),
+      }).catch((emailErr) => {
+        console.error('[POST /api/bookings] Failed to send tutor email:', emailErr);
+      });
+
+      sendEmail({
+        to: studentUser.email,
+        subject: `Booking Request Sent to ${tutorName}`,
+        html: bookingRequestSentStudent({
+          studentName: studentName ?? 'Student',
+          tutorName: tutorName ?? 'Tutor',
+          date: formattedDate,
+          time: formattedTime,
+        }),
+      }).catch((emailErr) => {
+        console.error('[POST /api/bookings] Failed to send student email:', emailErr);
+      });
+    }
 
     return NextResponse.json(updated);
   } catch (err: unknown) {

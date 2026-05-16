@@ -40,34 +40,19 @@ function normalizeTutor(t: TutorFromDB) {
 }
 
 const CARD_THEMES = [
-  { bannerFrom: '#ede9fe', bannerTo: '#c4b5fd', tagBg: 'bg-p-purple', tagText: 'text-purple-700', bannerDarkFrom: '#2a1a45', bannerDarkTo: '#1e1035' },
-  { bannerFrom: '#fce7f3', bannerTo: '#f9a8d4', tagBg: 'bg-p-pink',   tagText: 'text-pink-700',   bannerDarkFrom: '#3d1f3a', bannerDarkTo: '#2d152a' },
-  { bannerFrom: '#dbeafe', bannerTo: '#93c5fd', tagBg: 'bg-p-blue',   tagText: 'text-blue-700',   bannerDarkFrom: '#1e3a5f', bannerDarkTo: '#152a4a' },
-  { bannerFrom: '#d1fae5', bannerTo: '#6ee7b7', tagBg: 'bg-p-mint',   tagText: 'text-teal-700',   bannerDarkFrom: '#1a3a2e', bannerDarkTo: '#0f2a1e' },
-  { bannerFrom: '#fef9c3', bannerTo: '#fcd34d', tagBg: 'bg-p-yellow', tagText: 'text-amber-700',  bannerDarkFrom: '#3d3520', bannerDarkTo: '#2d2515' },
-  { bannerFrom: '#ffedd5', bannerTo: '#fdba74', tagBg: 'bg-p-peach',  tagText: 'text-orange-700', bannerDarkFrom: '#3d2a1a', bannerDarkTo: '#2d1a0f' },
+  { bannerFrom: '#e2ddf0', bannerTo: '#c8bee0', tagBg: 'bg-p-purple', tagText: 'text-purple-700', bannerDarkFrom: '#252045', bannerDarkTo: '#1c1835' },
+  { bannerFrom: '#e8dce4', bannerTo: '#d4bcc8', tagBg: 'bg-p-pink',   tagText: 'text-pink-700',   bannerDarkFrom: '#35242e', bannerDarkTo: '#281e24' },
+  { bannerFrom: '#d6def0', bannerTo: '#b0c0da', tagBg: 'bg-p-blue',   tagText: 'text-blue-700',   bannerDarkFrom: '#1e2e45', bannerDarkTo: '#162238' },
+  { bannerFrom: '#cce0d4', bannerTo: '#9ac2aa', tagBg: 'bg-p-mint',   tagText: 'text-teal-700',   bannerDarkFrom: '#1e352a', bannerDarkTo: '#142820' },
+  { bannerFrom: '#e6e2cc', bannerTo: '#d0c89a', tagBg: 'bg-p-yellow', tagText: 'text-amber-700',  bannerDarkFrom: '#352e1e', bannerDarkTo: '#282418' },
+  { bannerFrom: '#e0d8c8', bannerTo: '#ccbb9e', tagBg: 'bg-p-peach',  tagText: 'text-orange-700', bannerDarkFrom: '#35281e', bannerDarkTo: '#282016' },
 ];
 
 // Philippine K-12 subject categories
 const PH_SUBJECTS = [
-  // Core subjects
-  'Filipino', 'English', 'Mathematics', 'Science',
-  // Science subfields  
-  'Biology', 'Chemistry', 'Physics', 'Integrated Science',
-  // Math subfields
-  'Algebra', 'Geometry', 'Trigonometry', 'Statistics', 'Calculus',
-  // Social Studies
-  'Araling Panlipunan', 'Philippine History', 'Asian Studies', 'World History', 'Economics',
-  // MAPEH
-  'Music', 'Arts', 'Physical Education', 'Health',
-  // EsP
-  'Edukasyon sa Pagpapakatao',
-  // TLE/TVL
-  'ICT', 'Agriculture', 'Home Economics', 'Industrial Arts',
-  // SHS Tracks
-  'STEM', 'ABM', 'HUMSS', 'TVL',
-  // Languages
-  'Filipino - Panitikan', 'English - Literature',
+  'Mathematics', 'Science', 'English', 'Filipino',
+  'Araling Panlipunan', 'MAPEH', 'Edukasyon sa Pagpapakatao',
+  'TLE', 'ICT',
 ];
 
 const TABS: { key: SortTab; label: string; icon: typeof Star; desc: string }[] = [

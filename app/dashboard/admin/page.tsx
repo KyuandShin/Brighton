@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import {
   LayoutDashboard, Users, BookOpen, UserCheck, TrendingUp,
-  Clock, Check, X, Calendar, ArrowUp, ArrowDown,
+  Clock, Check, X, Calendar, Ban,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -70,16 +70,16 @@ function StatCard({
   sublabel?: string;
 }) {
   const content = (
-    <div className="bg-surface rounded-3xl border border-border p-6 hover:shadow-lg hover:shadow-primary/5 transition-all group cursor-pointer">
+    <div className="bg-surface rounded-2xl border border-border p-6 hover:shadow-lg hover:shadow-primary/5 transition-all group cursor-pointer">
       <div className="flex items-start justify-between mb-4">
         <div className={`w-12 h-12 ${color} rounded-2xl flex items-center justify-center`}>
           <Icon size={24} className="text-white" />
         </div>
-        <span className="text-4xl font-black text-text-main tabular-nums">{value}</span>
+        <span className="text-4xl font-bold text-text-main tabular-nums">{value}</span>
       </div>
-      <p className="text-[11px] font-black uppercase tracking-widest text-text-muted">{label}</p>
+      <p className="text-[11px] font-bold uppercase tracking-widest text-text-muted">{label}</p>
       {sublabel && (
-        <p className="text-[10px] font-bold text-text-muted/60 mt-1 uppercase tracking-wider">{sublabel}</p>
+        <p className="text-[10px] font-medium text-text-muted/60 mt-1 uppercase tracking-wider">{sublabel}</p>
       )}
     </div>
   );
@@ -90,17 +90,17 @@ function StatCard({
 
 function StatusBadge({ status }: { status: string }) {
   const config: Record<string, { bg: string; text: string; label: string; icon: React.ElementType }> = {
-    PENDING: { bg: 'bg-p-yellow', text: 'text-amber-700', label: 'Pending', icon: Clock },
-    APPROVED: { bg: 'bg-p-mint', text: 'text-teal-700', label: 'Approved', icon: Check },
-    REJECTED: { bg: 'bg-p-rose', text: 'text-rose-700', label: 'Rejected', icon: X },
-    CONFIRMED: { bg: 'bg-p-mint', text: 'text-teal-700', label: 'Confirmed', icon: Check },
-    COMPLETED: { bg: 'bg-p-blue', text: 'text-blue-700', label: 'Completed', icon: Check },
-    CANCELLED: { bg: 'bg-p-rose', text: 'text-rose-700', label: 'Cancelled', icon: X },
+    PENDING: { bg: 'bg-amber-100', text: 'text-amber-700', label: 'Pending', icon: Clock },
+    APPROVED: { bg: 'bg-emerald-100', text: 'text-emerald-700', label: 'Approved', icon: Check },
+    REJECTED: { bg: 'bg-red-100', text: 'text-red-700', label: 'Rejected', icon: X },
+    CONFIRMED: { bg: 'bg-emerald-100', text: 'text-emerald-700', label: 'Confirmed', icon: Check },
+    COMPLETED: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Completed', icon: Check },
+    CANCELLED: { bg: 'bg-red-100', text: 'text-red-700', label: 'Cancelled', icon: X },
   };
-  const c = config[status] ?? { bg: 'bg-p-purple', text: 'text-primary', label: status, icon: Clock };
+  const c = config[status] ?? { bg: 'bg-blue-100', text: 'text-blue-700', label: status, icon: Clock };
   const Icon = c.icon;
   return (
-    <span className={`px-2.5 py-1 ${c.bg} ${c.text} rounded-full text-[9px] font-black uppercase tracking-wider flex items-center gap-1 w-fit`}>
+    <span className={`px-2.5 py-1 ${c.bg} ${c.text} rounded-full text-[9px] font-bold uppercase tracking-wider flex items-center gap-1 w-fit`}>
       <Icon size={10} /> {c.label}
     </span>
   );
@@ -126,7 +126,7 @@ export default function AdminDashboardPage() {
     return (
       <div className="space-y-8">
         <header className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-p-purple rounded-2xl animate-pulse" />
+          <div className="w-12 h-12 bg-blue-100 rounded-2xl animate-pulse" />
           <div className="space-y-2">
             <div className="h-6 w-48 bg-surface rounded-lg animate-pulse" />
             <div className="h-3 w-32 bg-surface rounded-lg animate-pulse" />
@@ -134,12 +134,12 @@ export default function AdminDashboardPage() {
         </header>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="bg-surface rounded-3xl border border-border p-6 h-32 animate-pulse" />
+            <div key={i} className="bg-surface rounded-2xl border border-border p-6 h-32 animate-pulse" />
           ))}
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {[1, 2].map((i) => (
-            <div key={i} className="bg-surface rounded-3xl border border-border p-6 h-64 animate-pulse" />
+            <div key={i} className="bg-surface rounded-2xl border border-border p-6 h-64 animate-pulse" />
           ))}
         </div>
       </div>
@@ -148,9 +148,9 @@ export default function AdminDashboardPage() {
 
   if (error || !data) {
     return (
-      <div className="bg-surface border-2 border-dashed border-border rounded-[40px] p-16 text-center space-y-4">
+      <div className="bg-surface border border-dashed border-border rounded-2xl p-16 text-center space-y-4">
         <LayoutDashboard size={40} className="mx-auto text-text-muted" />
-        <p className="text-sm font-black uppercase tracking-widest text-text-muted">
+        <p className="text-sm font-medium uppercase tracking-widest text-text-muted">
           {error || 'Failed to load dashboard'}
         </p>
       </div>
@@ -178,12 +178,12 @@ export default function AdminDashboardPage() {
       {/* Header */}
       <header className="space-y-2">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-gradient-to-br from-pink-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20">
+          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20">
             <LayoutDashboard size={24} className="text-white" />
           </div>
           <div>
-            <h2 className="text-3xl font-black tracking-tight text-text-main">Admin Dashboard</h2>
-            <p className="text-text-muted font-bold text-xs uppercase tracking-widest">
+            <h2 className="text-3xl font-bold tracking-tight text-text-main">Admin Dashboard</h2>
+            <p className="text-text-muted font-medium text-xs uppercase tracking-widest">
               Platform overview & key metrics
             </p>
           </div>
@@ -203,14 +203,14 @@ export default function AdminDashboardPage() {
           label="Students"
           value={totals.students}
           icon={Users}
-          color="bg-gradient-to-br from-green-500 to-emerald-600"
+          color="bg-gradient-to-br from-emerald-500 to-green-600"
           href="/dashboard/admin/students"
         />
         <StatCard
           label="Tutors"
           value={totals.tutors}
           icon={UserCheck}
-          color="bg-gradient-to-br from-purple-500 to-pink-500"
+          color="bg-gradient-to-br from-indigo-500 to-purple-600"
           href="/dashboard/admin/tutors"
           sublabel={`${tutorApprovalRate}% approved`}
         />
@@ -226,74 +226,74 @@ export default function AdminDashboardPage() {
       {/* Breakdown Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Tutor Breakdown */}
-        <div className="bg-surface rounded-3xl border border-border p-6 space-y-4">
+        <div className="bg-surface rounded-2xl border border-border p-6 space-y-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-p-purple rounded-xl flex items-center justify-center">
-              <UserCheck size={20} className="text-primary" />
+            <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+              <UserCheck size={20} className="text-blue-600" />
             </div>
-            <h3 className="text-sm font-black uppercase tracking-widest text-text-main">Tutor Status</h3>
+            <h3 className="text-sm font-bold uppercase tracking-widest text-text-main">Tutor Status</h3>
           </div>
           <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 bg-p-yellow/20 rounded-2xl">
+            <div className="flex items-center justify-between p-3 bg-amber-50 rounded-2xl">
               <div className="flex items-center gap-2">
                 <Clock size={16} className="text-amber-600" />
-                <span className="text-xs font-black uppercase tracking-wider text-amber-700">Pending</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-amber-700">Pending</span>
               </div>
-              <span className="text-2xl font-black text-amber-700">{tutorBreakdown.pending}</span>
+              <span className="text-2xl font-bold text-amber-700">{tutorBreakdown.pending}</span>
             </div>
-            <div className="flex items-center justify-between p-3 bg-p-mint/20 rounded-2xl">
+            <div className="flex items-center justify-between p-3 bg-emerald-50 rounded-2xl">
               <div className="flex items-center gap-2">
-                <Check size={16} className="text-teal-600" />
-                <span className="text-xs font-black uppercase tracking-wider text-teal-700">Approved</span>
+                <Check size={16} className="text-emerald-600" />
+                <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">Approved</span>
               </div>
-              <span className="text-2xl font-black text-teal-700">{tutorBreakdown.approved}</span>
+              <span className="text-2xl font-bold text-emerald-700">{tutorBreakdown.approved}</span>
             </div>
-            <div className="flex items-center justify-between p-3 bg-p-rose/20 rounded-2xl">
+            <div className="flex items-center justify-between p-3 bg-red-50 rounded-2xl">
               <div className="flex items-center gap-2">
-                <X size={16} className="text-rose-600" />
-                <span className="text-xs font-black uppercase tracking-wider text-rose-700">Rejected</span>
+                <X size={16} className="text-red-600" />
+                <span className="text-xs font-bold uppercase tracking-wider text-red-700">Rejected</span>
               </div>
-              <span className="text-2xl font-black text-rose-700">{tutorBreakdown.rejected}</span>
+              <span className="text-2xl font-bold text-red-700">{tutorBreakdown.rejected}</span>
             </div>
           </div>
         </div>
 
         {/* Booking Breakdown */}
-        <div className="bg-surface rounded-3xl border border-border p-6 space-y-4">
+        <div className="bg-surface rounded-2xl border border-border p-6 space-y-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-p-blue rounded-xl flex items-center justify-center">
+            <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
               <Calendar size={20} className="text-blue-600" />
             </div>
-            <h3 className="text-sm font-black uppercase tracking-widest text-text-main">Booking Status</h3>
+            <h3 className="text-sm font-bold uppercase tracking-widest text-text-main">Booking Status</h3>
           </div>
           <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 bg-p-yellow/20 rounded-2xl">
+            <div className="flex items-center justify-between p-3 bg-amber-50 rounded-2xl">
               <div className="flex items-center gap-2">
                 <Clock size={16} className="text-amber-600" />
-                <span className="text-xs font-black uppercase tracking-wider text-amber-700">Pending</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-amber-700">Pending</span>
               </div>
-              <span className="text-2xl font-black text-amber-700">{bookingBreakdown.pending}</span>
+              <span className="text-2xl font-bold text-amber-700">{bookingBreakdown.pending}</span>
             </div>
-            <div className="flex items-center justify-between p-3 bg-p-mint/20 rounded-2xl">
+            <div className="flex items-center justify-between p-3 bg-emerald-50 rounded-2xl">
               <div className="flex items-center gap-2">
-                <Check size={16} className="text-teal-600" />
-                <span className="text-xs font-black uppercase tracking-wider text-teal-700">Confirmed</span>
+                <Check size={16} className="text-emerald-600" />
+                <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">Confirmed</span>
               </div>
-              <span className="text-2xl font-black text-teal-700">{bookingBreakdown.confirmed}</span>
+              <span className="text-2xl font-bold text-emerald-700">{bookingBreakdown.confirmed}</span>
             </div>
-            <div className="flex items-center justify-between p-3 bg-p-blue/20 rounded-2xl">
+            <div className="flex items-center justify-between p-3 bg-blue-50 rounded-2xl">
               <div className="flex items-center gap-2">
                 <Check size={16} className="text-blue-600" />
-                <span className="text-xs font-black uppercase tracking-wider text-blue-700">Completed</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-blue-700">Completed</span>
               </div>
-              <span className="text-2xl font-black text-blue-700">{bookingBreakdown.completed}</span>
+              <span className="text-2xl font-bold text-blue-700">{bookingBreakdown.completed}</span>
             </div>
-            <div className="flex items-center justify-between p-3 bg-p-rose/20 rounded-2xl">
+            <div className="flex items-center justify-between p-3 bg-red-50 rounded-2xl">
               <div className="flex items-center gap-2">
-                <X size={16} className="text-rose-600" />
-                <span className="text-xs font-black uppercase tracking-wider text-rose-700">Cancelled</span>
+                <X size={16} className="text-red-600" />
+                <span className="text-xs font-bold uppercase tracking-wider text-red-700">Cancelled</span>
               </div>
-              <span className="text-2xl font-black text-rose-700">{bookingBreakdown.cancelled}</span>
+              <span className="text-2xl font-bold text-red-700">{bookingBreakdown.cancelled}</span>
             </div>
           </div>
         </div>
@@ -302,12 +302,12 @@ export default function AdminDashboardPage() {
       {/* Monthly Trends */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Bookings Trend */}
-        <div className="bg-surface rounded-3xl border border-border p-6 space-y-4">
+        <div className="bg-surface rounded-2xl border border-border p-6 space-y-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center">
               <TrendingUp size={20} className="text-white" />
             </div>
-            <h3 className="text-sm font-black uppercase tracking-widest text-text-main">Monthly Bookings</h3>
+            <h3 className="text-sm font-bold uppercase tracking-widest text-text-main">Monthly Bookings</h3>
           </div>
           <div className="space-y-2">
             {sortedMonths.slice(-6).map((month) => {
@@ -318,13 +318,13 @@ export default function AdminDashboardPage() {
               const label = new Date(parseInt(year), parseInt(mon) - 1).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
               return (
                 <div key={month} className="flex items-center gap-3">
-                  <span className="text-[10px] font-black uppercase text-text-muted w-14 shrink-0">{label}</span>
-                  <div className="flex-1 h-8 bg-p-purple/30 rounded-xl overflow-hidden">
+                  <span className="text-[10px] font-bold uppercase text-text-muted w-14 shrink-0">{label}</span>
+                  <div className="flex-1 h-8 bg-slate-100 rounded-xl overflow-hidden">
                     <div
                       className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl transition-all duration-500 flex items-center justify-end px-3"
                       style={{ width: `${Math.max(pct, 4)}%` }}
                     >
-                      <span className="text-[10px] font-black text-white">{bm?.total ?? 0}</span>
+                      <span className="text-[10px] font-bold text-white">{bm?.total ?? 0}</span>
                     </div>
                   </div>
                 </div>
@@ -334,12 +334,12 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Users Trend */}
-        <div className="bg-surface rounded-3xl border border-border p-6 space-y-4">
+        <div className="bg-surface rounded-2xl border border-border p-6 space-y-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
+            <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
               <Users size={20} className="text-white" />
             </div>
-            <h3 className="text-sm font-black uppercase tracking-widest text-text-main">New Users Per Month</h3>
+            <h3 className="text-sm font-bold uppercase tracking-widest text-text-main">New Users Per Month</h3>
           </div>
           <div className="space-y-2">
             {sortedMonths.slice(-6).map((month) => {
@@ -350,13 +350,13 @@ export default function AdminDashboardPage() {
               const label = new Date(parseInt(year), parseInt(mon) - 1).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
               return (
                 <div key={month} className="flex items-center gap-3">
-                  <span className="text-[10px] font-black uppercase text-text-muted w-14 shrink-0">{label}</span>
-                  <div className="flex-1 h-8 bg-p-purple/30 rounded-xl overflow-hidden">
+                  <span className="text-[10px] font-bold uppercase text-text-muted w-14 shrink-0">{label}</span>
+                  <div className="flex-1 h-8 bg-slate-100 rounded-xl overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl transition-all duration-500 flex items-center justify-end px-3"
+                      className="h-full bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl transition-all duration-500 flex items-center justify-end px-3"
                       style={{ width: `${Math.max(pct, 4)}%` }}
                     >
-                      <span className="text-[10px] font-black text-white">{um?.total ?? 0}</span>
+                      <span className="text-[10px] font-bold text-white">{um?.total ?? 0}</span>
                     </div>
                   </div>
                 </div>
@@ -369,24 +369,24 @@ export default function AdminDashboardPage() {
       {/* Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recent Bookings */}
-        <div className="bg-surface rounded-3xl border border-border p-6 space-y-4">
+        <div className="bg-surface rounded-2xl border border-border p-6 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-p-blue rounded-xl flex items-center justify-center">
+              <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
                 <Calendar size={20} className="text-blue-600" />
               </div>
-              <h3 className="text-xs font-black uppercase tracking-widest text-text-main">Recent Bookings</h3>
+              <h3 className="text-xs font-bold uppercase tracking-widest text-text-main">Recent Bookings</h3>
             </div>
             <Link
               href="/dashboard/bookings"
-              className="text-[9px] font-black uppercase tracking-widest text-primary hover:underline"
+              className="text-[9px] font-bold uppercase tracking-widest text-primary hover:underline"
             >
               View All
             </Link>
           </div>
           <div className="space-y-2">
             {recent.bookings.map((b) => (
-              <div key={b.id} className="flex items-center justify-between p-3 bg-p-purple/20 rounded-2xl">
+              <div key={b.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl">
                 <div className="flex items-center gap-2 min-w-0">
                   <div className="relative w-8 h-8 shrink-0">
                     <Image
@@ -397,8 +397,8 @@ export default function AdminDashboardPage() {
                     />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[10px] font-black text-text-main truncate">{b.student.name ?? 'Unnamed'}</p>
-                    <p className="text-[8px] font-bold text-text-muted uppercase tracking-wider truncate">
+                    <p className="text-[10px] font-bold text-text-main truncate">{b.student.name ?? 'Unnamed'}</p>
+                    <p className="text-[8px] font-medium text-text-muted uppercase tracking-wider truncate">
                       with {b.tutor.name ?? 'Tutor'}
                     </p>
                   </div>
@@ -407,7 +407,7 @@ export default function AdminDashboardPage() {
               </div>
             ))}
             {recent.bookings.length === 0 && (
-              <p className="text-[10px] font-black uppercase tracking-widest text-text-muted text-center py-6">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted text-center py-6">
                 No recent bookings
               </p>
             )}
@@ -415,24 +415,24 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Recent Tutors */}
-        <div className="bg-surface rounded-3xl border border-border p-6 space-y-4">
+        <div className="bg-surface rounded-2xl border border-border p-6 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-p-mint rounded-xl flex items-center justify-center">
-                <UserCheck size={20} className="text-teal-600" />
+              <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
+                <UserCheck size={20} className="text-emerald-600" />
               </div>
-              <h3 className="text-xs font-black uppercase tracking-widest text-text-main">New Tutors</h3>
+              <h3 className="text-xs font-bold uppercase tracking-widest text-text-main">New Tutors</h3>
             </div>
             <Link
               href="/dashboard/admin/tutors"
-              className="text-[9px] font-black uppercase tracking-widest text-primary hover:underline"
+              className="text-[9px] font-bold uppercase tracking-widest text-primary hover:underline"
             >
               View All
             </Link>
           </div>
           <div className="space-y-2">
             {recent.tutors.map((t) => (
-              <div key={t.id} className="flex items-center justify-between p-3 bg-p-purple/20 rounded-2xl">
+              <div key={t.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl">
                 <div className="flex items-center gap-2 min-w-0">
                   <div className="relative w-8 h-8 shrink-0">
                     <Image
@@ -443,15 +443,15 @@ export default function AdminDashboardPage() {
                     />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[10px] font-black text-text-main truncate">{t.user.name ?? 'Unnamed'}</p>
-                    <p className="text-[8px] font-bold text-text-muted uppercase tracking-wider truncate">{t.user.email}</p>
+                    <p className="text-[10px] font-bold text-text-main truncate">{t.user.name ?? 'Unnamed'}</p>
+                    <p className="text-[8px] font-medium text-text-muted uppercase tracking-wider truncate">{t.user.email}</p>
                   </div>
                 </div>
                 <StatusBadge status={t.status} />
               </div>
             ))}
             {recent.tutors.length === 0 && (
-              <p className="text-[10px] font-black uppercase tracking-widest text-text-muted text-center py-6">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted text-center py-6">
                 No recent tutors
               </p>
             )}
@@ -459,24 +459,24 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Recent Students */}
-        <div className="bg-surface rounded-3xl border border-border p-6 space-y-4">
+        <div className="bg-surface rounded-2xl border border-border p-6 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-p-yellow rounded-xl flex items-center justify-center">
+              <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
                 <Users size={20} className="text-amber-600" />
               </div>
-              <h3 className="text-xs font-black uppercase tracking-widest text-text-main">New Students</h3>
+              <h3 className="text-xs font-bold uppercase tracking-widest text-text-main">New Students</h3>
             </div>
             <Link
               href="/dashboard/admin/students"
-              className="text-[9px] font-black uppercase tracking-widest text-primary hover:underline"
+              className="text-[9px] font-bold uppercase tracking-widest text-primary hover:underline"
             >
               View All
             </Link>
           </div>
           <div className="space-y-2">
             {recent.students.map((s) => (
-              <div key={s.id} className="flex items-center justify-between p-3 bg-p-purple/20 rounded-2xl">
+              <div key={s.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl">
                 <div className="flex items-center gap-2 min-w-0">
                   <div className="relative w-8 h-8 shrink-0">
                     <Image
@@ -487,17 +487,17 @@ export default function AdminDashboardPage() {
                     />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[10px] font-black text-text-main truncate">{s.user.name ?? 'Unnamed'}</p>
-                    <p className="text-[8px] font-bold text-text-muted uppercase tracking-wider truncate">{s.user.email}</p>
+                    <p className="text-[10px] font-bold text-text-main truncate">{s.user.name ?? 'Unnamed'}</p>
+                    <p className="text-[8px] font-medium text-text-muted uppercase tracking-wider truncate">{s.user.email}</p>
                   </div>
                 </div>
-                <span className="px-2 py-0.5 bg-p-purple rounded-full text-[8px] font-black uppercase text-primary">
+                <span className="px-2 py-0.5 bg-blue-100 rounded-full text-[8px] font-bold uppercase text-blue-600">
                   {s.schoolLevel === 'ELEMENTARY' ? 'Elem' : 'HS'}
                 </span>
               </div>
             ))}
             {recent.students.length === 0 && (
-              <p className="text-[10px] font-black uppercase tracking-widest text-text-muted text-center py-6">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted text-center py-6">
                 No recent students
               </p>
             )}

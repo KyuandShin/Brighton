@@ -248,7 +248,9 @@ export default function TutorProfilePage() {
             </div>
             <div>
               <p className="text-xs font-black uppercase tracking-widest text-[#2b8a3e]">Request Sent!</p>
-              <p className="text-[10px] font-bold text-[#2b8a3e]/70">Waiting for tutor to confirm.</p>
+              <p className="text-[10px] font-bold text-[#2b8a3e]/70">
+                {user?.role === 'ADMIN' ? 'Auto-confirmed as admin.' : 'Waiting for tutor to confirm.'}
+              </p>
             </div>
           </motion.div>
         )}
@@ -490,9 +492,13 @@ export default function TutorProfilePage() {
                 <div className="p-4 rounded-2xl flex items-center gap-3 border-2 border-amber-200 bg-p-yellow">
                   <AlertCircle size={18} className="text-amber-600 shrink-0" />
                   <div>
-                    <p className="text-xs font-black text-amber-700 uppercase tracking-tight">Waiting for Confirmation</p>
+                    <p className="text-xs font-black text-amber-700 uppercase tracking-tight">
+                    {user?.role === 'ADMIN' ? 'Session Confirmed' : 'Waiting for Confirmation'}
+                  </p>
                     <p className="text-[9px] font-bold text-amber-600/70">
-                      The tutor needs to accept your request. You'll be notified once confirmed.
+                      {user?.role === 'ADMIN'
+                        ? 'As an admin, your bookings are automatically confirmed.'
+                        : 'The tutor needs to accept your request. You\'ll be notified once confirmed.'}
                     </p>
                   </div>
                 </div>

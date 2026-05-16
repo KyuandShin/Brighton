@@ -29,7 +29,8 @@ export async function GET(req: NextRequest) {
             name: true,
             email: true,
             image: true,
-            createdAt: true
+            createdAt: true,
+            isBanned: true
           }
         }
       },

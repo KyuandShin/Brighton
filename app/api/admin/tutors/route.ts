@@ -28,6 +28,7 @@ export async function GET(req: NextRequest) {
         education: true,
         certifications: true,
         availability: true,
+        subjects: { include: { subject: true } },
       },
       // Order by the creation date of the tutor profile itself as a fallback
       orderBy: {
@@ -43,6 +44,7 @@ export async function GET(req: NextRequest) {
         verificationStatus: tutor.verificationStatus,
         headline: tutor.headline,
         bio: tutor.bio,
+        introVideoUrl: tutor.introVideoUrl,
         pricingPerHour: tutor.pricingPerHour,
         createdAt: tutor.user.createdAt,
         user: {
@@ -51,7 +53,15 @@ export async function GET(req: NextRequest) {
           email: tutor.user.email,
           image: tutor.user.image,
           createdAt: tutor.user.createdAt,
+          isBanned: tutor.user.isBanned,
+          isVerified: tutor.user.isVerified,
         },
+        education: tutor.education,
+        certifications: tutor.certifications,
+        availability: tutor.availability,
+        subjects: tutor.subjects.map((ts) => ({
+          subject: { id: ts.subject.id, name: ts.subject.name }
+        })),
       }));
 
     return NextResponse.json(formatted);
