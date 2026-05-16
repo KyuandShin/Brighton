@@ -4,11 +4,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { authClient } from '@/lib/auth/client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Mail, Lock, ChevronRight, AlertCircle, ArrowLeft, Eye, EyeOff, Loader2, RefreshCw, Check, KeyRound, Sparkles } from 'lucide-react';
+import { Mail, Lock, ChevronRight, AlertCircle, ArrowLeft, Eye, EyeOff, Loader2, RefreshCw, Check, Sparkles } from 'lucide-react';
 import { useCurrentUser } from '@/lib/hooks/useCurrentUser';
 
-type LoginMode = 'password' | 'otp' | 'forgot' | 'reverify';
-type OtpStep = 'email' | 'otp';
+type LoginMode = 'password' | 'forgot' | 'reverify';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -25,19 +24,13 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPw, setShowPw]     = useState(false);
 
-  // OTP flow (for sign-in)
-  const [otpStep, setOtpStep]   = useState<OtpStep>('email');
-  const [otp, setOtp]           = useState('');
-
   // forgot password
   const [forgotSent, setForgotSent] = useState(false);
 
-  // ── Re-verification flow (when user signs in but is unverified) ──
-  const [reVerifyOtp, setReVerifyOtp] = useState('');
-  const [reVerifyOtpSent, setReVerifyOtpSent] = useState(false);
+  // ── Re-verification flow (Resend email link) ──
+  const [reVerifySent, setReVerifySent] = useState(false);
   const [reVerifyLoading, setReVerifyLoading] = useState(false);
   const [reVerifyError, setReVerifyError] = useState('');
-  const [reVerifyVerified, setReVerifyVerified] = useState(false);
 
   // Track which email the last sign-in attempt used (for re-verify)
   const [lastLoginEmail, setLastLoginEmail] = useState('');
@@ -49,6 +42,9 @@ export default function LoginPage() {
     const params = new URLSearchParams(window.location.search);
     if (params.get('verified') === 'true') {
       setVerificationMessage('Email verified! You can now log in.');
+    }
+    if (params.get('verified') === 'sent') {
+      setVerificationMessage('Verification link sent! Check your email inbox.');
     }
     const errorParam = params.get('error');
     if (errorParam === 'already_verified') {
@@ -78,8 +74,7 @@ export default function LoginPage() {
             try { await authClient.signOut(); } catch {}
             setLoading(false);
             setMode('reverify');
-            setReVerifyOtp('');
-            setReVerifyOtpSent(false);
+            setReVerifySent(false);
             return;
           }
           if (meData.error === 'TUTOR_PENDING') {
@@ -156,32 +151,6 @@ export default function LoginPage() {
     }
   };
 
-  const handleSendOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true); setError('');
-    try {
-      const { error: sendError } = await authClient.emailOtp.sendVerificationOtp({ email, type: 'sign-in' });
-      if (sendError) { setError(sendError.message || 'Failed to send verification code.'); setLoading(false); return; }
-      setOtpStep('otp');
-    } catch (err: unknown) {
-      setError((err instanceof Error ? err.message : null) || 'An unexpected error occurred. Please try again.');
-    }
-    finally { setLoading(false); }
-  };
-
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true); setError('');
-    try {
-      const { error: signInError } = await authClient.signIn.emailOtp({ email, otp });
-      if (signInError) { setError(signInError.message || 'Invalid verification code.'); setLoading(false); return; }
-      await afterSignIn();
-    } catch (err: unknown) {
-      setError((err instanceof Error ? err.message : null) || 'An unexpected error occurred. Please try again.');
-    }
-    finally { setLoading(false); }
-  };
-
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true); setError('');
@@ -199,43 +168,23 @@ export default function LoginPage() {
     finally { setLoading(false); }
   };
 
-  // ── Re-verification handlers ──────────────────────────────────────────
-  const handleReVerifySendOtp = async () => {
+  // ── Re-verification handler (Resend email link) ───────────────────────
+  const handleReVerify = async () => {
     setReVerifyError('');
     setReVerifyLoading(true);
     try {
-      await authClient.emailOtp.sendVerificationOtp({
-        email: lastLoginEmail,
-        type: 'email-verification',
-      });
-      setReVerifyOtpSent(true);
-    } catch {
-      setReVerifyError('Failed to send verification code. Please try again.');
-    } finally {
-      setReVerifyLoading(false);
-    }
-  };
-
-  const handleReVerifySubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setReVerifyError('');
-    setReVerifyLoading(true);
-    try {
-      const { error: verifyError } = await authClient.signIn.emailOtp({
-        email: lastLoginEmail,
-        otp: reVerifyOtp,
-      });
-      if (verifyError) {
-        setReVerifyError(verifyError.message || 'Invalid code. Please check and try again.');
-        return;
-      }
-      // Mark verified in DB
-      await fetch('/api/verify-email', {
+      // Call the server to resend the verification email via Resend
+      const res = await fetch('/api/auth/resend-verification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: lastLoginEmail }),
       });
-      setReVerifyVerified(true);
+      const data = await res.json();
+      if (!res.ok) {
+        setReVerifyError(data.error || 'Failed to resend verification email.');
+        return;
+      }
+      setReVerifySent(true);
     } catch {
       setReVerifyError('Something went wrong. Please try again.');
     } finally {
@@ -243,147 +192,116 @@ export default function LoginPage() {
     }
   };
 
-  const handleReVerifyResendOtp = async () => {
-    setReVerifyError('');
-    try {
-      await authClient.emailOtp.sendVerificationOtp({
-        email: lastLoginEmail,
-        type: 'email-verification',
-      });
-    } catch {
-      setReVerifyError('Failed to resend code.');
-    }
-  };
-
   const resetMode = (m: LoginMode) => {
     setMode(m); setError('');
-    setOtp(''); setOtpStep('email'); setForgotSent(false);
-    setReVerifyOtp(''); setReVerifyOtpSent(false); setReVerifyError('');
+    setForgotSent(false);
+    setReVerifySent(false); setReVerifyError('');
   };
 
   // ── Re-verify success screen ─────────────────────────────────────────
-  if (mode === 'reverify' && reVerifyVerified) {
+  if (mode === 'reverify' && reVerifySent) {
     return (
-      <div className="flex flex-col gap-6">
-        <div className="text-center space-y-3 pb-2">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-p-mint rounded-full shadow-sm">
-            <Sparkles size={14} className="text-teal-600" />
-            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-teal-700">Email Verified!</span>
+      <div className="flex flex-col gap-5">
+        <div className="text-center space-y-2 pb-1">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-p-mint rounded-full shadow-sm">
+            <Sparkles size={12} className="text-teal-600" />
+            <span className="text-[8px] font-black uppercase tracking-[0.3em] text-teal-700">Email Sent!</span>
           </div>
-          <h2 className="text-3xl font-black tracking-tight">
-            <span className="gradient-text">You're All Set!</span>
+          <h2 className="text-2xl font-black tracking-tight">
+            <span className="gradient-text">Check Your Email</span>
           </h2>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted">
-            Your account is verified and ready
+          <p className="text-[9px] font-bold uppercase tracking-widest text-text-muted">
+            Verification link on its way
           </p>
         </div>
 
-        <div className="bg-surface border-2 border-border rounded-[32px] p-8 text-center space-y-6">
-          <div className="w-20 h-20 bg-p-mint rounded-3xl flex items-center justify-center mx-auto">
-            <Check size={36} className="text-teal-700" />
+        <div className="bg-surface border-2 border-border rounded-[20px] p-6 text-center space-y-4">
+          <div className="w-16 h-16 bg-p-mint rounded-2xl flex items-center justify-center mx-auto">
+            <Mail size={28} className="text-teal-700" />
           </div>
-          <div className="space-y-2">
-            <p className="text-lg font-black text-text-main tracking-tight">Email Verified Successfully!</p>
-            <p className="text-xs font-bold text-text-muted leading-relaxed max-w-sm mx-auto">
-              Your account for <span className="text-primary font-black">{lastLoginEmail}</span> is now active. You can log in right away.
+          <div className="space-y-1.5">
+            <p className="text-base font-black text-text-main tracking-tight">Verify your email</p>
+            <p className="text-[11px] font-bold text-text-muted leading-relaxed max-w-sm mx-auto">
+              We sent a verification link to <span className="text-primary font-black">{lastLoginEmail}</span>. Click the link to activate your account, then log in.
             </p>
           </div>
-          <div className="flex flex-col gap-3 pt-2">
+          <div className="flex flex-col gap-2.5 pt-1">
             <button
               onClick={() => resetMode('password')}
-              className="block w-full py-4 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20 hover:bg-accent-strong transition-all"
+              className="block w-full py-3.5 bg-primary text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20 hover:bg-accent-strong transition-all"
             >
               Back to Login
             </button>
           </div>
         </div>
+
+        <p className="text-[8px] font-bold text-text-muted text-center">
+          Didn't receive it? Check spam, or{' '}
+          <button onClick={handleReVerify} className="text-primary font-black hover:underline">
+            click to resend
+          </button>
+        </p>
+
+        <button
+          onClick={() => resetMode('password')}
+          className="text-[9px] font-black uppercase tracking-widest text-text-muted hover:text-primary transition-all text-center"
+        >
+          ← Back to Login
+        </button>
       </div>
     );
   }
 
-  // ── Re-verify OTP screen ──────────────────────────────────────────────
+  // ── Re-verify screen (send email) ──────────────────────────────
   if (mode === 'reverify') {
     return (
-      <div className="flex flex-col gap-6">
-        <div className="text-center space-y-3 pb-2">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-p-purple rounded-full shadow-sm">
-            <KeyRound size={14} className="text-primary" />
-            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-primary">Verify Email</span>
+      <div className="flex flex-col gap-5">
+        <div className="text-center space-y-2 pb-1">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-p-purple rounded-full shadow-sm">
+            <Mail size={12} className="text-primary" />
+            <span className="text-[8px] font-black uppercase tracking-[0.3em] text-primary">Verify Email</span>
           </div>
-          <h2 className="text-3xl font-black tracking-tight">
-            <span className="gradient-text">Enter Your Code</span>
+          <h2 className="text-2xl font-black tracking-tight">
+            <span className="gradient-text">Verify Your Email</span>
           </h2>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted">
-            {!reVerifyOtpSent
-              ? 'We need to verify your email before you can sign in.'
-              : <>We sent a 6-digit code to <span className="text-primary font-black">{lastLoginEmail}</span></>
-            }
+          <p className="text-[9px] font-bold uppercase tracking-widest text-text-muted">
+            You need to verify before signing in
           </p>
         </div>
 
         {reVerifyError && (
-          <div className="flex items-start gap-3 bg-p-yellow border-2 border-[#fcc419]/30 text-[#e67700] p-4 rounded-2xl">
-            <AlertCircle size={16} className="shrink-0 mt-0.5" />
-            <p className="text-[10px] font-black uppercase tracking-widest leading-relaxed">{reVerifyError}</p>
+          <div className="flex items-start gap-2.5 bg-p-yellow border-2 border-[#fcc419]/30 text-[#e67700] p-3 rounded-xl">
+            <AlertCircle size={14} className="shrink-0 mt-0.5" />
+            <p className="text-[9px] font-black uppercase tracking-widest leading-relaxed">{reVerifyError}</p>
           </div>
         )}
 
-        {!reVerifyOtpSent ? (
+        <div className="bg-surface border-2 border-border rounded-[20px] p-5 flex flex-col items-center gap-4 text-center">
+          <div className="w-14 h-14 bg-p-purple rounded-2xl flex items-center justify-center">
+            <Mail size={24} className="text-primary" />
+          </div>
+          <div>
+            <p className="text-sm font-black text-text-main">We'll send a verification link</p>
+            <p className="text-[10px] font-bold text-text-muted mt-1">
+              to <span className="text-primary font-black">{lastLoginEmail}</span>
+            </p>
+          </div>
           <button
-            onClick={handleReVerifySendOtp}
+            onClick={handleReVerify}
             disabled={reVerifyLoading}
-            className="w-full py-5 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20 hover:bg-accent-strong transition-all disabled:opacity-50 flex items-center justify-center gap-2.5"
+            className="w-full py-3.5 bg-primary text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20 hover:bg-accent-strong transition-all disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {reVerifyLoading ? (
-              <><Loader2 size={16} className="animate-spin" /> Sending Code...</>
+              <><Loader2 size={14} className="animate-spin" /> Sending...</>
             ) : (
-              <><Mail size={16} /> Send Verification Code</>
+              <><Mail size={14} /> Send Verification Link</>
             )}
           </button>
-        ) : (
-          <form onSubmit={handleReVerifySubmit} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted ml-1">Verification Code</label>
-              <input
-                type="text"
-                inputMode="numeric"
-                maxLength={6}
-                value={reVerifyOtp}
-                onChange={(e) => setReVerifyOtp(e.target.value.replace(/[^0-9]/g, ''))}
-                placeholder="000000"
-                autoFocus
-                className="w-full bg-surface-elevated border-2 border-border rounded-2xl px-6 py-5 text-4xl font-black text-text-main text-center tracking-[0.5em] focus:outline-none focus:border-primary transition-all"
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={reVerifyLoading || reVerifyOtp.length !== 6}
-              className="group relative overflow-hidden bg-gradient-to-r from-primary to-pink-500 text-white font-black text-xs uppercase tracking-[0.2em] py-5 rounded-2xl transition-all shadow-xl shadow-primary/25 disabled:opacity-50 flex items-center justify-center gap-2.5"
-            >
-              {reVerifyLoading ? (
-                <><Loader2 size={16} className="animate-spin" /> Verifying...</>
-              ) : (
-                <><Check size={16} /> Verify & Continue</>
-              )}
-            </button>
-          </form>
-        )}
-
-        {reVerifyOtpSent && (
-          <p className="text-[9px] font-bold text-text-muted text-center">
-            Didn't receive it?{' '}
-            <button
-              onClick={handleReVerifyResendOtp}
-              className="text-primary font-black hover:underline"
-            >
-              Resend code
-            </button>
-          </p>
-        )}
+        </div>
 
         <button
           onClick={() => resetMode('password')}
-          className="text-[10px] font-black uppercase tracking-widest text-text-muted hover:text-primary transition-all text-center"
+          className="text-[9px] font-black uppercase tracking-widest text-text-muted hover:text-primary transition-all text-center"
         >
           ← Back to Login
         </button>
@@ -395,27 +313,26 @@ export default function LoginPage() {
   const title = mode === 'forgot' ? 'Reset Password' : 'Welcome Back';
   const subtitle =
     mode === 'password' ? 'Sign in to your account' :
-    mode === 'otp'      ? (otpStep === 'email' ? 'Sign in with a one-time code' : 'Enter verification code') :
                           'We\'ll email you a reset link';
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-5">
       <div className="text-center space-y-1">
-        <h2 className="text-3xl font-black tracking-tight text-text-main">{title}</h2>
-        <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted">{subtitle}</p>
+        <h2 className="text-2xl font-black tracking-tight text-text-main">{title}</h2>
+        <p className="text-[9px] font-bold uppercase tracking-widest text-text-muted">{subtitle}</p>
       </div>
 
       {verificationMessage && (
-        <div className="bg-[#d3f9d8] border border-[#8ce99a] text-[#2b8a3e] p-4 rounded-2xl flex items-start gap-3">
-          <Check size={16} className="shrink-0 mt-0.5" />
-          <p className="text-[10px] font-black uppercase tracking-widest leading-relaxed">{verificationMessage}</p>
+        <div className="bg-[#d3f9d8] border border-[#8ce99a] text-[#2b8a3e] p-3 rounded-xl flex items-start gap-2.5">
+          <Check size={14} className="shrink-0 mt-0.5" />
+          <p className="text-[9px] font-black uppercase tracking-widest leading-relaxed">{verificationMessage}</p>
         </div>
       )}
 
       {error && (
-        <div className="bg-p-yellow border border-[#fcc419]/20 text-[#f08c00] p-4 rounded-2xl flex items-start gap-3">
-          <AlertCircle size={16} className="shrink-0 mt-0.5" />
-          <p className="text-[10px] font-black uppercase tracking-widest leading-relaxed">{error}</p>
+        <div className="bg-p-yellow border border-[#fcc419]/20 text-[#f08c00] p-3 rounded-xl flex items-start gap-2.5">
+          <AlertCircle size={14} className="shrink-0 mt-0.5" />
+          <p className="text-[9px] font-black uppercase tracking-widest leading-relaxed">{error}</p>
         </div>
       )}
 
@@ -427,12 +344,12 @@ export default function LoginPage() {
             type="button"
             onClick={handleGoogleLogin}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-3 bg-surface border-2 border-border hover:border-primary/30 rounded-2xl py-4 font-black text-xs uppercase tracking-widest text-text-main transition-all hover:shadow-md disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-2.5 bg-surface border-2 border-border hover:border-primary/30 rounded-xl py-3.5 font-black text-[10px] uppercase tracking-widest text-text-main transition-all hover:shadow-md disabled:opacity-50"
           >
             {loading ? (
-              <Loader2 size={18} className="animate-spin text-primary" />
+              <Loader2 size={16} className="animate-spin text-primary" />
             ) : (
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
+              <svg className="w-4 h-4" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                 <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
@@ -442,60 +359,55 @@ export default function LoginPage() {
             {loading ? 'Signing in...' : 'Continue with Google'}
           </button>
 
-          <div className="flex items-center gap-3">
-          <div className="flex-1 h-px bg-border" />
-            <span className="text-[9px] font-black uppercase tracking-widest text-text-muted">or</span>
+          <div className="flex items-center gap-2.5">
+            <div className="flex-1 h-px bg-border" />
+            <span className="text-[8px] font-black uppercase tracking-widest text-text-muted">or</span>
             <div className="flex-1 h-px bg-border" />
           </div>
 
-          <form onSubmit={handlePasswordLogin} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted ml-1">Email</label>
+          <form onSubmit={handlePasswordLogin} className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[9px] font-black uppercase tracking-[0.2em] text-text-muted ml-1">Email</label>
               <div className="relative group">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-primary transition-colors" size={16} />
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-primary transition-colors" size={14} />
                 <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-surface-elevated border border-border rounded-2xl pl-12 pr-4 py-4 text-sm font-bold focus:outline-none focus:border-primary transition-all placeholder:text-text-muted/50"
+                  className="w-full bg-surface-elevated border border-border rounded-xl pl-10 pr-3 py-3 text-sm font-bold focus:outline-none focus:border-primary transition-all placeholder:text-text-muted/50"
                   placeholder="email@academic.edu" required />
               </div>
             </div>
 
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-1.5">
               <div className="flex justify-between items-center">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted ml-1">Password</label>
+                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-text-muted ml-1">Password</label>
                 <button type="button" onClick={() => resetMode('forgot')}
-                  className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline">
+                  className="text-[9px] font-black uppercase tracking-widest text-primary hover:underline">
                   Forgot Password?
                 </button>
               </div>
               <div className="relative group">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-primary transition-colors" size={16} />
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-primary transition-colors" size={14} />
                 <input type={showPw ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-surface-elevated border border-border rounded-2xl pl-12 pr-12 py-4 text-sm font-bold focus:outline-none focus:border-primary transition-all placeholder:text-text-muted/50"
+                  className="w-full bg-surface-elevated border border-border rounded-xl pl-10 pr-10 py-3 text-sm font-bold focus:outline-none focus:border-primary transition-all placeholder:text-text-muted/50"
                   placeholder="••••••••" required />
                 <button type="button" onClick={() => setShowPw((v) => !v)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted hover:text-primary transition-colors">
-                  {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-primary transition-colors">
+                  {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
                 </button>
               </div>
             </div>
 
             <button type="submit" disabled={loading}
-              className="bg-primary hover:bg-accent-strong text-white font-black text-xs uppercase tracking-[0.2em] py-5 rounded-2xl mt-2 transition-all shadow-xl shadow-primary/20 disabled:opacity-50 flex items-center justify-center gap-2">
+              className="bg-primary hover:bg-accent-strong text-white font-black text-[10px] uppercase tracking-[0.2em] py-3.5 rounded-xl mt-1 transition-all shadow-xl shadow-primary/20 disabled:opacity-50 flex items-center justify-center gap-2">
               {loading ? (
-                <><Loader2 size={16} className="animate-spin" /> Signing In...</>
+                <><Loader2 size={14} className="animate-spin" /> Signing In...</>
               ) : (
-                <><ChevronRight size={16} /> Sign In</>
+                <><ChevronRight size={14} /> Sign In</>
               )}
             </button>
           </form>
 
-          <button type="button" onClick={() => resetMode('otp')}
-            className="text-[10px] font-black uppercase tracking-widest text-text-muted hover:text-primary transition-colors text-center">
-            Sign in with Email Code instead
-          </button>
-
-          <div className="bg-p-yellow/50 border border-border rounded-2xl p-4">
-            <p className="text-[9px] font-bold text-text-muted text-center leading-relaxed">
+          <div className="bg-p-yellow/50 border border-border rounded-xl p-3">
+            <p className="text-[8px] font-bold text-text-muted text-center leading-relaxed">
               Didn't verify your email during signup?{' '}
               <button
                 type="button"
@@ -506,69 +418,14 @@ export default function LoginPage() {
                   }
                   setLastLoginEmail(email);
                   setMode('reverify');
-                  setReVerifyOtp('');
-                  setReVerifyOtpSent(false);
+                  setReVerifySent(false);
                 }}
                 className="text-primary font-black hover:underline"
               >
-                Resend verification code
+                Resend verification link
               </button>
             </p>
           </div>
-        </>
-      )}
-
-      {/* ── OTP MODE ── */}
-      {mode === 'otp' && (
-        <>
-          <button type="button" onClick={() => resetMode('password')}
-            className="flex items-center gap-2 text-text-muted text-xs font-bold uppercase tracking-widest hover:text-text-main transition-colors">
-            <ArrowLeft size={14} /> Back to password login
-          </button>
-
-          {otpStep === 'email' ? (
-            <form onSubmit={handleSendOtp} className="flex flex-col gap-4">
-              <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted ml-1">Email</label>
-                <div className="relative group">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-primary transition-colors" size={16} />
-                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-surface-elevated border border-border rounded-2xl pl-12 pr-4 py-4 text-sm font-bold focus:outline-none focus:border-primary transition-all placeholder:text-text-muted/50"
-                    placeholder="email@academic.edu" required />
-                </div>
-              </div>
-              <button type="submit" disabled={loading}
-                className="bg-primary hover:bg-accent-strong text-white font-black text-xs uppercase tracking-[0.2em] py-5 rounded-2xl transition-all shadow-xl shadow-primary/20 disabled:opacity-50 flex items-center justify-center gap-2">
-                {loading ? 'Sending Code...' : 'Send Verification Code'}
-                {!loading && <ChevronRight size={16} />}
-              </button>
-            </form>
-          ) : (
-            <form onSubmit={handleVerifyOtp} className="flex flex-col gap-4">
-              <button type="button" onClick={() => { setOtpStep('email'); setOtp(''); setError(''); }}
-                className="flex items-center gap-2 text-text-muted text-xs font-bold uppercase tracking-widest hover:text-text-main transition-colors">
-                <ArrowLeft size={14} /> Back to email
-              </button>
-              <div className="bg-p-purple border border-border p-4 rounded-2xl">
-                <p className="text-xs font-bold text-primary">Code sent to <span className="font-black">{email}</span></p>
-              </div>
-              <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted ml-1">Verification Code</label>
-                <div className="relative group">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-primary transition-colors" size={16} />
-                  <input type="text" inputMode="numeric" maxLength={6} value={otp}
-                    onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, ''))}
-                    className="w-full bg-surface-elevated border border-border rounded-2xl pl-12 pr-4 py-4 text-sm font-bold focus:outline-none focus:border-primary transition-all text-center tracking-[1em]"
-                    placeholder="000000" required />
-                </div>
-              </div>
-              <button type="submit" disabled={loading || otp.length !== 6}
-              className="bg-primary hover:bg-accent-strong text-white font-black text-xs uppercase tracking-[0.2em] py-5 rounded-2xl transition-all shadow-xl shadow-primary/20 disabled:opacity-50 flex items-center justify-center gap-2">
-                {loading ? 'Verifying...' : 'Verify & Sign In'}
-                {!loading && <ChevronRight size={16} />}
-              </button>
-            </form>
-          )}
         </>
       )}
 
@@ -576,38 +433,38 @@ export default function LoginPage() {
       {mode === 'forgot' && (
         <>
           <button type="button" onClick={() => resetMode('password')}
-            className="flex items-center gap-2 text-text-muted text-xs font-bold uppercase tracking-widest hover:text-text-main transition-colors">
-            <ArrowLeft size={14} /> Back to login
+            className="flex items-center gap-2 text-text-muted text-[10px] font-bold uppercase tracking-widest hover:text-text-main transition-colors">
+            <ArrowLeft size={12} /> Back to login
           </button>
 
           {forgotSent ? (
-            <div className="bg-[#d3f9d8] border border-[#8ce99a] p-6 rounded-2xl text-center space-y-2">
+            <div className="bg-[#d3f9d8] border border-[#8ce99a] p-5 rounded-xl text-center space-y-1.5">
               <p className="text-sm font-black text-[#2b8a3e] uppercase tracking-widest">Reset Email Sent!</p>
-              <p className="text-xs font-bold text-[#2b8a3e]/70">Check your inbox at <span className="font-black">{email}</span> and follow the link to reset your password.</p>
+              <p className="text-[11px] font-bold text-[#2b8a3e]/70">Check your inbox at <span className="font-black">{email}</span> and follow the link to reset your password.</p>
             </div>
           ) : (
-            <form onSubmit={handleForgotPassword} className="flex flex-col gap-4">
-              <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted ml-1">Email</label>
+            <form onSubmit={handleForgotPassword} className="flex flex-col gap-3">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-text-muted ml-1">Email</label>
                 <div className="relative group">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-primary transition-colors" size={16} />
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-primary transition-colors" size={14} />
                   <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-surface-elevated border border-border rounded-2xl pl-12 pr-4 py-4 text-sm font-bold focus:outline-none focus:border-primary transition-all placeholder:text-text-muted/50"
+                    className="w-full bg-surface-elevated border border-border rounded-xl pl-10 pr-3 py-3 text-sm font-bold focus:outline-none focus:border-primary transition-all placeholder:text-text-muted/50"
                     placeholder="email@academic.edu" required />
                 </div>
               </div>
               <button type="submit" disabled={loading}
-              className="bg-primary hover:bg-accent-strong text-white font-black text-xs uppercase tracking-[0.2em] py-5 rounded-2xl transition-all shadow-xl shadow-primary/20 disabled:opacity-50 flex items-center justify-center gap-2">
+                className="bg-primary hover:bg-accent-strong text-white font-black text-[10px] uppercase tracking-[0.2em] py-3.5 rounded-xl transition-all shadow-xl shadow-primary/20 disabled:opacity-50 flex items-center justify-center gap-2">
                 {loading ? 'Sending...' : 'Send Reset Link'}
-                {!loading && <ChevronRight size={16} />}
+                {!loading && <ChevronRight size={14} />}
               </button>
             </form>
           )}
         </>
       )}
 
-      <div className="text-center pt-2">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted">
+      <div className="text-center pt-1">
+        <p className="text-[9px] font-bold uppercase tracking-widest text-text-muted">
           Don't have an account?{' '}
           <Link href="/signup" className="text-primary hover:underline font-black ml-1">Sign Up</Link>
         </p>

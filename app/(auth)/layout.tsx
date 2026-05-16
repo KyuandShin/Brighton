@@ -75,7 +75,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       ))}
 
       {/* Auth card - using CSS variables so it responds to dark mode */}
-      <div className="w-full max-w-md bg-surface/92 backdrop-blur-sm rounded-4xl shadow-[0_24px_90px_rgba(147,51,234,0.08)] p-10 border border-p-purple/20 relative z-10 dark:shadow-[0_24px_90px_rgba(168,85,247,0.10)]">
+      <div className="w-full max-w-md bg-surface/92 backdrop-blur-sm rounded-[32px] shadow-[0_24px_90px_rgba(147,51,234,0.08)] p-6 sm:p-10 border border-p-purple/20 relative z-10 dark:shadow-[0_24px_90px_rgba(168,85,247,0.10)]">
         <div className="flex flex-col items-center mb-10">
           <Link href="/" className="flex flex-col items-center group transition-transform hover:scale-105">
             <div className="w-14 h-14 logo-halo flex items-center justify-center border-2 border-p-purple mb-6">
