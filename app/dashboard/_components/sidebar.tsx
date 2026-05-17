@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { Home, BookOpen, Users, Calendar, Settings, LogOut, Shield, UserCheck, Ban } from 'lucide-react';
+import { Home, BookOpen, Users, Calendar, Settings, LogOut, Shield, UserCheck, Ban, MessageSquare, TrendingUp } from 'lucide-react';
 import { useCurrentUser } from '@/lib/hooks/useCurrentUser';
 import { authClient } from '@/lib/auth/client';
 
@@ -35,8 +35,10 @@ export function Sidebar() {
   const navItems = [
     { name: 'Dashboard', href: '/dashboard', icon: Home },
     { name: 'Placement Test', href: '/dashboard/test', icon: BookOpen },
+    { name: 'Test History', href: '/dashboard/test-history', icon: TrendingUp },
     ...(isStudent ? [{ name: 'Find Tutors', href: '/dashboard/tutors', icon: Users }] : []),
     { name: 'My Classes', href: '/dashboard/classes', icon: Calendar },
+    { name: 'Messages', href: '/dashboard/messages', icon: MessageSquare },
     { name: 'Settings', href: '/dashboard/settings', icon: Settings },
   ];
 

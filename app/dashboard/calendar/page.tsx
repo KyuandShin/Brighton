@@ -118,9 +118,15 @@ export default function CalendarPage() {
                   {date.getDate()}
                   {hasBookings && (
                     <div className="absolute bottom-1.5 flex gap-0.5">
-                      {dayBookings.slice(0, 3).map((_, i) => (
-                        <div key={i} className={`w-1.5 h-1.5 rounded-full ${sel ? 'bg-white' : 'bg-primary'}`} />
-                      ))}
+                      {dayBookings.slice(0, 4).map((b, i) => {
+                        let dotColor = 'bg-primary';
+                        if (b.status === 'CANCELLED') dotColor = 'bg-rose-400';
+                        else if (b.status === 'COMPLETED') dotColor = 'bg-teal-400';
+                        else if (b.status === 'PENDING') dotColor = 'bg-amber-400';
+                        return (
+                          <div key={i} className={`w-1.5 h-1.5 rounded-full ${sel ? 'bg-white' : dotColor}`} />
+                        );
+                      })}
                     </div>
                   )}
                 </motion.button>
@@ -174,9 +180,15 @@ export default function CalendarPage() {
                         {new Date(booking.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                       </div>
                       <div className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${
-                        booking.status === 'CONFIRMED' ? 'bg-p-green text-[#2b8a3e]' : 'bg-p-yellow text-[#f08c00]'
+                        booking.status === 'CONFIRMED' ? 'bg-p-mint text-teal-700' :
+                        booking.status === 'COMPLETED' ? 'bg-p-blue text-blue-700' :
+                        booking.status === 'CANCELLED' ? 'bg-p-rose text-rose-700' :
+                        'bg-p-yellow text-amber-700'
                       }`}>
-                        {booking.status}
+                        {booking.status === 'CONFIRMED' ? 'Confirmed' :
+                         booking.status === 'COMPLETED' ? 'Completed' :
+                         booking.status === 'CANCELLED' ? 'Cancelled' :
+                         'Pending'}
                       </div>
                     </div>
                     <p className="text-sm font-black text-text-main line-clamp-1">

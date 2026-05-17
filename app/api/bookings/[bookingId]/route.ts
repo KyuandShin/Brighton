@@ -3,6 +3,59 @@ import { auth } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma';
 import { sendEmail, bookingConfirmationStudent, bookingCancelledEmail } from '@/lib/email';
 
+// GET /api/bookings/[bookingId] — fetch a single booking by ID
+export async function GET(
+  request: NextRequest,
+  context: { params: Promise<{ bookingId: string }> }
+) {
+  const params = await context.params;
+  try {
+    const { data } = await auth.getSession({
+      fetchOptions: { headers: request.headers }
+    });
+    if (!data?.user?.id) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
+    const booking = await prisma.booking.findUnique({
+      where: { id: params.bookingId },
+      include: {
+        student: { include: { user: { select: { name: true, image: true } } } },
+        tutor: { include: { user: { select: { name: true, image: true } } } },
+        notes: {
+          select: { id: true, content: true, subject: true, topics: true, skills: true, homework: true, createdAt: true }
+        },
+        review: {
+          select: { id: true, rating: true, comment: true }
+        },
+      },
+    });
+
+    if (!booking) {
+      return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
+    }
+
+    // Verify the user is authorized to view this booking
+    const user = await prisma.user.findUnique({
+      where: { id: data.user.id },
+      include: { studentProfile: true, tutorProfile: true },
+    });
+
+    if (user?.role !== 'ADMIN') {
+      const isTutor = user?.tutorProfile?.id === booking.tutorId;
+      const isStudent = user?.studentProfile?.id === booking.studentId;
+      if (!isTutor && !isStudent) {
+        return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
+      }
+    }
+
+    return NextResponse.json(booking);
+  } catch (err: unknown) {
+    console.error('[GET /api/bookings/[bookingId]]', err);
+    return NextResponse.json({ error: 'Failed to fetch booking' }, { status: 500 });
+  }
+}
+
 // PATCH /api/bookings/[bookingId] — update booking status or reschedule
 export async function PATCH(
   request: NextRequest,
@@ -67,12 +120,12 @@ export async function PATCH(
       if (isTutor && booking.status !== 'PENDING') {
         return NextResponse.json({ error: 'This booking cannot be cancelled' }, { status: 400 });
       }
-      // 24-hour cancellation policy: students cannot cancel a CONFIRMED session within 24h
-      if (isStudent && booking.status === 'CONFIRMED') {
+      // 24-hour cancellation policy: neither tutors nor students can cancel a CONFIRMED session within 24h
+      if (booking.status === 'CONFIRMED') {
         const hoursUntilSession = (new Date(booking.date).getTime() - Date.now()) / (1000 * 60 * 60);
         if (hoursUntilSession < 24) {
           return NextResponse.json({
-            error: 'Sessions cannot be cancelled within 24 hours of the scheduled time. Please contact your tutor directly.'
+            error: 'Sessions cannot be cancelled within 24 hours of the scheduled time.'
           }, { status: 400 });
         }
       }
@@ -98,6 +151,20 @@ export async function PATCH(
         return NextResponse.json({ error: 'Rescheduled date must be in the future' }, { status: 400 });
       }
       updateData.date = newDate;
+
+      // Check for tutor availability conflicts on the new date
+      const tutorConflict = await prisma.booking.findFirst({
+        where: {
+          tutorId: booking.tutorId,
+          date: newDate,
+          status: { in: ['PENDING', 'CONFIRMED'] },
+          id: { not: params.bookingId },
+        },
+      });
+      if (tutorConflict) {
+        return NextResponse.json({ error: 'This tutor is not available at that time. Please choose another slot.' }, { status: 409 });
+      }
+
       // If rescheduling a confirmed booking, reset to PENDING so tutor must re-confirm
       if (!status && booking.status === 'CONFIRMED') {
         updateData.status = 'PENDING';
@@ -123,6 +190,18 @@ export async function PATCH(
     const studentName = booking.student.user.name ?? booking.student.user.email;
     const tutorName = booking.tutor.user.name ?? booking.tutor.user.email;
 
+    // Notify tutor when student reschedules (date change without status change)
+    if (date && !status && isStudent) {
+      await prisma.notification.create({
+        data: {
+          userId: booking.tutor.userId,
+          title: 'Session Rescheduled 📅',
+          message: `${studentName} has rescheduled the session to ${formattedDate} at ${formattedTime}. ${booking.status === 'CONFIRMED' ? 'Please re-confirm the new time.' : ''}`,
+          link: '/dashboard/bookings',
+        },
+      });
+    }
+
     // Send notifications based on action
     if (status === 'CONFIRMED') {
       await prisma.notification.create({
@@ -144,6 +223,24 @@ export async function PATCH(
           time: formattedTime,
           classroomUrl,
         }),
+      });
+    } else if (status === 'COMPLETED') {
+      await prisma.notification.create({
+        data: {
+          userId: booking.student.userId,
+          title: 'Session Completed! 🎉',
+          message: `Your session with ${tutorName} on ${formattedDate} at ${formattedTime} has been marked as completed. Please leave a review!`,
+          link: `/dashboard/bookings`,
+        },
+      });
+
+      await prisma.notification.create({
+        data: {
+          userId: booking.tutor.userId,
+          title: 'Session Completed ✅',
+          message: `Session with ${studentName} on ${formattedDate} at ${formattedTime} is now complete.`,
+          link: '/dashboard/bookings',
+        },
       });
     } else if (status === 'CANCELLED') {
       const notifyUserId = isStudent ? booking.tutor.userId : booking.student.userId;

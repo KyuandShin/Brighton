@@ -106,14 +106,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Message must be under 2000 characters' }, { status: 400 });
     }
 
-    // Verify receiver exists
-    const receiver = await prisma.user.findUnique({
+    // Verify receiver exists and get info for email
+    const receiverExists = await prisma.user.findUnique({
       where: { id: receiverId },
       select: { id: true },
     });
-    if (!receiver) {
+    if (!receiverExists) {
       return NextResponse.json({ error: 'Recipient not found' }, { status: 404 });
     }
+
+    // Get sender and receiver info for email
+    const [sender, receiver] = await Promise.all([
+      prisma.user.findUnique({ where: { id: data.user.id }, select: { name: true, email: true } }),
+      prisma.user.findUnique({ where: { id: receiverId }, select: { name: true, email: true } }),
+    ]);
 
     const message = await prisma.message.create({
       data: {
@@ -131,10 +137,33 @@ export async function POST(req: NextRequest) {
       data: {
         userId: receiverId,
         title: 'New Message 💬',
-        message: `You have a new message from ${data.user.name || 'Someone'}`,
+        message: `You have a new message from ${sender?.name || 'Someone'}`,
         link: `/dashboard/messages?user=${data.user.id}`,
       },
     });
+
+    // Send email notification (fire and forget)
+    if (receiver?.email && sender?.name && data.user.name) {
+      const { sendEmail } = await import('@/lib/email');
+      sendEmail({
+        to: receiver.email,
+        subject: `New message from ${sender.name} on Brighton`,
+        html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px;">
+          <h2 style="color:#2563eb;font-size:18px;">💬 New Message</h2>
+          <p style="color:#374151;font-size:14px;line-height:1.6;">
+            <strong>${sender.name}</strong> sent you a message on Brighton:
+          </p>
+          <div style="background:#f3f4f6;border-radius:12px;padding:16px;margin:12px 0;font-size:14px;color:#374151;">
+            "${content.trim().substring(0, 200)}${content.trim().length > 200 ? '...' : ''}"
+          </div>
+          <a href="${req.headers.get('origin') || 'https://brighton.app'}/dashboard/messages?user=${data.user.id}" 
+             style="display:inline-block;background:#2563eb;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;margin-top:8px;">
+            Reply Now
+          </a>
+          <p style="color:#9ca3af;font-size:12px;margin-top:16px;">Brighton Tutoring Platform</p>
+        </div>`,
+      }).catch((emailErr: any) => console.error('[POST /api/messages] Email send failed:', emailErr));
+    }
 
     return NextResponse.json(message, { status: 201 });
   } catch (err: unknown) {

@@ -5,7 +5,7 @@ import { auth } from '@/lib/auth/server';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { email, password, fullName, schoolName, age, parentEmail, schoolLevel, image, gradeLevel } = body;
+    const { email, password, fullName, schoolName, age, parentEmail, schoolLevel, image, gradeLevel, subjects } = body;
 
     console.log('[SIGNUP] Starting student signup for:', email);
 
@@ -76,6 +76,11 @@ export async function POST(req: NextRequest) {
 
     // Grade level is already a number from the frontend
     const parsedGrade = gradeLevel ?? null;
+    
+    // Parse subjects — ensure it's a valid string array
+    const parsedSubjects: string[] = Array.isArray(subjects) 
+      ? subjects.filter((s: string) => ['Mathematics', 'Science', 'Filipino', 'English'].includes(s))
+      : [];
 
     // 2. Create User + Student profile — isVerified remains false
     await prisma.user.upsert({
@@ -92,6 +97,7 @@ export async function POST(req: NextRequest) {
               age: parsedAge,
               schoolName: schoolName ?? null,
               parentEmail: parsedAge < 18 ? (parentEmail ?? null) : null,
+              subjects: parsedSubjects.length > 0 ? parsedSubjects : ['Mathematics', 'Science', 'Filipino', 'English'],
             },
             update: {
               schoolLevel: schoolLevel as 'ELEMENTARY' | 'HIGH_SCHOOL',
@@ -99,6 +105,7 @@ export async function POST(req: NextRequest) {
               age: parsedAge,
               schoolName: schoolName ?? null,
               parentEmail: parsedAge < 18 ? (parentEmail ?? null) : null,
+              subjects: parsedSubjects.length > 0 ? parsedSubjects : undefined,
             },
           },
         },
@@ -117,6 +124,7 @@ export async function POST(req: NextRequest) {
             age: parsedAge,
             schoolName: schoolName ?? null,
             parentEmail: parsedAge < 18 ? (parentEmail ?? null) : null,
+            subjects: parsedSubjects.length > 0 ? parsedSubjects : ['Mathematics', 'Science', 'Filipino', 'English'],
           },
         },
       },

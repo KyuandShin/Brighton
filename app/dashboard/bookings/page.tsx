@@ -2,56 +2,20 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   Calendar, Clock, User, CheckCircle, XCircle, AlertCircle,
-  BookOpen, ChevronRight, Video, RefreshCw, Send, X, CalendarDays, Star
+  BookOpen, Video, RefreshCw, Send, CalendarDays, Star
 } from 'lucide-react';
 import { useCurrentUser } from '@/lib/hooks/useCurrentUser';
-
-function Toast({ message, type, onClose }: { message: string; type: 'success' | 'error'; onClose: () => void }) {
-  useEffect(() => { const t = setTimeout(onClose, 4000); return () => clearTimeout(t); }, [onClose]);
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 20 }}
-      className={`fixed bottom-24 md:bottom-6 left-1/2 -translate-x-1/2 z-[200] flex items-center gap-3 px-5 py-3 rounded-2xl shadow-xl border-2 ${
-        type === 'success' ? 'bg-p-mint border-teal-300 text-teal-800' : 'bg-p-rose border-rose-300 text-rose-800'
-      }`}
-    >
-      {type === 'success' ? <CheckCircle size={15} /> : <XCircle size={15} />}
-      <span className="text-xs font-black uppercase tracking-widest">{message}</span>
-      <button onClick={onClose} className="ml-2 opacity-60 hover:opacity-100"><X size={13} /></button>
-    </motion.div>
-  );
-}
-
-function ConfirmModal({ message, onConfirm, onCancel }: { message: string; onConfirm: () => void; onCancel: () => void }) {
-  return (
-    <div className="fixed inset-0 z-[150] flex items-center justify-center p-6">
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        onClick={onCancel} className="absolute inset-0 bg-text-main/20 backdrop-blur-md" />
-      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-        className="relative z-10 w-full max-w-sm bg-surface border-2 border-border rounded-[32px] p-8 shadow-2xl text-center space-y-5">
-        <div className="w-14 h-14 bg-p-rose rounded-3xl flex items-center justify-center mx-auto">
-          <XCircle size={28} className="text-rose-500" />
-        </div>
-        <p className="text-sm font-black text-text-main">{message}</p>
-        <div className="flex gap-3">
-          <button onClick={onCancel}
-            className="flex-1 py-3 border-2 border-border rounded-xl text-[10px] font-black uppercase tracking-widest text-text-muted hover:border-primary hover:text-primary transition-all">
-            Keep It
-          </button>
-          <button onClick={onConfirm}
-            className="flex-1 py-3 bg-rose-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-600 transition-all">
-            Cancel Session
-          </button>
-        </div>
-      </motion.div>
-    </div>
-  );
-}
+import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 
 interface Booking {
   id: string;
@@ -69,16 +33,12 @@ export default function BookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [filter, setFilter] = useState<'ALL' | 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED'>('PENDING');
+  const [filter, setFilter] = useState<'ALL' | 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED'>(user?.role === 'STUDENT' ? 'CONFIRMED' : 'PENDING');
 
-  // Toast state
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-  const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
-    setToast({ message, type });
-  }, []);
-
-  // Confirm cancel modal
+  // Confirm cancel modal (students & admins)
   const [confirmBookingId, setConfirmBookingId] = useState<string | null>(null);
+  // Confirm decline modal (tutors)
+  const [declineBookingId, setDeclineBookingId] = useState<string | null>(null);
 
   // Reschedule modal
   const [rescheduleBooking, setRescheduleBooking] = useState<Booking | null>(null);
@@ -119,14 +79,15 @@ export default function BookingsPage() {
       });
       if (!res.ok) {
         const data = await res.json();
-        showToast(data.error || 'Failed to update booking', 'error');
+        toast.error(data.error || 'Failed to update booking');
         return;
       }
       const label = status === 'CONFIRMED' ? 'Session accepted!' : status === 'CANCELLED' ? 'Session cancelled.' : 'Session marked complete.';
-      showToast(label, status === 'CANCELLED' ? 'error' : 'success');
+      if (status === 'CANCELLED') toast.error(label);
+      else toast.success(label);
       fetchBookings();
     } catch (err: any) {
-      showToast(err.message ?? 'Unexpected error', 'error');
+      toast.error(err.message ?? 'Unexpected error');
     } finally {
       setActionLoading(null);
     }
@@ -144,14 +105,14 @@ export default function BookingsPage() {
       if (res.ok) {
         setRescheduleBooking(null);
         setNewDate('');
-        showToast('Session rescheduled — awaiting tutor confirmation.');
+        toast.success('Session rescheduled — awaiting tutor confirmation.');
         fetchBookings();
       } else {
         const data = await res.json();
-        showToast(data.error || 'Failed to reschedule', 'error');
+        toast.error(data.error || 'Failed to reschedule');
       }
     } catch (err: any) {
-      showToast(err.message, 'error');
+      toast.error(err.message);
     } finally {
       setRescheduling(false);
     }
@@ -173,16 +134,16 @@ export default function BookingsPage() {
       });
       if (!res.ok) {
         const data = await res.json();
-        showToast(data.error || 'Failed to submit review', 'error');
+        toast.error(data.error || 'Failed to submit review');
         return;
       }
       setReviewBooking(null);
       setReviewRating(5);
       setReviewComment('');
-      showToast('Review submitted! Thanks for your feedback. 💜');
+      toast.success('Review submitted! Thanks for your feedback.');
       fetchBookings();
     } catch (err: any) {
-      showToast(err.message ?? 'Unexpected error', 'error');
+      toast.error(err.message ?? 'Unexpected error');
     } finally {
       setReviewSubmitting(false);
     }
@@ -205,18 +166,68 @@ export default function BookingsPage() {
 
   return (
     <div className="space-y-8">
-      <AnimatePresence>
-        {toast && (
-          <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
-        )}
-        {confirmBookingId && (
-          <ConfirmModal
-            message="Cancel this session? This cannot be undone."
-            onConfirm={() => { handleAction(confirmBookingId, 'CANCELLED'); setConfirmBookingId(null); }}
-            onCancel={() => setConfirmBookingId(null)}
-          />
-        )}
-      </AnimatePresence>
+      {/* Confirm Cancel Dialog (students & admins) */}
+      <Dialog open={!!confirmBookingId} onOpenChange={(open) => { if (!open) setConfirmBookingId(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-center">
+              <div className="w-14 h-14 bg-p-rose rounded-3xl flex items-center justify-center mx-auto mb-3">
+                <XCircle size={28} className="text-rose-500" />
+              </div>
+              Cancel this session?
+            </DialogTitle>
+            <DialogDescription className="text-center text-sm">
+              This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-3 pt-2">
+            <button
+              onClick={() => setConfirmBookingId(null)}
+              className="flex-1 py-3 border-2 border-border rounded-xl text-[10px] font-black uppercase tracking-widest text-text-muted hover:border-primary hover:text-primary transition-all"
+            >
+              Keep It
+            </button>
+            <button
+              onClick={() => { handleAction(confirmBookingId!, 'CANCELLED'); setConfirmBookingId(null); }}
+              className="flex-1 py-3 bg-rose-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-600 transition-all"
+            >
+              Cancel Session
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirm Decline Dialog (tutors) */}
+      <Dialog open={!!declineBookingId} onOpenChange={(open) => { if (!open) setDeclineBookingId(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-center">
+              <div className="w-14 h-14 bg-p-rose rounded-3xl flex items-center justify-center mx-auto mb-3">
+                <XCircle size={28} className="text-rose-500" />
+              </div>
+              Decline this request?
+            </DialogTitle>
+            <DialogDescription className="text-center text-sm">
+              This will cancel the student's booking request and they will be notified.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-3 pt-2">
+            <button
+              onClick={() => setDeclineBookingId(null)}
+              className="flex-1 py-3 border-2 border-border rounded-xl text-[10px] font-black uppercase tracking-widest text-text-muted hover:border-primary hover:text-primary transition-all"
+            >
+              Keep It
+            </button>
+            <button
+              onClick={() => { handleAction(declineBookingId!, 'CANCELLED'); setDeclineBookingId(null); }}
+              className="flex-1 py-3 bg-rose-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-600 transition-all"
+            >
+              Decline Request
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <header className="space-y-1">
         <h2 className="text-3xl font-black tracking-tight text-text-main">
           {isTutor ? 'Booking ' : 'My '}<span className="text-primary">Requests</span>
@@ -286,7 +297,7 @@ export default function BookingsPage() {
               statusText = booking.status;
             }
 
-            const showCancelBtn = isStudent && (booking.status === 'PENDING' || booking.status === 'CONFIRMED');
+            const showCancelBtn = (isStudent || isAdmin) && (booking.status === 'PENDING' || booking.status === 'CONFIRMED');
             const showRescheduleBtn = isStudent && booking.status === 'CONFIRMED' && !isPast;
 
             return (
@@ -372,7 +383,7 @@ export default function BookingsPage() {
                           Accept
                         </button>
                         <button
-                          onClick={() => handleAction(booking.id, 'CANCELLED')}
+                          onClick={() => setDeclineBookingId(booking.id)}
                           disabled={actionLoading === booking.id}
                           className="px-4 py-2 bg-p-rose text-rose-700 rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-rose-200 transition-all disabled:opacity-50 flex items-center gap-1"
                         >
@@ -421,137 +432,93 @@ export default function BookingsPage() {
       )}
 
       {/* Review Modal */}
-      <AnimatePresence>
-        {reviewBooking && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setReviewBooking(null)}
-              className="absolute inset-0 bg-text-main/20 backdrop-blur-md"
+      <Dialog open={!!reviewBooking} onOpenChange={(open) => { if (!open) { setReviewBooking(null); setReviewRating(5); setReviewComment(''); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Rate Your Session</DialogTitle>
+            <DialogDescription>
+              How was your session with <strong>{reviewBooking?.tutor?.user?.name ?? 'your tutor'}</strong>?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6 pt-2">
+            {/* Star rating */}
+            <div className="flex justify-center gap-2 py-2">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  type="button"
+                  onClick={() => setReviewRating(star)}
+                  className="transition-all hover:scale-110"
+                >
+                  <Star
+                    size={36}
+                    fill={star <= reviewRating ? '#fcc419' : 'none'}
+                    className={star <= reviewRating ? 'text-[#fcc419]' : 'text-border'}
+                  />
+                </button>
+              ))}
+            </div>
+            <textarea
+              value={reviewComment}
+              onChange={(e) => setReviewComment(e.target.value)}
+              placeholder="Write a review (optional)..."
+              rows={3}
+              className="w-full bg-surface-elevated border-2 border-border rounded-2xl px-4 py-3 text-sm font-bold text-text-main focus:outline-none focus:border-primary transition-all resize-none"
             />
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="w-full max-w-md bg-surface rounded-[40px] shadow-[0_40px_100px_rgba(147,51,234,0.15)] border border-p-yellow overflow-hidden relative z-10"
-            >
-              <div className="p-8 space-y-6">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-black tracking-tight text-text-main">Rate Your Session</h3>
-                  <button onClick={() => setReviewBooking(null)} className="p-2 hover:bg-p-purple rounded-xl">
-                    <X size={16} className="text-text-muted" />
-                  </button>
-                </div>
-                <p className="text-sm text-text-muted">
-                  How was your session with <strong>{reviewBooking.tutor?.user?.name ?? 'your tutor'}</strong>?
-                </p>
-
-                {/* Star rating */}
-                <div className="flex justify-center gap-2 py-4">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      type="button"
-                      onClick={() => setReviewRating(star)}
-                      className="transition-all hover:scale-110"
-                    >
-                      <Star
-                        size={36}
-                        fill={star <= reviewRating ? '#fcc419' : 'none'}
-                        className={star <= reviewRating ? 'text-[#fcc419]' : 'text-border'}
-                      />
-                    </button>
-                  ))}
-                </div>
-
-                {/* Comment */}
-                <textarea
-                  value={reviewComment}
-                  onChange={(e) => setReviewComment(e.target.value)}
-                  placeholder="Write a review (optional)..."
-                  rows={3}
-                  className="w-full bg-surface-elevated border-2 border-border rounded-2xl px-4 py-3 text-sm font-bold text-text-main focus:outline-none focus:border-primary transition-all resize-none"
-                />
-
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setReviewBooking(null)}
-                    className="flex-1 py-3 border-2 border-border rounded-xl text-[10px] font-black uppercase tracking-widest text-text-muted hover:border-primary hover:text-primary transition-all"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleSubmitReview}
-                    disabled={reviewSubmitting}
-                    className="flex-1 py-3 text-white rounded-xl font-black text-xs uppercase tracking-widest transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                    style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' }}
-                  >
-                    {reviewSubmitting ? 'Submitting...' : <><Star size={14} /> Submit Rating</>}
-                  </button>
-                </div>
-              </div>
-            </motion.div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setReviewBooking(null); setReviewRating(5); setReviewComment(''); }}
+                className="flex-1 py-3 border-2 border-border rounded-xl text-[10px] font-black uppercase tracking-widest text-text-muted hover:border-primary hover:text-primary transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmitReview}
+                disabled={reviewSubmitting}
+                className="flex-1 py-3 text-white rounded-xl font-black text-xs uppercase tracking-widest transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' }}
+              >
+                {reviewSubmitting ? 'Submitting...' : <><Star size={14} /> Submit Rating</>}
+              </button>
+            </div>
           </div>
-        )}
-      </AnimatePresence>
+        </DialogContent>
+      </Dialog>
 
       {/* Reschedule Modal */}
-      <AnimatePresence>
-        {rescheduleBooking && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setRescheduleBooking(null)}
-              className="absolute inset-0 bg-text-main/20 backdrop-blur-md"
+      <Dialog open={!!rescheduleBooking} onOpenChange={(open) => { if (!open) { setRescheduleBooking(null); setNewDate(''); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reschedule Session</DialogTitle>
+            <DialogDescription>Pick a new date and time for your session.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6 pt-2">
+            <input
+              type="datetime-local"
+              value={newDate}
+              min={new Date().toISOString().slice(0, 16)}
+              onChange={(e) => setNewDate(e.target.value)}
+              className="w-full bg-surface-elevated border-2 border-border rounded-2xl px-4 py-3 text-sm font-bold text-text-main focus:outline-none focus:border-primary transition-all"
             />
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="w-full max-w-md bg-surface rounded-[40px] shadow-[0_40px_100px_rgba(147,51,234,0.15)] border border-p-purple overflow-hidden relative z-10"
-            >
-              <div className="p-8 space-y-6">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-black tracking-tight text-text-main">Reschedule Session</h3>
-                  <button onClick={() => setRescheduleBooking(null)} className="p-2 hover:bg-p-purple rounded-xl">
-                    <X size={16} className="text-text-muted" />
-                  </button>
-                </div>
-                <p className="text-sm text-text-muted">
-                  Pick a new date and time for your session.
-                </p>
-                <input
-                  type="datetime-local"
-                  value={newDate}
-                  min={new Date().toISOString().slice(0, 16)}
-                  onChange={(e) => setNewDate(e.target.value)}
-                  className="w-full bg-surface-elevated border-2 border-border rounded-2xl px-4 py-3 text-sm font-bold text-text-main focus:outline-none focus:border-primary transition-all"
-                />
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setRescheduleBooking(null)}
-                    className="flex-1 py-3 border-2 border-border rounded-xl text-[10px] font-black uppercase tracking-widest text-text-muted hover:border-primary hover:text-primary transition-all"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleReschedule}
-                    disabled={rescheduling || !newDate}
-                    className="flex-1 py-3 text-white rounded-xl font-black text-xs uppercase tracking-widest transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                    style={{ background: 'linear-gradient(135deg, #ec4899 0%, #9333ea 100%)' }}
-                  >
-                    {rescheduling ? 'Updating...' : <><Send size={14} /> Confirm</>}
-                  </button>
-                </div>
-              </div>
-            </motion.div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setRescheduleBooking(null); setNewDate(''); }}
+                className="flex-1 py-3 border-2 border-border rounded-xl text-[10px] font-black uppercase tracking-widest text-text-muted hover:border-primary hover:text-primary transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleReschedule}
+                disabled={rescheduling || !newDate}
+                className="flex-1 py-3 text-white rounded-xl font-black text-xs uppercase tracking-widest transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                style={{ background: 'linear-gradient(135deg, #ec4899 0%, #9333ea 100%)' }}
+              >
+                {rescheduling ? 'Updating...' : <><Send size={14} /> Confirm</>}
+              </button>
+            </div>
           </div>
-        )}
-      </AnimatePresence>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

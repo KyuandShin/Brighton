@@ -81,6 +81,15 @@ export async function POST(request: NextRequest) {
       if (existing) {
         return NextResponse.json({ error: 'You have already reviewed this session.' }, { status: 409 });
       }
+
+      // Verify the booking actually belongs to this student
+      const booking = await prisma.booking.findUnique({
+        where: { id: bookingId },
+        select: { studentId: true },
+      });
+      if (!booking || booking.studentId !== user.studentProfile.id) {
+        return NextResponse.json({ error: 'You can only review your own sessions.' }, { status: 403 });
+      }
     }
 
     const review = await prisma.review.create({

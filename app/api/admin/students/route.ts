@@ -23,16 +23,16 @@ export async function GET(req: NextRequest) {
 
     const students = await prisma.student.findMany({
       include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            image: true,
-            createdAt: true,
-            isBanned: true
-          }
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          image: true,
+          createdAt: true,
+          isBanned: true
         }
+      }
       },
       orderBy: {
         user: {

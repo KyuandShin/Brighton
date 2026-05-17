@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { User, GraduationCap, ChevronRight, Mail, Lock, Sparkles, UserCircle, School, Calendar, Upload, X, Star, Rocket, Heart, Search, Eye, EyeOff, AlertCircle, Check, Loader2 } from 'lucide-react';
+import { User, GraduationCap, ChevronRight, Mail, Lock, Sparkles, UserCircle, School, Calendar, Upload, X, Star, Rocket, Heart, Search, Eye, EyeOff, AlertCircle, Check, Loader2, BookOpen } from 'lucide-react';
 import { authClient } from '@/lib/auth/client';
 import { useCurrentUser } from '@/lib/hooks/useCurrentUser';
 import { uploadToCloudinary } from '@/lib/cloudinary';
@@ -45,6 +45,7 @@ export default function SignupPage() {
   const [otpSent, setOtpSent] = useState(false);
   const [resendCount, setResendCount] = useState(0);
   const [verified, setVerified] = useState(false);
+  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -173,6 +174,7 @@ export default function SignupPage() {
           schoolLevel,
           gradeLevel: gradeLevel,
           image: profileImage,
+          subjects: selectedSubjects.length > 0 ? selectedSubjects : ['Mathematics', 'Science', 'Filipino', 'English'],
         }),
       });
 
@@ -599,6 +601,40 @@ export default function SignupPage() {
                       style={isSelected ? { background: activeColor, borderColor: activeColor } : undefined}
                     >
                       {g.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Subject Selection */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[9px] font-black uppercase tracking-[0.2em] text-text-muted ml-1 flex items-center gap-1.5">
+                <BookOpen size={10} /> Subjects I Want to Study
+              </label>
+              <p className="text-[8px] font-bold text-text-muted ml-1 -mt-1">
+                Pick the subjects you need help with — this helps us recommend the right tutors.
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {['Mathematics', 'Science', 'Filipino', 'English'].map((subject) => {
+                  const isSelected = selectedSubjects.includes(subject);
+                  return (
+                    <button
+                      key={subject}
+                      type="button"
+                      onClick={() => {
+                        setSelectedSubjects(prev =>
+                          isSelected ? prev.filter(s => s !== subject) : [...prev, subject]
+                        );
+                      }}
+                      className={`flex items-center gap-2 px-4 py-3 rounded-xl border-2 text-[10px] font-black uppercase tracking-wider transition-all ${
+                        isSelected
+                          ? 'bg-primary text-white border-primary shadow-md'
+                          : 'bg-surface text-text-muted border-border hover:border-primary/30 hover:text-text-main'
+                      }`}
+                    >
+                      {isSelected ? <Check size={12} /> : <BookOpen size={12} />}
+                      {subject}
                     </button>
                   );
                 })}

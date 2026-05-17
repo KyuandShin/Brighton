@@ -22,7 +22,27 @@ export async function GET(req: NextRequest) {
   const grade = GRADE_KEYS.includes(requestedGrade) ? requestedGrade : 'GRADE_1';
 
   const pool = QUESTIONS[grade];
-  const selected = shuffle(pool).slice(0, count);
+
+  // Select 5 per subject to ensure even distribution, then fill remaining randomly
+  const subjects = ['Mathematics', 'Science', 'Filipino', 'English'] as const;
+  const perSubject = Math.floor(count / subjects.length); // 5
+  let selected: typeof pool = [];
+
+  for (const subject of subjects) {
+    const subjectQuestions = pool.filter(q => q.subject === subject);
+    const shuffled = shuffle(subjectQuestions);
+    selected.push(...shuffled.slice(0, perSubject));
+  }
+
+  // If we need more (due to rounding), add random remaining questions
+  if (selected.length < count) {
+    const used = new Set(selected.map(q => q.id));
+    const remaining = shuffle(pool.filter(q => !used.has(q.id)));
+    selected.push(...remaining.slice(0, count - selected.length));
+  }
+
+  // Shuffle the final selection so subjects are mixed
+  selected = shuffle(selected);
 
   // Strip correctAnswer before sending to client
   const questions = selected.map(({ correctAnswer: _ca, ...q }) => q);

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Users, Eye, Search, Ban, Undo2 } from 'lucide-react';
+import { Users, Eye, Search, Ban, Undo2, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -148,6 +148,13 @@ export default function AdminStudentsPage() {
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">
+                      <Link
+                        href={`/dashboard/messages?user=${student.userId}`}
+                        className="p-2.5 bg-surface-elevated rounded-xl hover:bg-primary hover:text-white transition-all text-text-muted"
+                        title="Send message"
+                      >
+                        <MessageSquare size={16} />
+                      </Link>
                       <Link
                         href={`/dashboard/profile?userId=${student.userId}`}
                         className="p-2.5 bg-surface-elevated rounded-xl hover:bg-primary hover:text-white transition-all text-text-muted"

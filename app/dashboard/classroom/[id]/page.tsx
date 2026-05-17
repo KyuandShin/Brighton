@@ -2,8 +2,7 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { PhoneOff, Video, Loader2 } from 'lucide-react';
-import { useCurrentUser } from '@/lib/hooks/useCurrentUser';
+import { PhoneOff, Video, Loader2, Clock, AlertTriangle } from 'lucide-react';
 
 declare global {
   interface Window {
@@ -11,18 +10,78 @@ declare global {
   }
 }
 
+const SESSION_DURATION_MS = 60 * 60 * 1000; // 1 hour
+const WARNING_MINUTES = 5; // Show warning 5 minutes before end
+
 export default function ClassroomPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { user, loading: userLoading } = useCurrentUser();
   const containerRef = useRef<HTMLDivElement>(null);
   const apiRef = useRef<any>(null);
   const [scriptReady, setScriptReady] = useState(false);
   const [showLoader, setShowLoader] = useState(true);
   const [error, setError] = useState('');
+  const [sessionEndTime, setSessionEndTime] = useState<Date | null>(null);
+  const [timeRemaining, setTimeRemaining] = useState<string>('');
+  const [showWarning, setShowWarning] = useState(false);
+  const [sessionEnded, setSessionEnded] = useState(false);
 
   // Clean room name - Jitsi requires valid URL-safe names without spaces or special characters
   const roomName = `brighton-${id}`.replace(/[^a-zA-Z0-9-_]/g, '-').toLowerCase();
+
+  // ── Fetch booking data to get session end time ─────────────────────
+  useEffect(() => {
+    const fetchBooking = async () => {
+      try {
+        const res = await fetch(`/api/bookings/${id}`, {
+          credentials: 'include',
+        });
+        if (res.ok) {
+          const booking = await res.json();
+          const startTime = new Date(booking.date);
+          const endTime = new Date(startTime.getTime() + SESSION_DURATION_MS);
+          setSessionEndTime(endTime);
+        }
+      } catch (e) {
+        // If we can't fetch, we'll still let them in with a default 1-hour window from now
+        setSessionEndTime(new Date(Date.now() + SESSION_DURATION_MS));
+      }
+    };
+    fetchBooking();
+  }, [id]);
+
+  // ── Countdown timer ───────────────────────────────────────────────
+  useEffect(() => {
+    if (!sessionEndTime) return;
+
+    const updateTimer = () => {
+      const now = Date.now();
+      const remaining = sessionEndTime.getTime() - now;
+
+      if (remaining <= 0) {
+        setTimeRemaining('0:00');
+        setSessionEnded(true);
+        // Dispose Jitsi if it's still running
+        try { apiRef.current?.executeCommand('hangup'); } catch {}
+        try { apiRef.current?.dispose(); } catch {}
+        apiRef.current = null;
+        return;
+      }
+
+      const minutes = Math.floor(remaining / 60000);
+      const seconds = Math.floor((remaining % 60000) / 1000);
+      setTimeRemaining(`${minutes}:${seconds.toString().padStart(2, '0')}`);
+
+      // Show warning at WARNING_MINUTES before end
+      if (remaining <= WARNING_MINUTES * 60 * 1000 && remaining > 0) {
+        setShowWarning(true);
+      }
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [sessionEndTime]);
 
   // ── Step 1: load external_api.js ────────────────────────────────────
   useEffect(() => {
@@ -44,14 +103,12 @@ export default function ClassroomPage() {
     document.head.appendChild(s);
   }, []);
 
-  // ── Step 2: mount Jitsi once script + user are ready ────────────────
+  // ── Step 2: mount Jitsi once script is ready ────────────────────────
   useEffect(() => {
-    if (!scriptReady || userLoading || !containerRef.current || apiRef.current) return;
+    if (!scriptReady || !containerRef.current || apiRef.current || sessionEnded) return;
 
-    // The container MUST have an explicit pixel height for Jitsi to render.
-    // We set it via inline style instead of relying on Tailwind flex.
     const containerEl = containerRef.current;
-    const headerHeight = 56; // px — matches the h-14 header
+    const headerHeight = 56;
     containerEl.style.height = `${window.innerHeight - headerHeight}px`;
 
     const onResize = () => {
@@ -66,8 +123,8 @@ export default function ClassroomPage() {
         width: '100%',
         height: '100%',
         userInfo: {
-          displayName: user?.name ?? user?.email ?? 'Participant',
-          email: user?.email ?? '',
+          displayName: 'Participant',
+          email: '',
         },
         configOverwrite: {
           startWithAudioMuted: false,
@@ -108,21 +165,15 @@ export default function ClassroomPage() {
       apiRef.current.addEventListener('videoConferenceJoined', () => setShowLoader(false));
       apiRef.current.addEventListener('readyToClose', () => router.push('/dashboard'));
       
-      // Handle Jitsi connection errors and failures
       apiRef.current.addEventListener('videoConferenceFailed', (error: any) => {
         console.error('Jitsi conference failed:', error);
         setError(`Connection failed: ${error?.error?.message || 'Could not connect to the meeting. Please try again.'}`);
       });
       
-      apiRef.current.addEventListener('connectionFailed', (error: any) => {
-        console.error('Jitsi connection failed:', error);
+      apiRef.current.addEventListener('connectionFailed', () => {
         setError('Could not establish connection to classroom. Check your internet and try again.');
       });
-      
-      apiRef.current.addEventListener('error', (error: any) => {
-        console.error('Jitsi error:', error);
-        setError(error?.message || 'An error occurred while joining the meeting.');
-      });
+
       // Fallback — hide loader after 8s regardless
       const t = setTimeout(() => setShowLoader(false), 8000);
       return () => {
@@ -133,13 +184,19 @@ export default function ClassroomPage() {
     } catch (e: any) {
       setError(e?.message ?? 'Failed to start classroom.');
     }
-  }, [scriptReady, userLoading, roomName]);
+  }, [scriptReady, roomName, sessionEnded]);
 
   const handleLeave = () => {
     try { apiRef.current?.executeCommand('hangup'); } catch {}
     apiRef.current?.dispose();
     apiRef.current = null;
-    router.push('/dashboard');
+    router.push(`/dashboard/sessions/${id}/feedback`);
+  };
+
+  const handleGoToFeedback = () => {
+    try { apiRef.current?.dispose(); } catch {}
+    apiRef.current = null;
+    router.push(`/dashboard/sessions/${id}/feedback`);
   };
 
   if (error) {
@@ -159,8 +216,31 @@ export default function ClassroomPage() {
     );
   }
 
+  if (sessionEnded) {
+    return (
+      <div className="fixed inset-0 bg-[#0b111c] z-200 flex items-center justify-center">
+        <div className="bg-white rounded-[40px] p-12 max-w-md w-full mx-4 text-center space-y-6">
+          <div className="w-16 h-16 bg-p-mint rounded-3xl flex items-center justify-center mx-auto">
+            <Clock size={32} className="text-teal-600" />
+          </div>
+          <h2 className="text-xl font-black text-text-main">Session Ended</h2>
+          <p className="text-sm font-bold text-text-muted">
+            Your 1-hour session has ended. You can rebook with your tutor for another session.
+          </p>
+          <div className="flex flex-col gap-3">
+            <button onClick={handleGoToFeedback} className="w-full py-4 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-[#5c7cfa] transition-all">
+              View Session Feedback
+            </button>
+            <button onClick={() => router.push('/dashboard')} className="w-full py-4 bg-surface border-2 border-border text-text-muted rounded-2xl font-black text-xs uppercase tracking-widest hover:border-primary hover:text-primary transition-all">
+              Back to Dashboard
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    // Fixed fullscreen — sits on top of the dashboard layout
     <div className="fixed inset-0 bg-[#0b111c] z-200 flex flex-col overflow-hidden">
       {/* Header */}
       <header className="h-14 shrink-0 border-b border-white/5 px-6 flex justify-between items-center bg-[#02040a]">
@@ -169,11 +249,25 @@ export default function ClassroomPage() {
              <img src="/logo.png" alt="Logo" className="w-5 h-5 object-contain" />
            </div>
           <span className="text-xs font-black uppercase tracking-widest text-white">Brighton Classroom</span>
-          <span className="text-[10px] font-bold text-text-muted uppercase ml-2">Room: {roomName}</span>
         </div>
         <div className="flex items-center gap-3">
-          <div className="px-3 py-1 bg-red-500/10 text-red-400 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" /> Live
+          {/* Countdown Timer */}
+          {timeRemaining && (
+            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest ${
+              showWarning 
+                ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' 
+                : 'bg-white/5 text-white/60'
+            }`}>
+              <Clock size={12} />
+              {timeRemaining}
+              {showWarning && <AlertTriangle size={12} className="text-amber-400 animate-pulse" />}
+            </div>
+          )}
+          <div className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-2 ${
+            showWarning ? 'bg-amber-500/20 text-amber-400' : 'bg-red-500/10 text-red-400'
+          }`}>
+            <div className={`w-1.5 h-1.5 rounded-full ${showWarning ? 'bg-amber-400' : 'bg-red-500'} animate-pulse`} />
+            {showWarning ? `${WARNING_MINUTES} min left` : 'Live'}
           </div>
           <button
             onClick={handleLeave}
@@ -184,7 +278,7 @@ export default function ClassroomPage() {
         </div>
       </header>
 
-      {/* Jitsi mounts here — height is set imperatively in the effect */}
+      {/* Jitsi mounts here */}
       <div className="relative flex-1">
         {showLoader && (
           <div className="absolute inset-0 bg-[#0b111c] flex flex-col items-center justify-center z-10 gap-6 pointer-events-none">
@@ -197,7 +291,17 @@ export default function ClassroomPage() {
             </div>
           </div>
         )}
-        {/* This div gets explicit pixel height via JS in the effect */}
+
+        {/* Warning overlay */}
+        {showWarning && !sessionEnded && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 px-6 py-3 bg-amber-500/90 text-white rounded-2xl shadow-xl border border-amber-400/30 flex items-center gap-3 backdrop-blur-sm">
+            <AlertTriangle size={16} />
+            <span className="text-[10px] font-black uppercase tracking-widest">
+              Session ending in {WARNING_MINUTES} minutes — wrap up your discussion!
+            </span>
+          </div>
+        )}
+
         <div ref={containerRef} style={{ width: '100%' }} />
       </div>
     </div>

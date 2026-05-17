@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useCurrentUser } from '@/lib/hooks/useCurrentUser';
-import { MessageSquare, Send, User, ArrowLeft, Loader2 } from 'lucide-react';
+import { MessageSquare, Send, User, ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface Conversation {
@@ -33,6 +33,8 @@ export default function MessagesPage() {
   const [chatLoading, setChatLoading] = useState(false);
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [sendError, setSendError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const conversationWith = searchParams.get('user');
 
@@ -40,10 +42,17 @@ export default function MessagesPage() {
   useEffect(() => {
     if (!user?.id) return;
     setLoading(true);
+    setError(null);
     fetch('/api/messages', { credentials: 'include' })
-      .then(r => r.json())
+      .then(async r => {
+        if (!r.ok) {
+          const err = await r.json().catch(() => ({ error: 'Unknown error' }));
+          throw new Error(err.error || `HTTP ${r.status}`);
+        }
+        return r.json();
+      })
       .then(data => { if (Array.isArray(data)) setConversations(data); })
-      .catch(console.error)
+      .catch(err => setError(err.message))
       .finally(() => setLoading(false));
   }, [user?.id]);
 
@@ -51,10 +60,17 @@ export default function MessagesPage() {
   useEffect(() => {
     if (!conversationWith || !user?.id) return;
     setChatLoading(true);
+    setSendError(null);
     fetch(`/api/messages?conversationWith=${conversationWith}`, { credentials: 'include' })
-      .then(r => r.json())
+      .then(async r => {
+        if (!r.ok) {
+          const err = await r.json().catch(() => ({ error: 'Unknown error' }));
+          throw new Error(err.error || `HTTP ${r.status}`);
+        }
+        return r.json();
+      })
       .then(data => { if (Array.isArray(data)) setMessages(data); })
-      .catch(console.error)
+      .catch(err => setSendError(err.message))
       .finally(() => setChatLoading(false));
   }, [conversationWith, user?.id]);
 
@@ -66,9 +82,11 @@ export default function MessagesPage() {
   const handleSend = async () => {
     if (!conversationWith || !newMessage.trim() || sending) return;
     setSending(true);
+    setSendError(null);
     try {
       const res = await fetch('/api/messages', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ receiverId: conversationWith, content: newMessage.trim() }),
       });
@@ -76,9 +94,12 @@ export default function MessagesPage() {
         const msg = await res.json();
         setMessages(prev => [...prev, msg]);
         setNewMessage('');
+      } else {
+        const errData = await res.json().catch(() => ({ error: 'Failed to send message' }));
+        setSendError(errData.error || `HTTP ${res.status}`);
       }
     } catch (err) {
-      console.error(err);
+      setSendError(err instanceof Error ? err.message : 'Network error');
     } finally {
       setSending(false);
     }

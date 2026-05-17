@@ -20,19 +20,6 @@ export async function GET(req: NextRequest) {
     });
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
-    // Auto-complete past CONFIRMED bookings — only run for tutors and admins to avoid
-    // unnecessary write traffic on every student dashboard load
-    if (user.role === 'TUTOR' || user.role === 'ADMIN') {
-      await prisma.booking.updateMany({
-        where: {
-          status: 'CONFIRMED',
-          date: { lt: new Date() },
-          ...(user.role === 'TUTOR' && user.tutorProfile ? { tutorId: user.tutorProfile.id } : {}),
-        },
-        data: { status: 'COMPLETED' },
-      });
-    }
-
     let bookings: any[] = [];
 
     if (user.role === 'ADMIN') {
@@ -60,7 +47,7 @@ export async function GET(req: NextRequest) {
               } 
             },
             notes: {
-              select: { id: true, content: true, createdAt: true }
+              select: { id: true, content: true, subject: true, topics: true, skills: true, homework: true, createdAt: true }
             },
             review: {
               select: { id: true, rating: true, comment: true }
@@ -75,7 +62,7 @@ export async function GET(req: NextRequest) {
           student: { include: { user: { select: { name: true, image: true } } } },
           tutor: { include: { user: { select: { name: true, image: true } } } },
           notes: {
-            select: { id: true, content: true, createdAt: true }
+            select: { id: true, content: true, subject: true, topics: true, skills: true, homework: true, createdAt: true }
           },
           review: {
             select: { id: true, rating: true, comment: true }
@@ -126,16 +113,13 @@ export async function POST(req: NextRequest) {
     let studentProfileId: string;
 
     if (isAdmin) {
-      // For admins: use existing studentProfile if present, otherwise create a hidden one
-      // scoped to this admin — do NOT permanently mutate their user record inline
-      if (!studentUser?.studentProfile) {
-        const newProfile = await prisma.student.create({
-          data: { userId: studentUser!.id, schoolLevel: 'HIGH_SCHOOL' },
-        });
-        studentProfileId = newProfile.id;
-      } else {
-        studentProfileId = studentUser.studentProfile.id;
-      }
+      // For admins: upsert a hidden studentProfile — safe under concurrent requests
+      const adminProfile = await prisma.student.upsert({
+        where: { userId: studentUser!.id },
+        update: {},
+        create: { userId: studentUser!.id, schoolLevel: 'HIGH_SCHOOL' },
+      });
+      studentProfileId = adminProfile.id;
     } else {
       if (!studentUser?.studentProfile) {
         return NextResponse.json({ error: 'Only students and admins can create bookings' }, { status: 403 });
@@ -187,21 +171,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'This tutor is not available at that time. Please choose another slot.' }, { status: 409 });
     }
 
-    // If admin is booking, auto-confirm. Otherwise PENDING — tutor must accept
-    const booking = await prisma.booking.create({
+    // Generate booking ID upfront so meetLink can be set in a single write (no race condition)
+    const bookingId = crypto.randomUUID();
+    const meetLink = `/dashboard/classroom/${bookingId}`;
+    const updated = await prisma.booking.create({
       data: {
+        id: bookingId,
         studentId: studentProfileId,
         tutorId: tutorDbId,
         date: bookingDate,
         status: isAdmin ? 'CONFIRMED' : 'PENDING',
+        meetLink,
       },
-    });
-
-    // Set meetLink using booking ID
-    const meetLink = `/dashboard/classroom/${booking.id}`;
-    const updated = await prisma.booking.update({
-      where: { id: booking.id },
-      data: { meetLink },
       include: {
         tutor: { 
           select: { 
@@ -268,7 +249,7 @@ export async function POST(req: NextRequest) {
     if (isAdmin) {
       // Admin auto-confirm: send confirmation to both
       sendEmail({
-        to: tutorRecord.user.email,
+        to: tutorRecord.user.email ?? '',
         subject: `New Session Booked by ${studentName}`,
         html: bookingNotificationTutor({
           tutorName: tutorName ?? 'Tutor',
@@ -298,7 +279,7 @@ export async function POST(req: NextRequest) {
       // Student-initiated PENDING: send request notifications
       const bookingUrl = `${origin}/dashboard/bookings`;
       sendEmail({
-        to: tutorRecord.user.email,
+        to: tutorRecord.user.email ?? '',
         subject: `New Booking Request from ${studentName}`,
         html: bookingRequestSentTutor({
           tutorName: tutorName ?? 'Tutor',

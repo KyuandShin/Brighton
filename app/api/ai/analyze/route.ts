@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth/server';
+import { prisma } from '@/lib/prisma';
 import { QUESTIONS, getGradeLabel } from '../questions/bank';
 
 interface AnswerItem { questionId: string; answer: string; }
@@ -175,6 +176,32 @@ export async function POST(req: NextRequest) {
       grade: grade,
       grade_label: gradeLabel,
     };
+
+    // ── Save attempt to database ────────────────────────────────────────────
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: data.user.id },
+        include: { studentProfile: true },
+      });
+
+      if (user?.studentProfile) {
+        await prisma.attempt.create({
+          data: {
+            studentId: user.studentProfile.id,
+            score,
+            total,
+            mastery: masteryLevel,
+            grade,
+            strengths: strongTopics.map(t => t.topic),
+            weaknesses: weakTopics.map(t => ({ topic: t.topic, accuracy: t.accuracy })),
+            studyPlan: analysis.study_plan,
+          },
+        });
+      }
+    } catch (dbErr) {
+      // Don't fail the response if saving fails — just log it
+      console.error('[POST /api/ai/analyze] Failed to save attempt:', dbErr);
+    }
 
     return NextResponse.json({
       score,

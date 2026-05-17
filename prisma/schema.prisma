@@ -35,6 +35,7 @@ model Student {
   schoolName  String?
   parentEmail String?
   parentId    String?
+  subjects    String[]  @default([]) // Subjects the student wants to study: Mathematics, Science, Filipino, English
   attempts    Attempt[]
   bookings    Booking[]
   reviews     Review[]
@@ -120,13 +121,19 @@ model Booking {
   tutor     Tutor        @relation(fields: [tutorId], references: [id], onDelete: Cascade)
   notes     SessionNote?
   review    Review?
+
+  @@unique([studentId, tutorId, date])
 }
 
 model SessionNote {
   id        String   @id @default(cuid())
   bookingId String   @unique
   tutorId   String
-  content   String
+  content   String   // Free-form session notes text
+  subject   String?  // Subject covered: Mathematics, Science, Filipino, English
+  topics    String[] @default([]) // Topics covered e.g. ["Algebra - Linear Equations", "Fractions"]
+  skills    Json?    // Skill ratings: {"Confident": ["topic1"], "NeedsPractice": ["topic2"], "Struggling": ["topic3"]}
+  homework  String?  // Homework assigned
   createdAt DateTime @default(now())
   booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   tutor     Tutor    @relation(fields: [tutorId], references: [id], onDelete: Cascade)
@@ -212,16 +219,17 @@ model Question {
 model Attempt {
   id         String   @id @default(cuid())
   studentId  String
-  testId     String
+  testId     String?
   score      Int
   total      Int      @default(30)
   mastery    String?
+  grade      String?
   strengths  Json
   weaknesses Json
   studyPlan  String?
   timestamp  DateTime @default(now())
   student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  test       Test     @relation(fields: [testId], references: [id])
+  test       Test?    @relation(fields: [testId], references: [id])
 }
 
 model VerificationToken {

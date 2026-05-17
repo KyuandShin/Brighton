@@ -182,7 +182,8 @@ export default function DashboardPage() {
           </div>
           <Link
             href="/dashboard/test"
-            className="group relative overflow-hidden w-full sm:w-auto px-5 py-3 bg-gradient-to-r from-primary to-blue-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.15em] shadow-lg shadow-primary/20 hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center gap-2.5 shrink-0"
+            className="group relative overflow-hidden w-full sm:w-auto px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-[0.15em] shadow-lg shadow-primary/20 hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center gap-2.5 shrink-0"
+            style={{ background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)', color: 'white' }}
           >
             <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
             <Brain size={14} className="relative z-10" />

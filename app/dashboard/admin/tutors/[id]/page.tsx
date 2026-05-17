@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import {
   Shield, ArrowLeft, Check, X, Clock, UserCheck, UserX, Ban, Undo2,
   GraduationCap, BookOpen, Award, DollarSign, Calendar, Mail, FileText,
-  Globe, Video, Star, AlertCircle, ExternalLink, Sparkles
+  Globe, Video, Star, AlertCircle, ExternalLink, Sparkles, MessageSquare
 } from 'lucide-react';
 import Image from 'next/image';
 
@@ -256,8 +256,44 @@ export default function AdminTutorApplicationPage() {
           <div className="bg-surface rounded-2xl border border-border p-6 space-y-4">
             <h4 className="text-[10px] font-black uppercase tracking-widest text-text-muted">Actions</h4>
 
-            {tutor.verificationStatus === 'PENDING' && !tutor.user.isBanned && (
-              <div className="space-y-3">
+            <a
+              href={`/dashboard/messages?user=${tutor.user.id}`}
+              className="w-full py-3.5 bg-primary text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-accent-strong transition-all flex items-center justify-center gap-2"
+            >
+              <MessageSquare size={14} /> Message Tutor
+            </a>
+
+            <div className="border-t border-border pt-4 space-y-3">
+              {tutor.verificationStatus === 'PENDING' && !tutor.user.isBanned && (
+                <div className="space-y-3">
+                  <button
+                    onClick={() => updateStatus('APPROVED')}
+                    disabled={updating}
+                    className="w-full py-3.5 bg-emerald-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-600 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    <UserCheck size={14} /> Approve Application
+                  </button>
+                  <button
+                    onClick={() => updateStatus('REJECTED')}
+                    disabled={updating}
+                    className="w-full py-3.5 bg-red-100 text-red-700 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-red-200 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    <UserX size={14} /> Reject Application
+                  </button>
+                </div>
+              )}
+
+              {tutor.verificationStatus === 'APPROVED' && !tutor.user.isBanned && (
+                <button
+                  onClick={() => updateStatus('REJECTED')}
+                  disabled={updating}
+                  className="w-full py-3.5 bg-red-100 text-red-700 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-red-200 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  <UserX size={14} /> Revoke Approval
+                </button>
+              )}
+
+              {tutor.verificationStatus === 'REJECTED' && !tutor.user.isBanned && (
                 <button
                   onClick={() => updateStatus('APPROVED')}
                   disabled={updating}
@@ -265,48 +301,21 @@ export default function AdminTutorApplicationPage() {
                 >
                   <UserCheck size={14} /> Approve Application
                 </button>
-                <button
-                  onClick={() => updateStatus('REJECTED')}
-                  disabled={updating}
-                  className="w-full py-3.5 bg-red-100 text-red-700 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-red-200 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  <UserX size={14} /> Reject Application
-                </button>
-              </div>
-            )}
+              )}
 
-            {tutor.verificationStatus === 'APPROVED' && !tutor.user.isBanned && (
               <button
-                onClick={() => updateStatus('REJECTED')}
+                onClick={toggleBan}
                 disabled={updating}
-                className="w-full py-3.5 bg-red-100 text-red-700 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-red-200 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                className={`w-full py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all disabled:opacity-50 flex items-center justify-center gap-2 ${
+                  tutor.user.isBanned
+                    ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                    : 'bg-red-100 text-red-700 hover:bg-red-200'
+                }`}
               >
-                <UserX size={14} /> Revoke Approval
+                {tutor.user.isBanned ? <Undo2 size={14} /> : <Ban size={14} />}
+                {tutor.user.isBanned ? 'Unban Tutor' : 'Ban Tutor'}
               </button>
-            )}
-
-            {tutor.verificationStatus === 'REJECTED' && !tutor.user.isBanned && (
-              <button
-                onClick={() => updateStatus('APPROVED')}
-                disabled={updating}
-                className="w-full py-3.5 bg-emerald-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-600 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                <UserCheck size={14} /> Approve Application
-              </button>
-            )}
-
-            <button
-              onClick={toggleBan}
-              disabled={updating}
-              className={`w-full py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all disabled:opacity-50 flex items-center justify-center gap-2 ${
-                tutor.user.isBanned
-                  ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
-                  : 'bg-red-100 text-red-700 hover:bg-red-200'
-              }`}
-            >
-              {tutor.user.isBanned ? <Undo2 size={14} /> : <Ban size={14} />}
-              {tutor.user.isBanned ? 'Unban Tutor' : 'Ban Tutor'}
-            </button>
+            </div>
           </div>
         </div>
 

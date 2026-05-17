@@ -6,10 +6,17 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Home, Users, Calendar, BookOpen, Bell, LogOut,
-  User, X, ChevronRight, Sparkles, UserCheck, Moon, Sun, Heart, TrendingUp, ClipboardList
+  User, X, ChevronRight, Sparkles, UserCheck, Moon, Sun, Heart, TrendingUp, ClipboardList, MessageSquare
 } from 'lucide-react';
 import { useCurrentUser, getInitials } from '@/lib/hooks/useCurrentUser';
 import { authClient } from '@/lib/auth/client';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import AnimeOnboarding from './_components/Tutorial';
 
 // ── Role-specific nav ────────────────────────────────────────────────
@@ -20,6 +27,7 @@ const studentNavItems = [
   { name: 'Classes',  href: '/dashboard/classes',  icon: BookOpen },
   { name: 'Calendar', href: '/dashboard/calendar', icon: Calendar },
   { name: 'Favorites',href: '/dashboard/favorites',icon: Heart },
+  { name: 'Feedback', href: '/dashboard/feedback', icon: TrendingUp },
 ];
 
 // Tutors: manage booking requests, view their classes, calendar, analytics
@@ -64,6 +72,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [notifOpen,   setNotifOpen]   = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [darkMode, setDarkMode]       = useState(false);
+  const [unreadMessages, setUnreadMessages] = useState(0);
   const notifRef   = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
 
@@ -124,6 +133,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     };
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 60_000);
+    return () => clearInterval(interval);
+  }, [user]);
+
+  // Poll unread messages count
+  useEffect(() => {
+    if (!user) return;
+    const fetchUnread = () => {
+      fetch('/api/messages')
+        .then((r) => r.json())
+        .then((data: any[]) => {
+          if (Array.isArray(data)) {
+            const total = data.reduce((sum: number, conv: any) => sum + (conv.unreadCount || 0), 0);
+            setUnreadMessages(total);
+          }
+        })
+        .catch(() => {});
+    };
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 30_000);
     return () => clearInterval(interval);
   }, [user]);
 
@@ -215,7 +243,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const navLinkClass = (active: boolean) =>
     `px-3.5 py-2 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-all flex items-center gap-2 ${
       active
-        ? 'bg-primary text-white shadow-sm'
+        ? 'bg-accent-strong text-white shadow-sm'
         : 'text-text-muted hover:bg-surface-elevated hover:text-text-main'
     }`;
 
@@ -278,7 +306,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             )}
           </div>
 
-          {/* Right: Theme toggle + Notifications + Profile */}
+          {/* Right: Theme toggle + Messages + Notifications + Profile */}
           <div className="flex items-center gap-1.5 shrink-0">
             <button
               onClick={toggleTheme}
@@ -287,6 +315,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             >
               {darkMode ? <Sun size={16} strokeWidth={2} /> : <Moon size={16} strokeWidth={2} />}
             </button>
+
+            {/* Messages icon with unread badge */}
+            <Link
+              href="/dashboard/messages"
+              className="relative p-2 rounded-lg text-text-muted hover:bg-surface-elevated hover:text-text-main transition-all"
+            >
+              <MessageSquare size={16} strokeWidth={2} />
+              {unreadMessages > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-surface text-[8px] font-bold text-white flex items-center justify-center">
+                  {unreadMessages > 9 ? '9+' : unreadMessages}
+                </span>
+              )}
+            </Link>
 
             <div className="relative" ref={notifRef}>
               <button
@@ -344,11 +385,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
 
             {/* Profile Dropdown */}
-            <div className="relative" ref={profileRef}>
-              <button
-                onClick={() => { setProfileOpen(!profileOpen); setNotifOpen(false); }}
-                className="flex items-center gap-2 pl-1 pr-2.5 py-1 bg-surface-elevated border border-border rounded-lg hover:border-primary/50 transition-all"
-              >
+            <DropdownMenu>
+              <DropdownMenuTrigger className="flex items-center gap-2 pl-1 pr-2.5 py-1 bg-surface-elevated border border-border rounded-lg hover:border-primary/50 transition-all cursor-pointer">
                 <div
                   className="w-7 h-7 rounded-md flex items-center justify-center text-white font-bold text-[10px]"
                   style={{ background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)' }}
@@ -358,38 +396,39 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <span className="text-[11px] font-semibold text-text-main hidden sm:block max-w-[90px] truncate">
                   {loading ? '...' : (user?.name?.split(' ')[0] ?? 'Account')}
                 </span>
-              </button>
-
-              {profileOpen && (
-                <div className="absolute right-0 top-11 w-48 bg-surface rounded-xl shadow-lg border border-border overflow-hidden z-50">
-                  <div className="px-3.5 py-2.5 border-b border-border">
-                    <p className="text-xs font-semibold text-text-main truncate">{displayName}</p>
-                    <p className="text-[10px] text-text-muted truncate">{user?.email}</p>
-                  </div>
-                  <div className="p-1 space-y-0.5">
-                    <Link
-                      href="/dashboard/profile"
-                      onClick={() => setProfileOpen(false)}
-                      className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] font-medium text-text-muted hover:bg-surface-elevated hover:text-text-main transition-all"
-                    >
-                      <User size={13} /> My Profile
-                    </Link>
-                    <button
-                      onClick={() => { setProfileOpen(false); toggleTheme(); }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] font-medium text-text-muted hover:bg-surface-elevated hover:text-text-main transition-all"
-                    >
-                      {darkMode ? <Sun size={13} /> : <Moon size={13} />} {darkMode ? 'Light Mode' : 'Dark Mode'}
-                    </button>
-                    <button
-                      onClick={handleLogout}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] font-medium text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all"
-                    >
-                      <LogOut size={13} /> Sign Out
-                    </button>
-                  </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <div className="px-3 py-2 border-b border-border">
+                  <p className="text-xs font-semibold text-text-main truncate">{displayName}</p>
+                  <p className="text-[10px] text-text-muted truncate">{user?.email}</p>
                 </div>
-              )}
-            </div>
+                <DropdownMenuItem asChild>
+                  <Link
+                    href="/dashboard/profile"
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] font-medium text-text-muted hover:bg-surface-elevated hover:text-text-main transition-all"
+                  >
+                    <User size={13} /> My Profile
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <button
+                    onClick={toggleTheme}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] font-medium text-text-muted hover:bg-surface-elevated hover:text-text-main transition-all"
+                  >
+                    {darkMode ? <Sun size={13} /> : <Moon size={13} />} {darkMode ? 'Light Mode' : 'Dark Mode'}
+                  </button>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] font-medium text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all"
+                  >
+                    <LogOut size={13} /> Sign Out
+                  </button>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </nav>

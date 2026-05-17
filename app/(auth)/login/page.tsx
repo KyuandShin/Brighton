@@ -78,9 +78,13 @@ export default function LoginPage() {
             return;
           }
           if (meData.error === 'TUTOR_PENDING') {
-            setError('Your tutor account is pending verification. You will be notified once approved.');
+            // Tutor may have unverified email (isVerified=false) OR pending admin approval
+            // In both cases, allow reverify — if they just need admin approval, the reverify
+            // endpoint will tell them their email is already verified
             try { await authClient.signOut(); } catch {}
             setLoading(false);
+            setMode('reverify');
+            setReVerifySent(false);
             return;
           }
         }
@@ -155,9 +159,14 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true); setError('');
     try {
-      const { error: fpError } = await (authClient as any).forgetPassword({ email, redirectTo: '/reset-password' });
-      if (fpError) {
-        setError(fpError.message || 'Failed to send reset email. Please try again.');
+      const res = await fetch('/api/auth/request-password-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, redirectTo: '/reset-password' }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.message || data.error || 'Failed to send reset email. Please try again.');
         setLoading(false);
         return;
       }

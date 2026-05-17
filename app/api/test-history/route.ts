@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma';
+import { getGradeLabel } from '../ai/questions/bank';
 
 export async function GET(request: NextRequest) {
   try {
@@ -30,7 +31,46 @@ export async function GET(request: NextRequest) {
       orderBy: { timestamp: 'desc' },
     });
 
-    return NextResponse.json(attempts);
+    // Transform attempts to a unified format
+    const transformed = attempts.map((a) => {
+      // AI assessment attempt (no testId)
+      if (!a.testId) {
+        return {
+          id: a.id,
+          score: a.score,
+          total: a.total,
+          mastery: a.mastery,
+          grade: a.grade,
+          grade_label: a.grade ? getGradeLabel(a.grade) : 'Placement Test',
+          strengths: a.strengths,
+          weaknesses: a.weaknesses,
+          studyPlan: a.studyPlan,
+          timestamp: a.timestamp,
+          type: 'ai_assessment' as const,
+          // For display purposes
+          subject_name: 'AI Assessment',
+          level_label: a.grade ? getGradeLabel(a.grade) : 'Placement Test',
+        };
+      }
+      // Legacy test attempt
+      return {
+        id: a.id,
+        score: a.score,
+        total: a.total,
+        mastery: a.mastery,
+        grade: a.grade,
+        strengths: a.strengths,
+        weaknesses: a.weaknesses,
+        studyPlan: a.studyPlan,
+        timestamp: a.timestamp,
+        type: 'subject_test' as const,
+        subject_name: a.test?.subject?.name ?? 'Unknown',
+        level_label: a.test?.level ?? '',
+        test: a.test,
+      };
+    });
+
+    return NextResponse.json(transformed);
   } catch (error) {
     console.error('Failed to fetch test history:', error);
     return NextResponse.json({ error: 'Failed to fetch test history' }, { status: 500 });

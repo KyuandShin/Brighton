@@ -697,30 +697,6 @@ export default function PlacementTestPage() {
           </div>
         )}
 
-        {/* Full Topic Breakdown */}
-        {result.topic_breakdown?.length > 0 && (
-          <div className="bg-surface border-2 border-border rounded-[40px] p-8 shadow-sm space-y-5 hover:shadow-md transition-shadow duration-300">
-            <h4 className="text-sm font-black uppercase tracking-widest text-text-main">Full Topic Breakdown</h4>
-            <div className="space-y-2.5">
-              {result.topic_breakdown
-                .sort((a, b) => a.accuracy - b.accuracy)
-                .map((t, idx) => {
-                  const color = t.accuracy >= 80 ? '#2f9e44' : t.accuracy >= 60 ? '#e67700' : '#e03131';
-                  return (
-                    <div key={idx} className="flex items-center gap-3 p-2 hover:bg-[#f8f9fa] rounded-2xl transition-colors">
-                      <span className="text-[9px] font-black uppercase tracking-widest text-text-muted w-44 shrink-0 truncate">{t.topic}</span>
-                      <div className="flex-1 h-3 bg-[#f1f3f5] rounded-full overflow-hidden shadow-inner">
-                        <div className="h-full rounded-full transition-all duration-700 ease-out"
-                          style={{ width: `${t.accuracy}%`, backgroundColor: color }} />
-                      </div>
-                      <span className="text-[10px] font-black w-14 text-right" style={{ color }}>{t.accuracy}%</span>
-                      <span className="text-[8px] font-bold text-text-muted">({t.correct}/{t.total})</span>
-                    </div>
-                  );
-                })}
-            </div>
-          </div>
-        )}
 
         {/* ── Tutor Recommendations ──────────────────────────────────── */}
         {result.tutor_recommendations?.length > 0 && (

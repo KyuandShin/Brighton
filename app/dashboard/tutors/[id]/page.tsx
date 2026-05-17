@@ -12,6 +12,7 @@ import { MOCK_TUTORS } from '@/lib/mock-data';
 // ── Types ────────────────────────────────────────────────────────────────
 interface TutorData {
   dbId: string | null;
+  userId: string | null;
   name: string;
   headline: string;
   bio: string;
@@ -48,7 +49,8 @@ export default function TutorProfilePage() {
   const router = useRouter();
   const toastTimer = useRef<NodeJS.Timeout | null>(null);
 
-  const [tutor, setTutor] = useState<TutorData | null>(null);
+    const [tutor, setTutor] = useState<TutorData | null>(null);
+    const [imageError, setImageError] = useState(false);
   const [loadingTutor, setLoadingTutor] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
 
@@ -75,6 +77,7 @@ export default function TutorProfilePage() {
         if (found) {
           setTutor({
             dbId: found.id,
+            userId: found.userId,
             name: found.name,
             headline: found.headline ?? 'Tutor',
             bio: found.bio ?? '',
@@ -82,7 +85,7 @@ export default function TutorProfilePage() {
             price: found.pricingPerHour,
             subjects: found.subjects,
             rating: found.rating,
-            image: found.image ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(found.name)}`,
+            image: found.image || '',
             level: 'BOTH',
             availability: found.availability ?? [],
           });
@@ -99,13 +102,13 @@ export default function TutorProfilePage() {
           }
         } else if (!cancelled) {
           const mock = MOCK_TUTORS.find((t) => t.id === id);
-          if (mock) setTutor({ dbId: null, name: mock.name, headline: mock.headline, bio: mock.bio, introVideoUrl: null, price: mock.price, subjects: mock.subjects, rating: mock.rating, image: mock.image, level: mock.level, availability: [] });
+          if (mock) setTutor({ dbId: null, userId: null, name: mock.name, headline: mock.headline, bio: mock.bio, introVideoUrl: null, price: mock.price, subjects: mock.subjects, rating: mock.rating, image: mock.image, level: mock.level, availability: [] });
         }
       })
       .catch(() => {
         if (!cancelled) {
           const mock = MOCK_TUTORS.find((t) => t.id === id);
-          if (mock) setTutor({ dbId: null, name: mock.name, headline: mock.headline, bio: mock.bio, introVideoUrl: null, price: mock.price, subjects: mock.subjects, rating: mock.rating, image: mock.image, level: mock.level, availability: [] });
+          if (mock) setTutor({ dbId: null, userId: null, name: mock.name, headline: mock.headline, bio: mock.bio, introVideoUrl: null, price: mock.price, subjects: mock.subjects, rating: mock.rating, image: mock.image, level: mock.level, availability: [] });
         }
       })
       .finally(() => { if (!cancelled) setLoadingTutor(false); });
@@ -187,6 +190,59 @@ export default function TutorProfilePage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // Generate hourly time slots from availability range + bookings
+  const generateTimeSlots = (selectedDateStr: string) => {
+    if (!tutor || !selectedDateStr) return [];
+    const selectedDay = next7Days.find(d => d.dateStr === selectedDateStr)?.day;
+    if (selectedDay === undefined) return [];
+
+    // Get all availability slots for this day
+    const daySlots = tutor.availability.filter(a => a.dayOfWeek === selectedDay);
+    if (daySlots.length === 0) return [];
+
+    // Get existing bookings for this date to exclude taken slots
+    const existingBookings = bookingsForSlots.filter((b: any) => {
+      const bDate = new Date(b.date);
+      const bDateStr = bDate.toISOString().split('T')[0];
+      return bDateStr === selectedDateStr && (b.status === 'CONFIRMED' || b.status === 'PENDING');
+    });
+    const takenHours = new Set(existingBookings.map(b => {
+      const d = new Date(b.date);
+      return `${d.getHours().toString().padStart(2, '0')}:00`;
+    }));
+
+    // Generate hourly slots 08:00 through endTime for each availability range
+    const slots: { time: string; available: boolean }[] = [];
+    for (const slot of daySlots) {
+      const startHour = Math.max(8, parseInt(slot.startTime.split(':')[0]));
+      const endHour = parseInt(slot.endTime.split(':')[0]);
+      for (let h = startHour; h < endHour; h++) {
+        const time = `${h.toString().padStart(2, '0')}:00`;
+        if (!takenHours.has(time)) {
+          slots.push({ time, available: true });
+        }
+      }
+    }
+    return slots;
+  };
+
+  // Track bookings for taken-slot calculation
+  const [bookingsForSlots, setBookingsForSlots] = useState<any[]>([]);
+
+  // Fetch existing bookings for this tutor to mark taken slots
+  useEffect(() => {
+    if (!tutor?.dbId) return;
+    fetch('/api/bookings', { credentials: 'include' })
+      .then(r => r.json())
+      .then(data => { 
+        if (Array.isArray(data)) {
+          // Filter to only this tutor's bookings
+          setBookingsForSlots(data.filter((b: any) => b.tutor?.id === tutor.dbId));
+        }
+      })
+      .catch(() => {});
+  }, [tutor?.dbId]);
+
   // Cleanup toast timer on unmount
   useEffect(() => {
     return () => {
@@ -197,7 +253,7 @@ export default function TutorProfilePage() {
   const isStudent = user?.role === 'STUDENT';
   const isTutorRole = user?.role === 'TUTOR';
   const showBookingBtn = (isStudent || user?.role === 'ADMIN') && tutor?.dbId;
-  const showMessageBtn = user && !isTutorRole && tutor?.dbId && user.id !== tutor.dbId;
+  const showMessageBtn = user && !isTutorRole && tutor?.userId && user.id !== tutor.userId;
 
   if (loadingTutor) {
     return (
@@ -238,7 +294,7 @@ export default function TutorProfilePage() {
   }
 
   const totalReviews = 0; // placeholder
-  const image = tutor.image ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(tutor.name)}`;
+  const image = tutor.image || '';
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
@@ -273,9 +329,9 @@ export default function TutorProfilePage() {
         <div className="h-28 md:h-36 bg-gradient-to-r from-purple-400 via-pink-400 to-amber-300 relative">
           {/* Quick actions */}
           <div className="absolute top-4 right-4 flex gap-2">
-            {(isStudent || isTutorRole) && (
-              <Link
-                href={`/dashboard/messages?user=${tutor.dbId || id}`}
+            {user && (
+      <Link
+        href={`/dashboard/messages?user=${tutor.userId || tutor.dbId || id}`}
                 className="p-2.5 bg-white/80 backdrop-blur-sm rounded-xl hover:bg-white transition-all shadow-sm"
                 title="Send message"
               >
@@ -291,8 +347,12 @@ export default function TutorProfilePage() {
             </button>
           </div>
           <div className="absolute -bottom-12 left-8">
-            <div className="w-24 h-24 rounded-2xl border-[5px] border-surface shadow-lg overflow-hidden bg-surface">
-              <Image src={image} alt={tutor.name} fill sizes="96px" className="object-cover" />
+            <div className="w-24 h-24 rounded-2xl border-[5px] border-surface shadow-lg overflow-hidden bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-3xl font-black">
+              {image && !imageError ? (
+                <Image src={image} alt={tutor.name} fill sizes="96px" className="object-cover" onError={() => setImageError(true)} />
+              ) : (
+                <span>{tutor.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}</span>
+              )}
             </div>
           </div>
         </div>
@@ -338,9 +398,9 @@ export default function TutorProfilePage() {
 
           {/* Message + Book action buttons */}
           <div className="flex gap-3 pt-2">
-            {user && tutor.dbId && user.id !== tutor.dbId && (
+            {user && tutor.userId && user.id !== tutor.userId && (
               <Link
-                href={`/dashboard/messages?user=${tutor.dbId}`}
+                href={`/dashboard/messages?user=${tutor.userId}`}
                 className="flex items-center gap-2 px-6 py-3 border-2 border-border rounded-xl font-black text-[10px] uppercase tracking-widest text-text-muted hover:border-primary hover:text-primary transition-all"
               >
                 <MessageSquare size={13} /> Message
@@ -370,6 +430,30 @@ export default function TutorProfilePage() {
             <BookOpen size={15} className="text-primary" /> About Me
           </h3>
           <p className="text-sm font-medium text-text-muted leading-relaxed whitespace-pre-wrap">{tutor.bio}</p>
+        </motion.div>
+      )}
+
+      {/* ── Video Intro Section ────────────────────────────────────────── */}
+      {tutor.introVideoUrl && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="bg-surface border-2 border-border rounded-[32px] p-8 space-y-4"
+        >
+          <h3 className="text-sm font-black uppercase tracking-widest text-text-main flex items-center gap-2">
+            <Video size={15} className="text-primary" /> Introduction Video
+          </h3>
+          <div className="aspect-video rounded-2xl overflow-hidden bg-black">
+            <video
+              src={tutor.introVideoUrl}
+              controls
+              className="w-full h-full object-contain"
+              poster={image}
+            >
+              Your browser does not support the video tag.
+            </video>
+          </div>
         </motion.div>
       )}
 
@@ -450,39 +534,48 @@ export default function TutorProfilePage() {
                   </div>
                 </div>
 
-                {/* Time Slots */}
-                {selectedDate && selectedSlots.length > 0 && (
+                {/* Time Slots — hourly from 08:00 */}
+                {selectedDate && (
                   <div className="space-y-2">
                     <label className="text-[9px] font-black uppercase tracking-widest text-text-muted">
                       Available Times for {selectedDayName}
                     </label>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedSlots.map((slot) => (
-                        <button
-                          key={slot.start}
-                          onClick={() => setSelectedTime(slot.start)}
-                          className={`px-5 py-2.5 rounded-xl border-2 font-black text-[10px] uppercase tracking-widest transition-all ${
-                            selectedTime === slot.start
-                              ? 'border-primary bg-primary text-white'
-                              : 'border-border hover:border-primary/50 text-text-main'
-                          }`}
-                        >
-                          {slot.start}
-                        </button>
-                      ))}
-                    </div>
+                    {(() => {
+                      const slots = generateTimeSlots(selectedDate);
+                      if (slots.length === 0) {
+                        return (
+                          <p className="text-xs font-bold text-amber-600 bg-p-yellow p-3 rounded-xl">
+                            No available time slots for this date (slots may be booked or outside available hours).
+                          </p>
+                        );
+                      }
+                      return (
+                        <div className="flex flex-wrap gap-2">
+                          {slots.map((slot) => (
+                            <button
+                              key={slot.time}
+                              onClick={() => setSelectedTime(slot.time)}
+                              disabled={!slot.available}
+                              className={`px-5 py-2.5 rounded-xl border-2 font-black text-[10px] uppercase tracking-widest transition-all ${
+                                selectedTime === slot.time
+                                  ? 'border-primary bg-primary text-white'
+                                  : 'border-border hover:border-primary/50 text-text-main'
+                              }`}
+                            >
+                              {slot.time}
+                            </button>
+                          ))}
+                        </div>
+                      );
+                    })()}
                   </div>
-                )}
-
-                {selectedDate && selectedSlots.length === 0 && (
-                  <p className="text-xs font-bold text-amber-600 bg-p-yellow p-3 rounded-xl">No available time slots for this date.</p>
                 )}
 
                 <button
                   onClick={handleBook}
                   disabled={booking || !selectedDate || !selectedTime}
                   className="w-full py-4 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                  style={{ background: 'linear-gradient(135deg, #ec4899 0%, #9333ea 100%)' }}
+                  style={{ background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)' }}
                 >
                   {booking ? 'Booking...' : <><Send size={14} /> Confirm Booking</>}
                 </button>

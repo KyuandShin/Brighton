@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Only tutors can create session notes' }, { status: 403 });
     }
 
-    const { bookingId, content } = await request.json();
+    const { bookingId, content, subject, topics, skills, homework } = await request.json();
     if (!bookingId || !content?.trim()) {
       return NextResponse.json({ error: 'bookingId and content are required' }, { status: 400 });
     }
@@ -85,32 +85,54 @@ export async function POST(request: NextRequest) {
     // Verify tutor owns this booking
     const booking = await prisma.booking.findUnique({
       where: { id: bookingId },
-      select: { tutorId: true, studentId: true },
+      include: { student: { include: { user: { select: { id: true } } } } },
     });
     if (!booking) return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
     if (booking.tutorId !== user.tutorProfile.id) {
       return NextResponse.json({ error: 'You can only add notes to your own sessions' }, { status: 403 });
     }
 
+    // Validate subject if provided
+    const VALID_SUBJECTS = ['Mathematics', 'Science', 'Filipino', 'English'];
+    const validSubject = subject && VALID_SUBJECTS.includes(subject) ? subject : null;
+
+    // Validate skills shape
+    let validSkills: Record<string, string[]> | undefined = undefined;
+    if (skills && typeof skills === 'object') {
+      validSkills = {
+        Confident: Array.isArray(skills.Confident) ? skills.Confident : [],
+        NeedsPractice: Array.isArray(skills.NeedsPractice) ? skills.NeedsPractice : [],
+        Struggling: Array.isArray(skills.Struggling) ? skills.Struggling : [],
+      };
+    }
+
     // Upsert: create or update the note for this booking
     const note = await prisma.sessionNote.upsert({
       where: { bookingId },
-      update: { content: content.trim() },
+      update: {
+        content: content.trim(),
+        subject: validSubject,
+        topics: Array.isArray(topics) ? topics : [],
+        skills: validSkills,
+        homework: homework?.trim() || null,
+      },
       create: {
         bookingId,
         tutorId: user.tutorProfile.id,
         content: content.trim(),
+        subject: validSubject,
+        topics: Array.isArray(topics) ? topics : [],
+        skills: validSkills,
+        homework: homework?.trim() || null,
       },
     });
 
     // Notify student that notes are available
-    const studentUser = await prisma.user.findUnique({
-      where: { id: (await prisma.student.findUnique({ where: { id: booking.studentId } }))?.userId },
-    });
-    if (studentUser) {
+    const studentUserId = booking.student?.user?.id;
+    if (studentUserId) {
       await prisma.notification.create({
         data: {
-          userId: studentUser.id,
+          userId: studentUserId,
           title: 'Session Notes Available 📝',
           message: `Your tutor has shared session notes for your completed session.`,
           link: `/dashboard/classes`,
