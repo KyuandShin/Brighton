@@ -16,8 +16,6 @@ const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 // Philippine K-12 subject categories
 const PH_SUBJECTS = [
   'Mathematics', 'Science', 'English', 'Filipino',
-  'Araling Panlipunan', 'MAPEH', 'Edukasyon sa Pagpapakatao',
-  'TLE', 'ICT',
 ];
 
 interface TimeSlot {

@@ -51,8 +51,6 @@ const CARD_THEMES = [
 // Philippine K-12 subject categories
 const PH_SUBJECTS = [
   'Mathematics', 'Science', 'English', 'Filipino',
-  'Araling Panlipunan', 'MAPEH', 'Edukasyon sa Pagpapakatao',
-  'TLE', 'ICT',
 ];
 
 const TABS: { key: SortTab; label: string; icon: typeof Star; desc: string }[] = [

@@ -935,8 +935,6 @@ function AvailabilitySelector({ data, set }: StepProps) {
 // Philippine K-12 subject categories
 const PH_SUBJECTS = [
   'Mathematics', 'Science', 'English', 'Filipino',
-  'Araling Panlipunan', 'MAPEH', 'Edukasyon sa Pagpapakatao',
-  'TLE', 'ICT',
 ];
 
 function SubjectsStep({ data, set }: StepProps) {

@@ -491,9 +491,7 @@ export default function LandingPage() {
                 <SkillTag label="Mathematics"    color="text-blue-600 dark:text-blue-400"   icon="+" />
                 <SkillTag label="Science"        color="text-teal-600 dark:text-teal-400"   icon="●" />
                 <SkillTag label="English"        color="text-pink-600 dark:text-pink-400"   icon="·" />
-                <SkillTag label="History"        color="text-amber-600 dark:text-amber-400"  icon="▲" />
                 <SkillTag label="Filipino"       color="text-purple-600 dark:text-purple-400" icon="◆" />
-                <SkillTag label="MAPEH"          color="text-orange-600 dark:text-orange-400" icon="◆" />
               </motion.div>
             </motion.div>
           </div>
