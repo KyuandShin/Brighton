@@ -186,7 +186,7 @@ function FaqItem({ question, answer, open, onToggle }: { question: string; answe
 
 // ── Main Landing Page ────────────────────────────────────────────────────
 export default function LandingPage() {
-  const { user, loading: userLoading } = useCurrentUser();
+  const { user } = useCurrentUser();
   const logoHref = user ? '/dashboard' : '/';
   const router = useRouter();
   const [heroSearch, setHeroSearch] = useState('');
@@ -473,10 +473,9 @@ export default function LandingPage() {
                     </select>
                     <button
                       type="submit"
-                      disabled={userLoading}
-                      className="px-6 py-3.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-all flex items-center gap-2 shadow-sm disabled:opacity-70"
+                      className="px-6 py-3.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-all flex items-center gap-2 shadow-sm"
                     >
-                      {userLoading ? <Loader2 size={14} className="animate-spin" /> : <>Find <ArrowRight size={14} /></>}
+                      Find <ArrowRight size={14} />
                     </button>
                   </div>
                 </div>
@@ -622,7 +621,24 @@ export default function LandingPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {(!tutorCount || tutorCount === 0) ? (
+          {/* Loading state - shown while API call is in-flight */}
+          {tutorCount === null ? (
+            <>
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-card border border-border/60 rounded-2xl overflow-hidden animate-pulse">
+                  <div className="h-20 bg-muted" />
+                  <div className="p-5 space-y-3">
+                    <div className="h-4 bg-muted rounded w-2/3" />
+                    <div className="h-3 bg-muted rounded w-1/2" />
+                    <div className="h-3 bg-muted rounded w-full" />
+                    <div className="flex gap-2 pt-1">
+                      {[1,2,3].map(j => <div key={j} className="h-5 w-14 bg-muted rounded-full" />)}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </>
+          ) : tutorCount === 0 ? (
             <div className="col-span-full flex flex-col items-center justify-center py-16 text-center space-y-5">
               <div className="w-16 h-16 bg-muted rounded-2xl flex items-center justify-center">
                 <GraduationCap size={28} className="text-muted-foreground/60" />
@@ -640,22 +656,6 @@ export default function LandingPage() {
                 Get Notified
               </Link>
             </div>
-          ) : loadingBest ? (
-            <>
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="bg-card border border-border/60 rounded-2xl overflow-hidden animate-pulse">
-                  <div className="h-20 bg-muted" />
-                  <div className="p-5 space-y-3">
-                    <div className="h-4 bg-muted rounded w-2/3" />
-                    <div className="h-3 bg-muted rounded w-1/2" />
-                    <div className="h-3 bg-muted rounded w-full" />
-                    <div className="flex gap-2 pt-1">
-                      {[1,2,3].map(j => <div key={j} className="h-5 w-14 bg-muted rounded-full" />)}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </>
           ) : bestTutors.length > 0 ? (
             bestTutors.map((tutor: any, idx: number) => {
               const themes = [
