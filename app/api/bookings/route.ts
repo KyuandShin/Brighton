@@ -20,14 +20,18 @@ export async function GET(req: NextRequest) {
     });
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
-    // Auto-complete past CONFIRMED bookings
-    await prisma.booking.updateMany({
-      where: {
-        status: 'CONFIRMED',
-        date: { lt: new Date() },
-      },
-      data: { status: 'COMPLETED' },
-    });
+    // Auto-complete past CONFIRMED bookings — only run for tutors and admins to avoid
+    // unnecessary write traffic on every student dashboard load
+    if (user.role === 'TUTOR' || user.role === 'ADMIN') {
+      await prisma.booking.updateMany({
+        where: {
+          status: 'CONFIRMED',
+          date: { lt: new Date() },
+          ...(user.role === 'TUTOR' && user.tutorProfile ? { tutorId: user.tutorProfile.id } : {}),
+        },
+        data: { status: 'COMPLETED' },
+      });
+    }
 
     let bookings: any[] = [];
 
@@ -111,28 +115,32 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'tutorDbId and date are required' }, { status: 400 });
     }
 
-    let studentUser = await prisma.user.findUnique({
+    const studentUser = await prisma.user.findUnique({
       where: { id: postData.user.id },
       include: { studentProfile: true },
     });
     
-    // If admin doesn't have student profile, create it temporarily
-    if (studentUser?.role === 'ADMIN' && !studentUser?.studentProfile) {
-      studentUser = await prisma.user.update({
-        where: { id: postData.user.id },
-        data: {
-          studentProfile: {
-            create: {
-              schoolLevel: 'HIGH_SCHOOL'
-            }
-          }
-        },
-        include: { studentProfile: true }
-      });
-    }
-    
-    if (!studentUser?.studentProfile) {
-      return NextResponse.json({ error: 'Only students and admins can create bookings' }, { status: 403 });
+    // Admins can book on behalf of themselves without needing a real studentProfile.
+    // We use a dedicated admin booking path instead of mutating their user record.
+    const isAdmin = studentUser?.role === 'ADMIN';
+    let studentProfileId: string;
+
+    if (isAdmin) {
+      // For admins: use existing studentProfile if present, otherwise create a hidden one
+      // scoped to this admin — do NOT permanently mutate their user record inline
+      if (!studentUser?.studentProfile) {
+        const newProfile = await prisma.student.create({
+          data: { userId: studentUser!.id, schoolLevel: 'HIGH_SCHOOL' },
+        });
+        studentProfileId = newProfile.id;
+      } else {
+        studentProfileId = studentUser.studentProfile.id;
+      }
+    } else {
+      if (!studentUser?.studentProfile) {
+        return NextResponse.json({ error: 'Only students and admins can create bookings' }, { status: 403 });
+      }
+      studentProfileId = studentUser.studentProfile.id;
     }
 
     // Load tutor (to get email for notification)
@@ -156,7 +164,7 @@ export async function POST(req: NextRequest) {
     // Check for duplicate booking (same student + tutor + time)
     const existing = await prisma.booking.findFirst({
       where: {
-        studentId: studentUser.studentProfile.id,
+        studentId: studentProfileId,
         tutorId: tutorDbId,
         date: bookingDate,
         status: { in: ['PENDING', 'CONFIRMED'] },
@@ -166,11 +174,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'You already have a booking request for this time slot.' }, { status: 409 });
     }
 
+    // Check for tutor double-booking (another student already has this slot)
+    const tutorConflict = await prisma.booking.findFirst({
+      where: {
+        tutorId: tutorDbId,
+        date: bookingDate,
+        status: { in: ['PENDING', 'CONFIRMED'] },
+        studentId: { not: studentProfileId },
+      },
+    });
+    if (tutorConflict) {
+      return NextResponse.json({ error: 'This tutor is not available at that time. Please choose another slot.' }, { status: 409 });
+    }
+
     // If admin is booking, auto-confirm. Otherwise PENDING — tutor must accept
-    const isAdmin = studentUser.role === 'ADMIN';
     const booking = await prisma.booking.create({
       data: {
-        studentId: studentUser.studentProfile.id,
+        studentId: studentProfileId,
         tutorId: tutorDbId,
         date: bookingDate,
         status: isAdmin ? 'CONFIRMED' : 'PENDING',

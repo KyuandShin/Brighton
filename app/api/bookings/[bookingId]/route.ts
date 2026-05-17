@@ -67,6 +67,15 @@ export async function PATCH(
       if (isTutor && booking.status !== 'PENDING') {
         return NextResponse.json({ error: 'This booking cannot be cancelled' }, { status: 400 });
       }
+      // 24-hour cancellation policy: students cannot cancel a CONFIRMED session within 24h
+      if (isStudent && booking.status === 'CONFIRMED') {
+        const hoursUntilSession = (new Date(booking.date).getTime() - Date.now()) / (1000 * 60 * 60);
+        if (hoursUntilSession < 24) {
+          return NextResponse.json({
+            error: 'Sessions cannot be cancelled within 24 hours of the scheduled time. Please contact your tutor directly.'
+          }, { status: 400 });
+        }
+      }
     }
 
     if (status === 'COMPLETED') {
@@ -80,7 +89,20 @@ export async function PATCH(
 
     const updateData: any = {};
     if (status) updateData.status = status;
-    if (date) updateData.date = new Date(date);
+    if (date) {
+      const newDate = new Date(date);
+      if (isNaN(newDate.getTime())) {
+        return NextResponse.json({ error: 'Invalid date format' }, { status: 400 });
+      }
+      if (newDate <= new Date()) {
+        return NextResponse.json({ error: 'Rescheduled date must be in the future' }, { status: 400 });
+      }
+      updateData.date = newDate;
+      // If rescheduling a confirmed booking, reset to PENDING so tutor must re-confirm
+      if (!status && booking.status === 'CONFIRMED') {
+        updateData.status = 'PENDING';
+      }
+    }
 
     const updated = await prisma.booking.update({
       where: { id: params.bookingId },

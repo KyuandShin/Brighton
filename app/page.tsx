@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCurrentUser } from '@/lib/hooks/useCurrentUser';
 import SearchTutorModal from '@/app/_components/SearchTutorModal';
@@ -177,8 +178,9 @@ function FaqItem({ question, answer, open, onToggle }: { question: string; answe
 
 // ── Main Landing Page ────────────────────────────────────────────────────
 export default function LandingPage() {
-  const { user } = useCurrentUser(true);
+  const { user } = useCurrentUser();
   const logoHref = user ? '/dashboard' : '/';
+  const router = useRouter();
   const [heroSearch, setHeroSearch] = useState('');
   const [heroLevel, setHeroLevel] = useState('ALL');
   const [mounted, setMounted] = useState(false);
@@ -428,7 +430,7 @@ export default function LandingPage() {
                     if (heroSearch.trim()) params.set('q', heroSearch.trim());
                     if (heroLevel !== 'ALL') params.set('level', heroLevel);
                     const qs = params.toString();
-                    window.location.href = `/dashboard/tutors${qs ? `?${qs}` : ''}`;
+                    router.push(`/dashboard/tutors${qs ? `?${qs}` : ''}`);
                   } else {
                     setSearchModalQuery(heroSearch);
                     setSearchModalLevel(heroLevel as 'ALL' | 'ELEMENTARY' | 'HIGH_SCHOOL');

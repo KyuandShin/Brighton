@@ -1,18 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma';
 
 /**
  * POST /api/verify-email
  * Called from client after Neon Auth OTP is successfully verified.
  * Marks the user as verified in our own DB.
+ * Requires authentication — verifies the caller is marking their own email.
  */
 export async function POST(req: NextRequest) {
   try {
+    const { data } = await auth.getSession({
+      fetchOptions: { headers: req.headers }
+    });
+    if (!data?.user?.id) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
     const { email } = await req.json();
     if (!email) return NextResponse.json({ error: 'Email required' }, { status: 400 });
 
-    await prisma.user.updateMany({
-      where: { email: email.trim() },
+    // Only allow verifying the authenticated user's own email
+    const user = await prisma.user.findUnique({
+      where: { id: data.user.id },
+      select: { email: true, isVerified: true },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    if (user.email !== email.trim()) {
+      return NextResponse.json({ error: 'Email does not match your account' }, { status: 403 });
+    }
+
+    if (user.isVerified) {
+      return NextResponse.json({ success: true, message: 'Already verified' });
+    }
+
+    await prisma.user.update({
+      where: { id: data.user.id },
       data: { isVerified: true },
     });
 

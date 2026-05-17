@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -9,6 +9,50 @@ import {
 } from 'lucide-react';
 import { useCurrentUser } from '@/lib/hooks/useCurrentUser';
 
+function Toast({ message, type, onClose }: { message: string; type: 'success' | 'error'; onClose: () => void }) {
+  useEffect(() => { const t = setTimeout(onClose, 4000); return () => clearTimeout(t); }, [onClose]);
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 20 }}
+      className={`fixed bottom-24 md:bottom-6 left-1/2 -translate-x-1/2 z-[200] flex items-center gap-3 px-5 py-3 rounded-2xl shadow-xl border-2 ${
+        type === 'success' ? 'bg-p-mint border-teal-300 text-teal-800' : 'bg-p-rose border-rose-300 text-rose-800'
+      }`}
+    >
+      {type === 'success' ? <CheckCircle size={15} /> : <XCircle size={15} />}
+      <span className="text-xs font-black uppercase tracking-widest">{message}</span>
+      <button onClick={onClose} className="ml-2 opacity-60 hover:opacity-100"><X size={13} /></button>
+    </motion.div>
+  );
+}
+
+function ConfirmModal({ message, onConfirm, onCancel }: { message: string; onConfirm: () => void; onCancel: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[150] flex items-center justify-center p-6">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        onClick={onCancel} className="absolute inset-0 bg-text-main/20 backdrop-blur-md" />
+      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+        className="relative z-10 w-full max-w-sm bg-surface border-2 border-border rounded-[32px] p-8 shadow-2xl text-center space-y-5">
+        <div className="w-14 h-14 bg-p-rose rounded-3xl flex items-center justify-center mx-auto">
+          <XCircle size={28} className="text-rose-500" />
+        </div>
+        <p className="text-sm font-black text-text-main">{message}</p>
+        <div className="flex gap-3">
+          <button onClick={onCancel}
+            className="flex-1 py-3 border-2 border-border rounded-xl text-[10px] font-black uppercase tracking-widest text-text-muted hover:border-primary hover:text-primary transition-all">
+            Keep It
+          </button>
+          <button onClick={onConfirm}
+            className="flex-1 py-3 bg-rose-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-600 transition-all">
+            Cancel Session
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
 interface Booking {
   id: string;
   date: string;
@@ -16,6 +60,7 @@ interface Booking {
   status: string;
   tutor?: { id: string; headline: string | null; user: { name: string | null; image: string | null } };
   student?: { user: { name: string | null; image: string | null } };
+  review?: { id: string; rating: number; comment: string | null } | null;
 }
 
 export default function BookingsPage() {
@@ -25,6 +70,15 @@ export default function BookingsPage() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [filter, setFilter] = useState<'ALL' | 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED'>('PENDING');
+
+  // Toast state
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+  }, []);
+
+  // Confirm cancel modal
+  const [confirmBookingId, setConfirmBookingId] = useState<string | null>(null);
 
   // Reschedule modal
   const [rescheduleBooking, setRescheduleBooking] = useState<Booking | null>(null);
@@ -37,7 +91,7 @@ export default function BookingsPage() {
   const [reviewComment, setReviewComment] = useState('');
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
 
-  const fetchBookings = () => {
+  const fetchBookings = useCallback(() => {
     setLoading(true);
     fetch('/api/bookings', {
       credentials: 'include',
@@ -51,9 +105,9 @@ export default function BookingsPage() {
       .then((data) => { if (Array.isArray(data)) setBookings(data); })
       .catch(console.error)
       .finally(() => setLoading(false));
-  };
+  }, []);
 
-  useEffect(() => { fetchBookings(); }, [pathname]);
+  useEffect(() => { fetchBookings(); }, [pathname, fetchBookings]);
 
   const handleAction = async (bookingId: string, status: 'CONFIRMED' | 'CANCELLED' | 'COMPLETED') => {
     setActionLoading(bookingId);
@@ -65,12 +119,14 @@ export default function BookingsPage() {
       });
       if (!res.ok) {
         const data = await res.json();
-        alert(data.error || 'Failed to update booking');
+        showToast(data.error || 'Failed to update booking', 'error');
         return;
       }
+      const label = status === 'CONFIRMED' ? 'Session accepted!' : status === 'CANCELLED' ? 'Session cancelled.' : 'Session marked complete.';
+      showToast(label, status === 'CANCELLED' ? 'error' : 'success');
       fetchBookings();
     } catch (err: any) {
-      alert(err.message ?? 'Unexpected error');
+      showToast(err.message ?? 'Unexpected error', 'error');
     } finally {
       setActionLoading(null);
     }
@@ -88,13 +144,14 @@ export default function BookingsPage() {
       if (res.ok) {
         setRescheduleBooking(null);
         setNewDate('');
+        showToast('Session rescheduled — awaiting tutor confirmation.');
         fetchBookings();
       } else {
         const data = await res.json();
-        alert(data.error || 'Failed to reschedule');
+        showToast(data.error || 'Failed to reschedule', 'error');
       }
     } catch (err: any) {
-      alert(err.message);
+      showToast(err.message, 'error');
     } finally {
       setRescheduling(false);
     }
@@ -116,15 +173,16 @@ export default function BookingsPage() {
       });
       if (!res.ok) {
         const data = await res.json();
-        alert(data.error || 'Failed to submit review');
+        showToast(data.error || 'Failed to submit review', 'error');
         return;
       }
       setReviewBooking(null);
       setReviewRating(5);
       setReviewComment('');
+      showToast('Review submitted! Thanks for your feedback. 💜');
       fetchBookings();
     } catch (err: any) {
-      alert(err.message ?? 'Unexpected error');
+      showToast(err.message ?? 'Unexpected error', 'error');
     } finally {
       setReviewSubmitting(false);
     }
@@ -142,8 +200,23 @@ export default function BookingsPage() {
 
   const FILTER_TABS = ['ALL', 'PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'] as const;
 
+  const tabCount = (f: typeof FILTER_TABS[number]) =>
+    f === 'ALL' ? bookings.length : bookings.filter(b => b.status === f).length;
+
   return (
     <div className="space-y-8">
+      <AnimatePresence>
+        {toast && (
+          <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
+        )}
+        {confirmBookingId && (
+          <ConfirmModal
+            message="Cancel this session? This cannot be undone."
+            onConfirm={() => { handleAction(confirmBookingId, 'CANCELLED'); setConfirmBookingId(null); }}
+            onCancel={() => setConfirmBookingId(null)}
+          />
+        )}
+      </AnimatePresence>
       <header className="space-y-1">
         <h2 className="text-3xl font-black tracking-tight text-text-main">
           {isTutor ? 'Booking ' : 'My '}<span className="text-primary">Requests</span>
@@ -163,7 +236,7 @@ export default function BookingsPage() {
               filter === f ? 'bg-surface text-primary shadow-sm' : 'text-text-muted hover:text-text-main'
             }`}
           >
-            {f === 'PENDING' ? `Pending (${bookings.filter(b => b.status === 'PENDING').length})` : f}
+            {f === 'ALL' ? `All (${tabCount('ALL')})` : `${f.charAt(0) + f.slice(1).toLowerCase()} (${tabCount(f)})`}
           </button>
         ))}
       </div>
@@ -269,7 +342,7 @@ export default function BookingsPage() {
 
                     {showCancelBtn && (
                       <button
-                        onClick={() => { if (confirm('Cancel this session?')) handleAction(booking.id, 'CANCELLED'); }}
+                        onClick={() => setConfirmBookingId(booking.id)}
                         disabled={actionLoading === booking.id}
                         className="px-3 py-1.5 bg-p-rose text-rose-700 rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-rose-200 transition-all disabled:opacity-50 flex items-center gap-1"
                       >
@@ -278,8 +351,8 @@ export default function BookingsPage() {
                       </button>
                     )}
 
-                    {/* Student can rate completed bookings */}
-                    {booking.status === 'COMPLETED' && isStudent && (
+                    {/* Student can rate completed bookings without an existing review */}
+                    {booking.status === 'COMPLETED' && isStudent && !booking.review && (
                       <button
                         onClick={() => { setReviewBooking(booking); setReviewRating(5); setReviewComment(''); }}
                         className="px-3 py-1.5 bg-p-yellow text-amber-700 rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-amber-200 transition-all flex items-center gap-1"

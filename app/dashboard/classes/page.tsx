@@ -73,6 +73,10 @@ export default function ClassesPage() {
     return true;
   });
 
+  // Separate pending from confirmed/upcoming so we can show a distinct section
+  const pendingInUpcoming = filter === 'UPCOMING' ? filtered.filter(b => b.status === 'PENDING') : [];
+  const activeInUpcoming  = filter === 'UPCOMING' ? filtered.filter(b => b.status !== 'PENDING') : filtered;
+
   // ── Open the post-session panel ──────────────────────────────────────
   const openPanel = (booking: Booking) => {
     setPanelBooking(booking);
@@ -215,8 +219,67 @@ export default function ClassesPage() {
           )}
         </div>
       ) : (
-        <div className="space-y-3">
-          {filtered.map((booking, i) => {
+        <div className="space-y-6">
+          {/* Pending (awaiting confirmation) section shown in UPCOMING */}
+          {pendingInUpcoming.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <AlertCircle size={14} className="text-amber-500" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-amber-600">Awaiting Confirmation ({pendingInUpcoming.length})</span>
+              </div>
+              {pendingInUpcoming.map((booking, i) => {
+                const statusCfg  = STATUS_CONFIG[booking.status] ?? STATUS_CONFIG['PENDING'];
+                const StatusIcon = statusCfg.icon;
+                const date       = new Date(booking.date);
+                const otherPerson = isTutor
+                  ? booking.student?.user?.name ?? 'Student'
+                  : booking.tutor?.user?.name ?? 'Tutor';
+                return (
+                  <motion.div
+                    key={booking.id}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.04 }}
+                    className={`bg-surface border-2 border-border border-l-4 ${statusCfg.border} rounded-[24px] p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-p-yellow rounded-2xl flex items-center justify-center shrink-0">
+                        <AlertCircle size={20} className="text-amber-500" />
+                      </div>
+                      <div className="space-y-0.5">
+                        <h4 className="font-black text-sm text-text-main">
+                          {booking.tutor?.headline ?? (isTutor ? (booking.student?.user?.name ?? 'Student') : 'Tutoring Session')}
+                        </h4>
+                        <div className="flex flex-wrap items-center gap-2 text-[10px] font-bold text-text-muted uppercase tracking-tight">
+                          <span className="flex items-center gap-1"><User size={10} /> {otherPerson}</span>
+                          <span className="text-border">·</span>
+                          <span className="flex items-center gap-1">
+                            <Clock size={10} />
+                            {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            {' · '}
+                            {date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                        <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest mt-1">Waiting for tutor to confirm</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2.5 ml-auto shrink-0">
+                      <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest ${statusCfg.pill} ${statusCfg.pillText}`}>
+                        <StatusIcon size={10} /> {statusCfg.label}
+                      </div>
+                    </div>
+                    </motion.div>
+                    );
+                    })}
+                        </div>
+          )}
+        </div>
+          )}
+
+          {/* Confirmed / all other sessions */}
+          {activeInUpcoming.length > 0 && (
+            <div className="space-y-3">
+              {activeInUpcoming.map((booking, i) => {
             const statusCfg  = STATUS_CONFIG[booking.status] ?? STATUS_CONFIG['PENDING'];
             const StatusIcon = statusCfg.icon;
             const date       = new Date(booking.date);

@@ -78,6 +78,9 @@ export async function POST(request: NextRequest) {
     if (!bookingId || !content?.trim()) {
       return NextResponse.json({ error: 'bookingId and content are required' }, { status: 400 });
     }
+    if (content.trim().length > 5000) {
+      return NextResponse.json({ error: 'Notes must be under 5000 characters' }, { status: 400 });
+    }
 
     // Verify tutor owns this booking
     const booking = await prisma.booking.findUnique({

@@ -406,26 +406,6 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="bg-p-yellow/50 border border-border rounded-xl p-3">
-            <p className="text-[8px] font-bold text-text-muted text-center leading-relaxed">
-              Didn't verify your email during signup?{' '}
-              <button
-                type="button"
-                onClick={() => {
-                  if (!email.trim()) {
-                    setError('Please enter your email address first.');
-                    return;
-                  }
-                  setLastLoginEmail(email);
-                  setMode('reverify');
-                  setReVerifySent(false);
-                }}
-                className="text-primary font-black hover:underline"
-              >
-                Resend verification link
-              </button>
-            </p>
-          </div>
         </>
       )}
 

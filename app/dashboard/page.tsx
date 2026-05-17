@@ -65,6 +65,8 @@ export default function DashboardPage() {
     if (userLoading) return;
     if (!user) { setLoading(false); return; }
 
+    let cancelled = false;
+
     const fetchBookings = async () => {
       try {
         const res = await fetch('/api/bookings', { 
@@ -75,8 +77,10 @@ export default function DashboardPage() {
             'Expires': '0'
           }
         });
+        if (cancelled) return;
         if (!res.ok) { setSchedule([]); return; }
         const data = await res.json();
+        if (cancelled) return;
         if (!Array.isArray(data)) { setSchedule([]); return; }
 
         const formattedSchedule = data.map((booking: any, index: number) => {
@@ -104,16 +108,18 @@ export default function DashboardPage() {
             ...COLORS[index % COLORS.length],
           };
         });
+        if (cancelled) return;
 
         setSchedule(formattedSchedule);
       } catch (error) {
-        console.error('Failed to load schedule:', error);
+        if (!cancelled) console.error('Failed to load schedule:', error);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     fetchBookings();
+    return () => { cancelled = true; };
   }, [user, userLoading, pathname]);
 
   const isToday = (isoString: string) => {

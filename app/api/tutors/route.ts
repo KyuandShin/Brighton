@@ -16,46 +16,44 @@ export async function GET(req: NextRequest) {
     const tutors = await prisma.tutor.findMany({
       where: { verificationStatus: 'APPROVED' },
       include: {
-        user: { select: { id: true, name: true, image: true, email: true, createdAt: true } },
+        user: { select: { id: true, name: true, image: true, createdAt: true } },
         subjects: { include: { subject: true } },
-        reviews: { select: { rating: true, createdAt: true } },
         availability: true,
       },
     });
 
-    let formatted = tutors.map((t) => {
-      const ratings = t.reviews.map((r) => r.rating);
-      const avgRating =
-        ratings.length > 0
-          ? Math.round((ratings.reduce((a, b) => a + b, 0) / ratings.length) * 10) / 10
-          : null;
+    // Batch-load recent review counts for "rising" sort
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const recentReviewCounts = await prisma.review.groupBy({
+      by: ['tutorId'],
+      where: { createdAt: { gte: thirtyDaysAgo } },
+      _count: { id: true },
+      _avg: { rating: true },
+    });
+    const recentMap = new Map(recentReviewCounts.map(r => [r.tutorId, { count: r._count.id, avg: r._avg.rating ?? 0 }]));
 
-      // Calculate recent activity for "rising" — reviews in the last 30 days
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const recentReviews = t.reviews.filter((r) => r.createdAt >= thirtyDaysAgo);
-      const recentRating =
-        recentReviews.length > 0
-          ? Math.round((recentReviews.reduce((a, b) => a + b.rating, 0) / recentReviews.length) * 10) / 10
-          : 0;
+    let formatted = tutors.map((t) => {
+      const recent = recentMap.get(t.id);
+      const recentReviewCount = recent?.count ?? 0;
+      const recentRating = recent?.avg ? Math.round(recent.avg * 10) / 10 : 0;
 
       return {
         id: t.id,
         userId: t.user.id,
         name: t.user.name ?? 'Unknown Tutor',
-        email: t.user.email,
         image: t.user.image,
         headline: t.headline,
         bio: t.bio,
         introVideoUrl: t.introVideoUrl,
         pricingPerHour: t.pricingPerHour,
         subjects: t.subjects.map((ts) => ts.subject.name),
-        rating: avgRating,
-        reviewCount: t.reviews.length,
+        rating: t.averageRating ? Math.round(t.averageRating * 10) / 10 : null,
+        reviewCount: t.reviewCount,
         availability: t.availability,
         createdAt: t.user.createdAt.toISOString(),
         recentRating,
-        recentReviewCount: recentReviews.length,
+        recentReviewCount,
       };
     });
 
@@ -84,7 +82,9 @@ export async function GET(req: NextRequest) {
       formatted = formatted.slice(0, limit);
     }
 
-    return NextResponse.json(formatted);
+    return NextResponse.json(formatted, {
+      headers: { 'Cache-Control': 'no-store' },
+    });
   } catch (err: any) {
     console.error('[GET /api/tutors]', err);
     return NextResponse.json({ error: err.message ?? 'Server error' }, { status: 500 });

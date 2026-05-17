@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/lib/auth/server';
 import { QUESTIONS, getGradeLabel } from '../questions/bank';
 
 interface AnswerItem { questionId: string; answer: string; }
@@ -6,8 +7,23 @@ interface AnalyzeBody { grade: string; answers: AnswerItem[]; }
 
 export async function POST(req: NextRequest) {
   try {
+    const { data } = await auth.getSession({
+      fetchOptions: { headers: req.headers }
+    });
+    if (!data?.user?.id) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
     const body: AnalyzeBody = await req.json();
     const { grade, answers } = body;
+
+    if (!grade || !answers || !Array.isArray(answers)) {
+      return NextResponse.json({ error: 'grade and answers array are required' }, { status: 400 });
+    }
+
+    if (answers.length > 100) {
+      return NextResponse.json({ error: 'Too many answers (max 100)' }, { status: 400 });
+    }
 
     const pool = QUESTIONS[grade] ?? QUESTIONS.GRADE_1;
     const lookup = new Map(pool.map(q => [q.id, q]));
@@ -117,7 +133,6 @@ export async function POST(req: NextRequest) {
 
     const gradeLabel = getGradeLabel(grade);
 
-    // ── Build analysis response ─────────────────────────────────────────────
     // ── Tutor recommendations based on weak subjects ────────────────────────
     const tutorRecommendations = weakSubjects.map(s => ({
       subject: s.subject,

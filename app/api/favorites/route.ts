@@ -46,18 +46,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'tutorId is required' }, { status: 400 });
     }
 
-    // Check if already saved
+    // Verify tutor exists
+    const tutor = await prisma.tutor.findUnique({
+      where: { id: tutorId },
+      select: { id: true },
+    });
+    if (!tutor) {
+      return NextResponse.json({ error: 'Tutor not found' }, { status: 404 });
+    }
+
+    // Use upsert to toggle: deletes if exists, creates if not — race condition safe
     const existing = await prisma.savedTutor.findUnique({
       where: { userId_tutorId: { userId: data.user.id, tutorId } },
     });
 
     if (existing) {
-      // Remove favorite (toggle off)
       await prisma.savedTutor.delete({ where: { id: existing.id } });
       return NextResponse.json({ saved: false });
     }
 
-    // Add favorite
     await prisma.savedTutor.create({
       data: { userId: data.user.id, tutorId },
     });

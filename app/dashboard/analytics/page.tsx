@@ -31,6 +31,10 @@ export default function TutorAnalyticsPage() {
           ? reviews.reduce((sum: number, r: any) => sum + r.rating, 0) / reviews.length
           : 0;
 
+        // Compute estimated earnings from completed sessions
+        const pricingPerHour = user.tutorProfile?.pricingPerHour ?? 0;
+        const estimatedEarnings = completedSessions * pricingPerHour;
+
         setStats({
           totalStudents,
           completedSessions,
@@ -39,6 +43,8 @@ export default function TutorAnalyticsPage() {
           totalSessions,
           avgRating,
           reviewCount: reviews.length,
+          estimatedEarnings,
+          pricingPerHour,
           bookings,
           recentReviews: reviews.slice(0, 5),
         });
@@ -69,6 +75,7 @@ export default function TutorAnalyticsPage() {
     { label: 'Total Sessions', value: stats.totalSessions, icon: BookOpen, bg: 'bg-p-purple', text: 'text-primary' },
     { label: 'Students', value: stats.totalStudents, icon: Users, bg: 'bg-p-blue', text: 'text-blue-600' },
     { label: 'Completed', value: stats.completedSessions, icon: CheckCircle, bg: 'bg-p-mint', text: 'text-teal-600' },
+    { label: 'Earnings', value: `$${stats.estimatedEarnings}`, icon: TrendingUp, bg: 'bg-p-green', text: 'text-emerald-600', suffix: stats.pricingPerHour > 0 ? ` @ $${stats.pricingPerHour}/hr` : '' },
     { label: 'Pending', value: stats.pendingRequests, icon: AlertCircle, bg: 'bg-p-yellow', text: 'text-amber-600' },
     { label: 'Upcoming', value: stats.confirmedUpcoming, icon: Calendar, bg: 'bg-p-pink', text: 'text-pink-600' },
     { label: 'Avg Rating', value: stats.avgRating > 0 ? stats.avgRating.toFixed(1) : '—', icon: Star, bg: 'bg-p-peach', text: 'text-orange-600', suffix: stats.reviewCount > 0 ? ` (${stats.reviewCount})` : '' },

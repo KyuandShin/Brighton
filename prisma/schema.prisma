@@ -49,6 +49,8 @@ model Tutor {
   verificationStatus VerificationStatus @default(PENDING)
   headline           String?
   pricingPerHour     Float              @default(0)
+  averageRating      Float?
+  reviewCount        Int                @default(0)
   availability       Availability[]
   bookings           Booking[]
   certifications     Certification[]

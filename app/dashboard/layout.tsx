@@ -116,10 +116,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     if (!user) return;
-    fetch('/api/notifications')
-      .then((r) => r.json())
-      .then((data) => { if (Array.isArray(data)) setNotifications(data); })
-      .catch(console.error);
+    const fetchNotifications = () => {
+      fetch('/api/notifications')
+        .then((r) => r.json())
+        .then((data) => { if (Array.isArray(data)) setNotifications(data); })
+        .catch(console.error);
+    };
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 60_000);
+    return () => clearInterval(interval);
   }, [user]);
 
   useEffect(() => {
@@ -399,6 +404,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           const isActive = item.href === '/dashboard'
             ? pathname === '/dashboard'
             : pathname.startsWith(item.href);
+          return (
+            <Link
+              key={item.name}
+              href={item.href}
+              className={`flex flex-col items-center justify-center h-full w-full transition-all ${
+                isActive ? 'text-primary' : 'text-text-muted'
+              }`}
+            >
+              <Icon size={19} strokeWidth={2} />
+              <span className="text-[9px] font-semibold uppercase tracking-wide mt-1">{item.name}</span>
+            </Link>
+          );
+        })}
+        {isAdmin && adminNavItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = item.exact ? pathname === item.href : pathname.startsWith(item.href);
           return (
             <Link
               key={item.name}

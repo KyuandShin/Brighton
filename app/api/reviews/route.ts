@@ -4,6 +4,11 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET(request: NextRequest) {
   try {
+    const { data: session } = await auth.getSession({
+      fetchOptions: { headers: request.headers },
+    });
+    const isAuthenticated = !!session?.user?.id;
+
     const { searchParams } = new URL(request.url);
     const tutorId = searchParams.get('tutorId');
 
@@ -15,7 +20,15 @@ export async function GET(request: NextRequest) {
       where: { tutorId },
       include: {
         student: {
-          include: { user: { select: { name: true, image: true } } },
+          include: {
+            user: {
+              select: {
+                // Only expose student names to authenticated users
+                name: isAuthenticated,
+                image: isAuthenticated,
+              },
+            },
+          },
         },
       },
       orderBy: { createdAt: 'desc' },
@@ -52,6 +65,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'tutorId and rating are required' }, { status: 400 });
     }
 
+    if (typeof rating !== 'number' || rating < 1 || rating > 5) {
+      return NextResponse.json({ error: 'Rating must be a number between 1 and 5' }, { status: 400 });
+    }
+
+    if (comment && comment.length > 2000) {
+      return NextResponse.json({ error: 'Comment must be under 2000 characters' }, { status: 400 });
+    }
+
+    // Prevent duplicate reviews for the same booking
+    if (bookingId) {
+      const existing = await prisma.review.findFirst({
+        where: { bookingId },
+      });
+      if (existing) {
+        return NextResponse.json({ error: 'You have already reviewed this session.' }, { status: 409 });
+      }
+    }
+
     const review = await prisma.review.create({
       data: {
         studentId: user.studentProfile.id,
@@ -62,12 +93,20 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Update tutor's average rating
+    // Update tutor's cached average rating and review count
     const allReviews = await prisma.review.findMany({
       where: { tutorId },
       select: { rating: true },
     });
     const avgRating = allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length;
+
+    await prisma.tutor.update({
+      where: { id: tutorId },
+      data: {
+        averageRating: avgRating,
+        reviewCount: allReviews.length,
+      },
+    });
 
     return NextResponse.json({ ...review, avgRating });
   } catch (error) {
