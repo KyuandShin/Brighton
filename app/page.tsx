@@ -292,27 +292,19 @@ export default function LandingPage() {
       toast.error('Please enter a subject to search');
       return;
     }
-    if (user) {
-      const params = new URLSearchParams();
-      if (heroSearch.trim()) params.set('q', heroSearch.trim());
-      if (heroLevel !== 'ALL') params.set('level', heroLevel);
-      const qs = params.toString();
-      router.push(`/dashboard/tutors${qs ? `?${qs}` : ''}`);
-    } else {
-      setSearchSheetQuery(heroSearch);
-      setSearchSheetLevel(heroLevel as 'ALL' | 'ELEMENTARY' | 'HIGH_SCHOOL');
-      setShowSearchSheet(true);
-      // Fetch tutors for sheet
-      setSheetLoading(true);
-      fetch('/api/tutors')
-        .then(r => r.json())
-        .then((data: any[]) => {
-          if (Array.isArray(data)) setSheetTutors(data);
-          else setSheetTutors([]);
-        })
-        .catch(() => setSheetTutors([]))
-        .finally(() => setSheetLoading(false));
-    }
+    setSearchSheetQuery(heroSearch);
+    setSearchSheetLevel(heroLevel as 'ALL' | 'ELEMENTARY' | 'HIGH_SCHOOL');
+    setShowSearchSheet(true);
+    // Fetch tutors for sheet
+    setSheetLoading(true);
+    fetch('/api/tutors')
+      .then(r => r.json())
+      .then((data: any[]) => {
+        if (Array.isArray(data)) setSheetTutors(data);
+        else setSheetTutors([]);
+      })
+      .catch(() => setSheetTutors([]))
+      .finally(() => setSheetLoading(false));
   };
 
   // Filter tutors in sheet
@@ -902,16 +894,26 @@ export default function LandingPage() {
                   <div className="space-y-1">
                     <p className="text-lg font-semibold text-foreground">No tutors found</p>
                     <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-                      Try a different subject or sign up to browse all our available tutors.
+                      Try a different subject or browse all tutors to find the perfect match.
                     </p>
                   </div>
-                  <Link
-                    href="/signup"
-                    className="px-6 py-3 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-all"
-                    onClick={() => setShowSearchSheet(false)}
-                  >
-                    Sign Up to Browse All
-                  </Link>
+                  {user ? (
+                    <Link
+                      href="/dashboard/tutors"
+                      className="px-6 py-3 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-all"
+                      onClick={() => setShowSearchSheet(false)}
+                    >
+                      Browse All Tutors
+                    </Link>
+                  ) : (
+                    <Link
+                      href="/signup"
+                      className="px-6 py-3 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-all"
+                      onClick={() => setShowSearchSheet(false)}
+                    >
+                      Sign Up to Browse All
+                    </Link>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -961,20 +963,32 @@ export default function LandingPage() {
 
                           {/* Overlay CTA */}
                           <div className="absolute inset-0 bg-background/95 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                            <Link
-                              href="/signup"
-                              className="px-5 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-all"
-                              onClick={() => setShowSearchSheet(false)}
-                            >
-                              Sign Up to Book
-                            </Link>
-                            <Link
-                              href="/login"
-                              className="px-5 py-2.5 border border-border/60 text-foreground rounded-lg text-sm font-medium hover:bg-muted transition-all"
-                              onClick={() => setShowSearchSheet(false)}
-                            >
-                              Log In
-                            </Link>
+                            {user ? (
+                              <Link
+                                href={`/dashboard/tutors/${tutor.id}`}
+                                className="px-5 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-all"
+                                onClick={() => setShowSearchSheet(false)}
+                              >
+                                View Profile
+                              </Link>
+                            ) : (
+                              <>
+                                <Link
+                                  href="/signup"
+                                  className="px-5 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-all"
+                                  onClick={() => setShowSearchSheet(false)}
+                                >
+                                  Sign Up to Book
+                                </Link>
+                                <Link
+                                  href="/login"
+                                  className="px-5 py-2.5 border border-border/60 text-foreground rounded-lg text-sm font-medium hover:bg-muted transition-all"
+                                  onClick={() => setShowSearchSheet(false)}
+                                >
+                                  Log In
+                                </Link>
+                              </>
+                            )}
                           </div>
                         </div>
                       );
@@ -982,17 +996,29 @@ export default function LandingPage() {
                   </div>
 
                   <div className="text-center pt-4">
-                    <Link
-                      href="/signup"
-                      className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-all shadow-sm"
-                      onClick={() => setShowSearchSheet(false)}
-                    >
-                      Sign Up to Book a Tutor <ArrowRight size={14} />
-                    </Link>
-                    <p className="text-xs text-muted-foreground mt-3">
-                      Already have an account?{' '}
-                      <Link href="/login" className="text-primary hover:underline" onClick={() => setShowSearchSheet(false)}>Log in</Link>
-                    </p>
+                    {user ? (
+                      <Link
+                        href="/dashboard/tutors"
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-all shadow-sm"
+                        onClick={() => setShowSearchSheet(false)}
+                      >
+                        Browse All Tutors <ArrowRight size={14} />
+                      </Link>
+                    ) : (
+                      <>
+                        <Link
+                          href="/signup"
+                          className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-all shadow-sm"
+                          onClick={() => setShowSearchSheet(false)}
+                        >
+                          Sign Up to Book a Tutor <ArrowRight size={14} />
+                        </Link>
+                        <p className="text-xs text-muted-foreground mt-3">
+                          Already have an account?{' '}
+                          <Link href="/login" className="text-primary hover:underline" onClick={() => setShowSearchSheet(false)}>Log in</Link>
+                        </p>
+                      </>
+                    )}
                   </div>
                 </div>
               )}
