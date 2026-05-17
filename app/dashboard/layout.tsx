@@ -402,30 +402,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <p className="text-xs font-semibold text-text-main truncate">{displayName}</p>
                   <p className="text-[10px] text-text-muted truncate">{user?.email}</p>
                 </div>
-                <DropdownMenuItem asChild>
-                  <Link
-                    href="/dashboard/profile"
-                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] font-medium text-text-muted hover:bg-surface-elevated hover:text-text-main transition-all"
-                  >
-                    <User size={13} /> My Profile
-                  </Link>
+                <DropdownMenuItem onClick={() => router.push('/dashboard/profile')} className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] font-medium text-text-muted hover:bg-surface-elevated hover:text-text-main transition-all">
+                  <User size={13} /> My Profile
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <button
-                    onClick={toggleTheme}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] font-medium text-text-muted hover:bg-surface-elevated hover:text-text-main transition-all"
-                  >
-                    {darkMode ? <Sun size={13} /> : <Moon size={13} />} {darkMode ? 'Light Mode' : 'Dark Mode'}
-                  </button>
+                <DropdownMenuItem onClick={toggleTheme} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] font-medium text-text-muted hover:bg-surface-elevated hover:text-text-main transition-all">
+                  {darkMode ? <Sun size={13} /> : <Moon size={13} />} {darkMode ? 'Light Mode' : 'Dark Mode'}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <button
-                    onClick={handleLogout}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] font-medium text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all"
-                  >
-                    <LogOut size={13} /> Sign Out
-                  </button>
+                <DropdownMenuItem onClick={handleLogout} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] font-medium text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all">
+                  <LogOut size={13} /> Sign Out
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
