@@ -3,6 +3,65 @@ import { auth } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma';
 import { deleteNeonAuthUser } from '@/lib/neon-auth';
 
+export async function GET(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  const params = await context.params;
+  try {
+    const { data } = await auth.getSession({
+      fetchOptions: { headers: request.headers }
+    });
+    const userId = data?.user?.id;
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const adminUser = await prisma.user.findUnique({ where: { id: userId } });
+    if (adminUser?.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const student = await prisma.student.findUnique({
+      where: { id: params.id },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+            createdAt: true,
+            isBanned: true,
+            isVerified: true,
+          }
+        },
+        bookings: {
+          include: {
+            tutor: {
+              select: {
+                user: { select: { name: true } }
+              }
+            }
+          },
+          orderBy: { date: 'desc' },
+          take: 20,
+        },
+      },
+    });
+
+    if (!student) {
+      return NextResponse.json({ error: 'Student not found' }, { status: 404 });
+    }
+
+    return NextResponse.json(student);
+  } catch (error) {
+    console.error('Admin student detail error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
 export async function PATCH(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }

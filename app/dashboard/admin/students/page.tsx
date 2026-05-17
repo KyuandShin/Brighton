@@ -156,7 +156,7 @@ export default function AdminStudentsPage() {
                         <MessageSquare size={16} />
                       </Link>
                       <Link
-                        href={`/dashboard/profile?userId=${student.userId}`}
+                        href={`/dashboard/admin/students/${student.id}`}
                         className="p-2.5 bg-surface-elevated rounded-xl hover:bg-primary hover:text-white transition-all text-text-muted"
                         title="View profile"
                       >
