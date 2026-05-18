@@ -84,7 +84,7 @@ export function useCurrentUser(skip?: boolean): UseCurrentUserResult {
       });
 
     return () => { cancelled = true; };
-  }, [tick]);
+  }, [tick, skip]);
 
   const refetch = () => {
     setLoading(true);

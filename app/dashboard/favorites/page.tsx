@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useCurrentUser } from '@/lib/hooks/useCurrentUser';
 import { Heart, Star, GraduationCap, ChevronRight, Search, Trash2 } from 'lucide-react';
 import Link from 'next/link';
@@ -24,16 +24,16 @@ export default function FavoritesPage() {
   const [favorites, setFavorites] = useState<FavoriteTutor[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchFavorites = () => {
+  const fetchFavorites = useCallback(() => {
     if (!user?.id) return;
     fetch(`/api/favorites?userId=${user.id}`)
       .then((r) => r.json())
       .then((data) => { if (Array.isArray(data)) setFavorites(data); })
       .catch(console.error)
       .finally(() => setLoading(false));
-  };
+  }, [user?.id]);
 
-  useEffect(() => { fetchFavorites(); }, [user?.id]);
+  useEffect(() => { fetchFavorites(); }, [fetchFavorites]);
 
   const removeFavorite = async (tutorId: string) => {
     if (!user?.id) return;

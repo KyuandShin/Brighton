@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Camera, X, RotateCw, Download, RefreshCw } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -20,17 +20,7 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    startCamera();
-    
-    return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-      }
-    };
-  }, [facingMode]);
-
-  const startCamera = async () => {
+  const startCamera = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -61,7 +51,17 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
       setError('Could not access camera. Please allow camera permissions.');
       setLoading(false);
     }
-  };
+  }, [facingMode]);
+
+  useEffect(() => {
+    startCamera();
+    
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [startCamera]);
 
   const capturePhoto = () => {
     if (!videoRef.current || !canvasRef.current) return;

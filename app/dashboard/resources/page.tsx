@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useCurrentUser } from '@/lib/hooks/useCurrentUser';
 import { BookOpen, Link2, Plus, Trash2, ExternalLink, FileText, Sparkles, GraduationCap, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -24,16 +24,16 @@ export default function ResourcesPage() {
   const [form, setForm] = useState({ title: '', description: '', fileUrl: '', fileType: 'link', subject: '', level: '' });
   const [submitting, setSubmitting] = useState(false);
 
-  const fetchResources = () => {
+  const fetchResources = useCallback(() => {
     if (!user?.tutorProfile?.id) { setLoading(false); return; }
     fetch(`/api/resources?tutorId=${user.tutorProfile.id}`)
       .then((r) => r.json())
       .then((data) => { if (Array.isArray(data)) setResources(data); })
       .catch(console.error)
       .finally(() => setLoading(false));
-  };
+  }, [user?.tutorProfile?.id]);
 
-  useEffect(() => { fetchResources(); }, [user?.tutorProfile?.id]);
+  useEffect(() => { fetchResources(); }, [fetchResources]);
 
   const handleAdd = async () => {
     if (!form.title || !form.fileUrl || !user?.tutorProfile?.id) return;

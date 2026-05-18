@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import {
   Video, ChevronRight, ChevronLeft, GraduationCap, DollarSign,
   BookOpen, Clock, Check, Sparkles, AlertCircle, Loader2,
@@ -694,13 +694,14 @@ function VideoRecorder({ onUpload }: { onUpload: (url: string) => void }) {
   const [uploading, setUploading] = useState(false);
   const [timeLeft, setTimeLeft] = useState(120);
   const liveVideoRef = React.useRef<HTMLVideoElement | null>(null);
+  const stopRecordingRef = useRef<() => void>(() => {});
 
   useEffect(() => {
     let timer: any;
     if (recording && timeLeft > 0) {
       timer = setInterval(() => setTimeLeft(t => t - 1), 1000);
     } else if (timeLeft === 0 && recording) {
-      stopRecording();
+      stopRecordingRef.current();
     }
     return () => clearInterval(timer);
   }, [recording, timeLeft]);
@@ -732,6 +733,9 @@ function VideoRecorder({ onUpload }: { onUpload: (url: string) => void }) {
     setRecording(false);
     setStream(null);
   };
+
+  // Keep the ref updated with the latest stopRecording
+  stopRecordingRef.current = stopRecording;
 
   const handleUpload = async () => {
     if (!videoBlob) return;
