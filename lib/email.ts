@@ -302,3 +302,72 @@ export function bookingCancelledEmail({
   <div class="footer"><p class="footer-text">Brighton Academic • 2026</p></div>
 </div>`);
 }
+
+/**
+ * Sent to both parties 1 hour before a confirmed session.
+ */
+export function bookingReminderEmail({
+  recipientName,
+  otherPartyName,
+  date,
+  time,
+  meetLink,
+  role,
+}: {
+  recipientName: string;
+  otherPartyName: string;
+  date: string;
+  time: string;
+  meetLink: string;
+  role: 'student' | 'tutor';
+}) {
+  return wrapHtml(`
+<div class="container">
+  <div class="header-confirmed">
+    <p class="badge">Brighton Academic</p>
+    <h1 class="title">Session in 1 Hour! ⏰</h1>
+  </div>
+  <div class="body-padding">
+    <p class="text-body">Hi <strong style="color:#2c3e50;">${recipientName}</strong>, your tutoring session starts in 1 hour!</p>
+    <div class="info-box">
+      <div class="info-row"><span class="info-label">${role === 'student' ? 'Tutor' : 'Student'}</span><span class="info-value">${otherPartyName}</span></div>
+      <div class="divider"></div>
+      <div class="info-row"><span class="info-label">Date</span><span class="info-value">${date}</span></div>
+      <div class="divider"></div>
+      <div class="info-row"><span class="info-label">Time</span><span class="info-value">${time}</span></div>
+    </div>
+    ${meetLink ? `<a href="${meetLink}" class="btn btn-blue">Join Classroom →</a>` : ''}
+    <p class="text-small">Please be on time. If you need to cancel, do so at least 24 hours in advance.</p>
+  </div>
+  <div class="footer"><p class="footer-text">Brighton Academic • 2026</p></div>
+</div>`);
+}
+
+/**
+ * Sent when a confirmed session passes without being joined (missed).
+ */
+export function bookingMissedEmail({
+  recipientName,
+  otherPartyName,
+  date,
+  time,
+}: {
+  recipientName: string;
+  otherPartyName: string;
+  date: string;
+  time: string;
+}) {
+  return wrapHtml(`
+<div class="container">
+  <div class="header-cancel">
+    <p class="badge">Brighton Academic</p>
+    <h1 class="title">Missed Session ⚠️</h1>
+  </div>
+  <div class="body-padding">
+    <p class="text-body">Hi <strong style="color:#2c3e50;">${recipientName}</strong>,</p>
+    <p class="text-body">Your session with <strong>${otherPartyName}</strong> on <strong>${date}</strong> at <strong>${time}</strong> was marked as missed.</p>
+    <p class="text-body">If the other party didn't show up, please contact support. You can reschedule from your dashboard.</p>
+  </div>
+  <div class="footer"><p class="footer-text">Brighton Academic • 2026</p></div>
+</div>`);
+}

@@ -121,7 +121,7 @@ export default function AdminStudentsPage() {
                     <div className="flex items-center gap-4 flex-1">
                       <div className="relative w-14 h-14 shrink-0">
                         <Image
-                          src={student.user.image ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${student.user.email}`}
+                          src={student.user.image || `https://api.dicebear.com/7.x/avataaars/svg?seed=${student.user.email}`}
                           alt={student.user.name ?? 'Student'}
                           fill
                           className="rounded-2xl bg-surface-elevated object-cover"
@@ -191,7 +191,7 @@ export default function AdminStudentsPage() {
                     <div className="flex items-center gap-4 flex-1">
                       <div className="relative w-14 h-14 shrink-0">
                         <Image
-                          src={student.user.image ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${student.user.email}`}
+                          src={student.user.image || `https://api.dicebear.com/7.x/avataaars/svg?seed=${student.user.email}`}
                           alt={student.user.name ?? 'Student'}
                           fill
                           className="rounded-2xl bg-surface-elevated object-cover opacity-60"

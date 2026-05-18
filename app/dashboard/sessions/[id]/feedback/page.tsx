@@ -6,9 +6,10 @@ import { useCurrentUser } from '@/lib/hooks/useCurrentUser';
 import {
   ArrowLeft, Brain, BookOpen, Star, CheckCircle2, AlertCircle,
   TrendingUp, Target, Clock, Sparkles, User, FileText, GraduationCap,
-  Loader2, MessageSquare, Home, RefreshCw
+  Loader2, MessageSquare, Home, RefreshCw, CheckCircle, Send, Bell
 } from 'lucide-react';
 import Link from 'next/link';
+import { toast } from 'sonner';
 
 interface SessionFeedback {
   subject: string;
@@ -35,7 +36,7 @@ interface BookingData {
   date: string;
   status: string;
   tutor?: { id: string; headline: string | null; user: { name: string | null; image: string | null } };
-  student?: { user: { name: string | null } };
+  student?: { id: string; user: { name: string | null } };
   notes?: { id: string; content: string; subject: string | null; topics: string[]; skills: any; homework: string | null; createdAt: string } | null;
   review?: { id: string; rating: number; comment: string | null } | null;
 }
@@ -48,6 +49,12 @@ export default function SessionFeedbackPage() {
   const [feedback, setFeedback] = useState<SessionFeedback | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // Review state (inline)
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewSuccess, setReviewSuccess] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -314,38 +321,111 @@ export default function SessionFeedbackPage() {
         </>
       )}
 
-      {/* Review Section */}
+      {/* Review Section — Inline */}
       {isStudent && (
         <div className="bg-surface border-2 border-border rounded-[32px] p-6 space-y-4">
           <h3 className="font-black text-xs uppercase tracking-widest text-text-main flex items-center gap-2">
-            <Star size={14} className="text-amber-500" /> Your Review
+            <Star size={14} className="text-amber-500" /> Rate Your Session
           </h3>
-          {booking.review ? (
-            <div className="space-y-2">
-              <div className="flex gap-1">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star
-                    key={star}
-                    size={20}
-                    fill={star <= (booking.review?.rating || 0) ? '#fcc419' : 'none'}
-                    className={star <= (booking.review?.rating || 0) ? 'text-amber-400' : 'text-gray-300'}
-                  />
-                ))}
+          {booking.review || reviewSuccess ? (
+            <div className="space-y-3 text-center py-4">
+              <div className="w-16 h-16 bg-p-mint rounded-3xl flex items-center justify-center mx-auto">
+                <CheckCircle size={32} className="text-teal-600" />
               </div>
-              {booking.review?.comment && (
-                <p className="text-sm font-medium text-text-muted">&ldquo;{booking.review.comment}&rdquo;</p>
+              <p className="text-sm font-black text-text-main">Thank you for your feedback! 💜</p>
+              {booking.review && (
+                <>
+                  <div className="flex justify-center gap-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star
+                        key={star}
+                        size={24}
+                        fill={star <= (booking.review?.rating || 0) ? '#fcc419' : 'none'}
+                        className={star <= (booking.review?.rating || 0) ? 'text-amber-400' : 'text-gray-300'}
+                      />
+                    ))}
+                  </div>
+                  {booking.review?.comment && (
+                    <p className="text-sm font-medium text-text-muted bg-surface-elevated rounded-2xl p-4 border border-border">
+                      &ldquo;{booking.review.comment}&rdquo;
+                    </p>
+                  )}
+                </>
               )}
-              <p className="text-[9px] font-bold text-text-muted uppercase tracking-widest">
-                {booking.review?.rating}/5 stars
-              </p>
             </div>
           ) : (
-            <p className="text-sm font-bold text-text-muted">
-              You haven't left a review yet. 
-              <Link href={`/dashboard/classes`} className="text-primary hover:underline ml-1">
-                Review this session
-              </Link>
-            </p>
+            <>
+              <p className="text-sm text-text-muted">
+                How was your session with <strong className="text-text-main">{booking.tutor?.user?.name || 'your tutor'}</strong>?
+              </p>
+
+              {/* Star Rating */}
+              <div className="flex justify-center gap-2 py-4">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    onClick={() => setReviewRating(star)}
+                    className="transition-all hover:scale-110"
+                  >
+                    <Star
+                      size={40}
+                      fill={star <= reviewRating ? '#fcc419' : 'none'}
+                      className={star <= reviewRating ? 'text-amber-400' : 'text-gray-300'}
+                    />
+                  </button>
+                ))}
+              </div>
+
+              {/* Comment */}
+              <textarea
+                value={reviewComment}
+                onChange={(e) => setReviewComment(e.target.value)}
+                placeholder="Share your experience (optional)..."
+                rows={3}
+                className="w-full bg-surface-elevated border-2 border-border rounded-2xl px-4 py-3 text-sm font-medium text-text-main focus:outline-none focus:border-primary transition-all resize-none"
+              />
+
+              <button
+                onClick={async () => {
+                  if (!booking.tutor?.id) return;
+                  setSubmittingReview(true);
+                  try {
+                    const res = await fetch('/api/reviews', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        tutorId: booking.tutor.id,
+                        bookingId: booking.id,
+                        rating: reviewRating,
+                        comment: reviewComment || null,
+                      }),
+                    });
+                    if (res.ok) {
+                      const created = await res.json();
+                      setReviewSuccess(true);
+                      setBooking(prev => prev ? { ...prev, review: { id: created.id, rating: reviewRating, comment: reviewComment || null } } : prev);
+                      toast.success('Review submitted!');
+                    } else {
+                      const data = await res.json();
+                      toast.error(data.error || 'Failed to submit review');
+                    }
+                  } catch (err) {
+                    toast.error('Something went wrong');
+                  } finally {
+                    setSubmittingReview(false);
+                  }
+                }}
+                disabled={submittingReview}
+                className="w-full py-4 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                style={{ background: 'linear-gradient(135deg, #ec4899 0%, #9333ea 100%)' }}
+              >
+                {submittingReview ? (
+                  <><Loader2 size={14} className="animate-spin" /> Submitting...</>
+                ) : (
+                  <><Send size={14} /> Submit Review</>
+                )}
+              </button>
+            </>
           )}
         </div>
       )}

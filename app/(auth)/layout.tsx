@@ -5,14 +5,14 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 const DECORATIONS = [
-  { char: '✦', top: '12%',  left: '7%',   size: '2rem',  color: '#f472b6', delay: '0s',    dur: '5s',   opacity: 0.28 },
-  { char: '★', top: '18%',  right: '9%',  size: '1.4rem', color: '#9333ea', delay: '1.2s',  dur: '7s',   opacity: 0.22 },
-  { char: '✿', top: '55%',  left: '5%',   size: '1.7rem', color: '#ec4899', delay: '2.1s',  dur: '6s',   opacity: 0.22 },
-  { char: '◆', top: '43%',  right: '6%',  size: '1rem',   color: '#a855f7', delay: '0.5s',  dur: '3.5s', opacity: 0.18, spark: true },
-  { char: '✧', bottom: '28%', right: '12%', size: '2.2rem', color: '#f472b6', delay: '1.8s', dur: '8s',   opacity: 0.16 },
-  { char: '✦', bottom: '18%', left: '9%',  size: '1.3rem', color: '#8b5cf6', delay: '3s',    dur: '4.5s', opacity: 0.15, spark: true },
-  { char: '◇', top: '72%',  left: '22%',  size: '0.9rem', color: '#ec4899', delay: '0.8s',  dur: '6.5s', opacity: 0.12 },
-  { char: '✦', top: '28%',  left: '18%',  size: '0.8rem', color: '#d946ef', delay: '2.5s',  dur: '5.5s', opacity: 0.12, spark: true },
+  { char: '✦', top: '12%',  left: '7%',   size: '2rem',  color: '#3b82f6', delay: '0s',    dur: '5s',   opacity: 0.28 },
+  { char: '★', top: '18%',  right: '9%',  size: '1.4rem', color: '#60a5fa', delay: '1.2s',  dur: '7s',   opacity: 0.22 },
+  { char: '✿', top: '55%',  left: '5%',   size: '1.7rem', color: '#2563eb', delay: '2.1s',  dur: '6s',   opacity: 0.22 },
+  { char: '◆', top: '43%',  right: '6%',  size: '1rem',   color: '#38bdf8', delay: '0.5s',  dur: '3.5s', opacity: 0.18, spark: true },
+  { char: '✧', bottom: '28%', right: '12%', size: '2.2rem', color: '#3b82f6', delay: '1.8s', dur: '8s',   opacity: 0.16 },
+  { char: '✦', bottom: '18%', left: '9%',  size: '1.3rem', color: '#93c5fd', delay: '3s',    dur: '4.5s', opacity: 0.15, spark: true },
+  { char: '◇', top: '72%',  left: '22%',  size: '0.9rem', color: '#2563eb', delay: '0.8s',  dur: '6.5s', opacity: 0.12 },
+  { char: '✦', top: '28%',  left: '18%',  size: '0.8rem', color: '#0ea5e9', delay: '2.5s',  dur: '5.5s', opacity: 0.12, spark: true },
 ];
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
@@ -30,7 +30,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         className="absolute pointer-events-none rounded-full"
         style={{
           top: '-15%', left: '-8%', width: '42%', height: '42%',
-          background: 'var(--color-p-purple)',
+          background: 'var(--color-p-blue)',
           filter: 'blur(120px)', opacity: 0.40,
           animation: 'blob-drift 10s ease-in-out infinite',
         }}
@@ -39,7 +39,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         className="absolute pointer-events-none rounded-full"
         style={{
           bottom: '-10%', right: '-8%', width: '42%', height: '42%',
-          background: 'var(--color-p-pink)',
+          background: 'var(--color-p-sky)',
           filter: 'blur(120px)', opacity: 0.40,
           animation: 'blob-drift 12s ease-in-out infinite reverse',
         }}
@@ -48,7 +48,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         className="absolute pointer-events-none rounded-full"
         style={{
           top: '35%', right: '-5%', width: '28%', height: '28%',
-          background: 'var(--color-p-sky)',
+          background: 'var(--color-p-mint)',
           filter: 'blur(80px)', opacity: 0.30,
           animation: 'blob-drift 14s ease-in-out infinite 3s',
         }}
@@ -75,10 +75,10 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       ))}
 
       {/* Auth card - using CSS variables so it responds to dark mode */}
-      <div className="w-full max-w-md bg-surface/92 backdrop-blur-sm rounded-[32px] shadow-[0_24px_90px_rgba(147,51,234,0.08)] p-6 sm:p-10 border border-p-purple/20 relative z-10 dark:shadow-[0_24px_90px_rgba(168,85,247,0.10)]">
+      <div className="w-full max-w-md bg-surface/92 backdrop-blur-sm rounded-[32px] shadow-[0_24px_90px_rgba(37,99,235,0.08)] p-6 sm:p-10 border border-p-blue/20 relative z-10 dark:shadow-[0_24px_90px_rgba(59,130,246,0.10)]">
         <div className="flex flex-col items-center mb-10">
           <Link href="/" className="flex flex-col items-center group transition-transform hover:scale-105">
-            <div className="w-14 h-14 logo-halo flex items-center justify-center border-2 border-p-purple mb-6">
+            <div className="w-14 h-14 logo-halo flex items-center justify-center border-2 border-p-blue mb-6">
               <Image src="/logo.png" alt="Logo" width={36} height={36} className="object-contain" style={{ width: 'auto', height: 'auto' }} />
             </div>
             <h1 className="text-2xl font-black text-text-main tracking-[0.2em] uppercase">Brighton</h1>

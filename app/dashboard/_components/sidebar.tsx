@@ -3,25 +3,32 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { Home, BookOpen, Users, Calendar, Settings, LogOut, Shield, UserCheck, Ban, MessageSquare, TrendingUp } from 'lucide-react';
+import { Home, BookOpen, Users, Calendar, Settings, LogOut, UserCheck, MessageSquare, TrendingUp } from 'lucide-react';
 import { useCurrentUser } from '@/lib/hooks/useCurrentUser';
 import { authClient } from '@/lib/auth/client';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
 
 function NavLink({ href, icon: Icon, children, exact }: { href: string; icon: React.ElementType; children: React.ReactNode; exact?: boolean }) {
   const pathname = usePathname();
   const isActive = exact ? pathname === href : pathname.startsWith(href);
 
   return (
-    <Link
-      href={href}
-      className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold text-sm ${
-        isActive
-          ? 'bg-[#3dbbee] text-white shadow-lg shadow-[#3dbbee]/20'
-          : 'text-[#9fadbd] hover:bg-[#0b1622] hover:text-white'
-      }`}
-    >
-      <Icon size={18} />
-      <span>{children}</span>
+    <Link href={href}>
+      <Button
+        variant={isActive ? "default" : "ghost"}
+        size="sm"
+        className={cn(
+          "w-full justify-start gap-3 px-4 py-6 rounded-xl font-bold text-sm",
+          isActive
+            ? 'bg-[#3dbbee] text-white hover:bg-[#3dbbee]/90 shadow-lg shadow-[#3dbbee]/20'
+            : 'text-[#9fadbd] hover:bg-[#0b1622] hover:text-white'
+        )}
+      >
+        <Icon size={18} />
+        <span>{children}</span>
+      </Button>
     </Link>
   );
 }
@@ -42,6 +49,12 @@ export function Sidebar() {
     { name: 'Settings', href: '/dashboard/settings', icon: Settings },
   ];
 
+  const adminNavItems = [
+    { name: 'Dashboard', href: '/dashboard/admin', icon: Home },
+    { name: 'Tutor Approvals', href: '/dashboard/admin/tutors', icon: UserCheck },
+    { name: 'Students', href: '/dashboard/admin/students', icon: Users },
+  ];
+
   return (
     <div className="w-64 bg-[#152232] border-r border-[#1e2d3d] flex flex-col h-screen sticky top-0">
       <Link href="/dashboard" className="p-6 flex items-center gap-3 hover:opacity-80 transition-opacity group">
@@ -52,22 +65,26 @@ export function Sidebar() {
       </Link>
       
       <nav className="flex-1 px-4 py-4">
-        <ul className="space-y-2">
+        <ul className="space-y-1">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = pathname === item.href;
+            const isActive = pathname.startsWith(item.href);
             return (
               <li key={item.name}>
-                <Link
-                  href={item.href}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold text-sm ${
-                    isActive 
-                      ? 'bg-[#3dbbee] text-white shadow-lg shadow-[#3dbbee]/20' 
-                      : 'text-[#9fadbd] hover:bg-[#0b1622] hover:text-white'
-                  }`}
-                >
-                  <Icon size={18} />
-                  <span>{item.name}</span>
+                <Link href={item.href}>
+                  <Button
+                    variant={isActive ? "default" : "ghost"}
+                    size="sm"
+                    className={cn(
+                      "w-full justify-start gap-3 px-4 py-6 rounded-xl font-bold text-sm",
+                      isActive
+                        ? 'bg-[#3dbbee] text-white hover:bg-[#3dbbee]/90 shadow-lg shadow-[#3dbbee]/20'
+                        : 'text-[#9fadbd] hover:bg-[#0b1622] hover:text-white'
+                    )}
+                  >
+                    <Icon size={18} />
+                    <span>{item.name}</span>
+                  </Button>
                 </Link>
               </li>
             );
@@ -75,64 +92,55 @@ export function Sidebar() {
 
           {isAdmin && (
             <>
-              <li className="mt-6 mb-2 px-4">
+              <li className="px-1 py-2">
+                <Separator className="bg-[#1e2d3d]" />
+              </li>
+              <li className="px-4 pb-1 pt-1">
                 <p className="text-[#627285] text-[10px] font-black uppercase tracking-widest">Admin</p>
               </li>
-              <li>
-                <Link
-                  href="/dashboard/admin"
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold text-sm ${
-                    pathname === '/dashboard/admin'
-                      ? 'bg-[#3dbbee] text-white shadow-lg shadow-[#3dbbee]/20' 
-                      : 'text-[#9fadbd] hover:bg-[#0b1622] hover:text-white'
-                  }`}
-                >
-                  <Home size={18} />
-                  <span>Dashboard</span>
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/dashboard/admin/tutors"
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold text-sm ${
-                    pathname.startsWith('/dashboard/admin/tutors')
-                      ? 'bg-[#3dbbee] text-white shadow-lg shadow-[#3dbbee]/20' 
-                      : 'text-[#9fadbd] hover:bg-[#0b1622] hover:text-white'
-                  }`}
-                >
-                  <UserCheck size={18} />
-                  <span>Tutor Approvals</span>
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/dashboard/admin/students"
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold text-sm ${
-                    pathname.startsWith('/dashboard/admin/students')
-                      ? 'bg-[#3dbbee] text-white shadow-lg shadow-[#3dbbee]/20' 
-                      : 'text-[#9fadbd] hover:bg-[#0b1622] hover:text-white'
-                  }`}
-                >
-                  <Users size={18} />
-                  <span>Students</span>
-                </Link>
-              </li>
+              {adminNavItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = item.href === '/dashboard/admin'
+                  ? pathname === item.href
+                  : pathname.startsWith(item.href);
+                return (
+                  <li key={item.name}>
+                    <Link href={item.href}>
+                      <Button
+                        variant={isActive ? "default" : "ghost"}
+                        size="sm"
+                        className={cn(
+                          "w-full justify-start gap-3 px-4 py-6 rounded-xl font-bold text-sm",
+                          isActive
+                            ? 'bg-[#3dbbee] text-white hover:bg-[#3dbbee]/90 shadow-lg shadow-[#3dbbee]/20'
+                            : 'text-[#9fadbd] hover:bg-[#0b1622] hover:text-white'
+                        )}
+                      >
+                        <Icon size={18} />
+                        <span>{item.name}</span>
+                      </Button>
+                    </Link>
+                  </li>
+                );
+              })}
             </>
           )}
         </ul>
       </nav>
 
       <div className="p-4 border-t border-[#1e2d3d]">
-        <button 
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full justify-start gap-3 px-4 py-6 rounded-xl text-sm font-bold text-[#9fadbd] hover:bg-red-500/10 hover:text-red-500"
           onClick={async () => {
             await authClient.signOut();
             window.location.href = '/';
           }}
-          className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-sm font-bold text-[#9fadbd] hover:bg-red-500/10 hover:text-red-500 transition-all"
         >
           <LogOut size={18} />
           <span>Logout</span>
-        </button>
+        </Button>
       </div>
     </div>
   );

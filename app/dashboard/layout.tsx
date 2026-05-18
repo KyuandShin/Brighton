@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useCurrentUser, getInitials } from '@/lib/hooks/useCurrentUser';
 import { authClient } from '@/lib/auth/client';
+import { CommandPalette } from '@/components/CommandPalette';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -227,9 +228,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="relative w-10 h-10">
-            <div className="absolute inset-0 rounded-full border-[3px] border-border" />
+        <div className="flex flex-col items-center gap-5">
+          <div className="relative w-16 h-16">
+            <Image
+              src="/logo.png"
+              alt="Brighton"
+              width={64}
+              height={64}
+              className="object-contain"
+              priority
+            />
             <div className="absolute inset-0 rounded-full border-[3px] border-transparent border-t-primary animate-spin" />
           </div>
           <p className="text-text-muted text-xs font-semibold uppercase tracking-widest">Loading...</p>
@@ -306,8 +314,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             )}
           </div>
 
-          {/* Right: Theme toggle + Messages + Notifications + Profile */}
+          {/* Right: Command palette + Theme toggle + Messages + Notifications + Profile */}
           <div className="flex items-center gap-1.5 shrink-0">
+            <CommandPalette />
             <button
               onClick={toggleTheme}
               className="p-2 rounded-lg text-text-muted hover:bg-surface-elevated hover:text-text-main transition-all"

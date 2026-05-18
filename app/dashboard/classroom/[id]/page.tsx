@@ -3,6 +3,7 @@
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { PhoneOff, Video, Loader2, Clock, AlertTriangle } from 'lucide-react';
+import { useCurrentUser } from '@/lib/hooks/useCurrentUser';
 
 declare global {
   interface Window {
@@ -16,6 +17,7 @@ const WARNING_MINUTES = 5; // Show warning 5 minutes before end
 export default function ClassroomPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const { user } = useCurrentUser();
   const containerRef = useRef<HTMLDivElement>(null);
   const apiRef = useRef<any>(null);
   const [scriptReady, setScriptReady] = useState(false);
@@ -25,6 +27,7 @@ export default function ClassroomPage() {
   const [timeRemaining, setTimeRemaining] = useState<string>('');
   const [showWarning, setShowWarning] = useState(false);
   const [sessionEnded, setSessionEnded] = useState(false);
+  const [isLeaving, setIsLeaving] = useState(false);
 
   // Clean room name - Jitsi requires valid URL-safe names without spaces or special characters
   const roomName = `brighton-${id}`.replace(/[^a-zA-Z0-9-_]/g, '-').toLowerCase();
@@ -186,17 +189,40 @@ export default function ClassroomPage() {
     }
   }, [scriptReady, roomName, sessionEnded]);
 
-  const handleLeave = () => {
+  const completeAndRedirect = async (path: string) => {
+    setIsLeaving(true);
     try { apiRef.current?.executeCommand('hangup'); } catch {}
     apiRef.current?.dispose();
     apiRef.current = null;
-    router.push(`/dashboard/sessions/${id}/feedback`);
+
+    // Mark booking as COMPLETED
+    try {
+      await fetch(`/api/bookings/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'COMPLETED' }),
+        credentials: 'include',
+      });
+    } catch (e) {
+      console.error('Failed to mark session complete:', e);
+    }
+
+    router.push(path);
+  };
+
+  const handleLeave = () => {
+    // Role-based redirect:
+    // Tutors → notes form
+    // Students → summary/feedback page
+    const isTutor = user?.role === 'TUTOR';
+    completeAndRedirect(isTutor
+      ? `/dashboard/sessions/${id}/notes`
+      : `/dashboard/sessions/${id}/feedback`
+    );
   };
 
   const handleGoToFeedback = () => {
-    try { apiRef.current?.dispose(); } catch {}
-    apiRef.current = null;
-    router.push(`/dashboard/sessions/${id}/feedback`);
+    completeAndRedirect(`/dashboard/sessions/${id}/feedback`);
   };
 
   if (error) {

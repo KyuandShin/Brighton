@@ -6,10 +6,21 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Calendar as CalendarIcon, Clock, Video, User,
   ChevronRight, Sparkles, X, BookOpen, ExternalLink, Users,
-  TrendingUp, Sun, Star, GraduationCap, Brain, Rocket, Heart
+  TrendingUp, Sun, Star, GraduationCap, Brain, Rocket
 } from 'lucide-react';
 import Link from 'next/link';
 import { useCurrentUser } from '@/lib/hooks/useCurrentUser';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 
 interface ScheduleItem {
   id: string;
@@ -39,10 +50,10 @@ const COLORS = [
 ];
 
 const quickActions = [
-  { label: 'Find a Tutor', href: '/dashboard/tutors', icon: Users,        iconBg: '#2563eb', iconBgTo: '#1d4ed8', cardBg: '#f8fafc', cardBorder: '#e2e8f0', desc: 'Browse experts'   },
-  { label: 'Take Test',    href: '/dashboard/test',   icon: Brain,        iconBg: '#2563eb', iconBgTo: '#1d4ed8', cardBg: '#f8fafc', cardBorder: '#e2e8f0', desc: 'AI assessment'    },
-  { label: 'My Classes',  href: '/dashboard/classes', icon: BookOpen,     iconBg: '#1d4ed8', iconBgTo: '#1e40af', cardBg: '#f8fafc', cardBorder: '#e2e8f0', desc: 'View schedule'    },
-  { label: 'Bookings',    href: '/dashboard/bookings', icon: CalendarIcon, iconBg: '#1d4ed8', iconBgTo: '#1e40af', cardBg: '#f8fafc', cardBorder: '#e2e8f0', desc: 'Manage sessions'  },
+  { label: 'Find a Tutor', href: '/dashboard/tutors', icon: Users,        iconBg: '#2563eb', iconBgTo: '#1d4ed8', desc: 'Browse experts'   },
+  { label: 'Take Test',    href: '/dashboard/test',   icon: Brain,        iconBg: '#2563eb', iconBgTo: '#1d4ed8', desc: 'AI assessment'    },
+  { label: 'My Classes',  href: '/dashboard/classes', icon: BookOpen,     iconBg: '#1d4ed8', iconBgTo: '#1e40af', desc: 'View schedule'    },
+  { label: 'Bookings',    href: '/dashboard/bookings', icon: CalendarIcon, iconBg: '#1d4ed8', iconBgTo: '#1e40af', desc: 'Manage sessions'  },
 ];
 
 export default function DashboardPage() {
@@ -136,9 +147,9 @@ export default function DashboardPage() {
   const upcomingClasses = confirmedSchedule.filter((item) => new Date(item.rawDate) >= now);
 
   const stats = [
-    { label: 'Upcoming', value: upcomingClasses.length, icon: TrendingUp, iconColor: '#3b82f6', bg: 'rgba(59,130,246,0.08)',  border: 'rgba(59,130,246,0.14)' },
-    { label: 'Today',    value: todaysClasses.length,   icon: Sun,         iconColor: '#2563eb', bg: 'rgba(59,130,246,0.08)',  border: 'rgba(59,130,246,0.14)' },
-    { label: 'Total',    value: activeSchedule.length,  icon: BookOpen,    iconColor: '#1d4ed8', bg: 'rgba(37,99,235,0.08)',  border: 'rgba(37,99,235,0.14)' },
+    { label: 'Upcoming', value: upcomingClasses.length, icon: TrendingUp, iconColor: '#3b82f6' },
+    { label: 'Today',    value: todaysClasses.length,   icon: Sun,         iconColor: '#2563eb' },
+    { label: 'Total',    value: activeSchedule.length,  icon: BookOpen,    iconColor: '#1d4ed8' },
   ];
 
   return (
@@ -154,7 +165,6 @@ export default function DashboardPage() {
             boxShadow: isDark ? '0 4px 32px rgba(0,0,0,0.25)' : '0 4px 32px rgba(0,0,0,0.04)',
         }}
       >
-        {/* Decorative blobs */}
         <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full blur-3xl pointer-events-none"
           style={{ background: isDark ? 'rgba(59,130,246,0.08)' : 'rgba(37,99,235,0.04)' }} />
         <div className="absolute -bottom-16 -left-16 w-56 h-56 rounded-full blur-3xl pointer-events-none"
@@ -182,13 +192,12 @@ export default function DashboardPage() {
           </div>
           <Link
             href="/dashboard/test"
-            className="group relative overflow-hidden w-full sm:w-auto px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-[0.15em] shadow-lg shadow-primary/20 hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center gap-2.5 shrink-0"
+            className="rounded-2xl font-black text-[10px] uppercase tracking-[0.15em] shadow-lg shadow-primary/20 hover:shadow-xl hover:scale-105 transition-all inline-flex shrink-0 items-center justify-center gap-2.5 px-5 py-3"
             style={{ background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)', color: 'white' }}
           >
-            <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-            <Brain size={14} className="relative z-10" />
-            <span className="relative z-10">AI Assessment</span>
-            <Sparkles size={10} className="relative z-10 animate-sparkle" />
+            <Brain size={14} />
+            AI Assessment
+            <Sparkles size={10} className="animate-sparkle" />
           </Link>
         </div>
 
@@ -203,26 +212,20 @@ export default function DashboardPage() {
             {stats.map((s) => {
               const Icon = s.icon;
               return (
-                <div
-                  key={s.label}
-                  className="rounded-2xl px-3 sm:px-5 py-3 sm:py-4 flex items-center gap-2 sm:gap-4 hover:shadow-md transition-all hover:-translate-y-0.5"
-                  style={{
-                    background: isDark ? 'rgba(255,255,255,0.06)' : s.bg,
-                    border: `1.5px solid ${isDark ? 'rgba(255,255,255,0.10)' : s.border}`,
-                    backdropFilter: 'blur(8px)',
-                  }}
-                >
-                  <div
-                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm"
-                    style={{ background: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.80)' }}
-                  >
-                    <Icon size={16} style={{ color: s.iconColor }} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xl sm:text-2xl font-black text-text-main leading-none">{s.value}</p>
-                    <p className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-text-muted mt-0.5">{s.label}</p>
-                  </div>
-                </div>
+                <Card key={s.label} className="border-border/60 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 bg-transparent">
+                  <CardContent className="flex items-center gap-2 sm:gap-4 p-3 sm:p-5">
+                    <div
+                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm"
+                      style={{ background: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.80)' }}
+                    >
+                      <Icon size={16} style={{ color: s.iconColor }} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xl sm:text-2xl font-black text-text-main leading-none">{s.value}</p>
+                      <p className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-text-muted mt-0.5">{s.label}</p>
+                    </div>
+                  </CardContent>
+                </Card>
               );
             })}
           </motion.div>
@@ -240,26 +243,22 @@ export default function DashboardPage() {
           const Icon = action.icon;
           return (
             <Link key={action.label} href={action.href}>
-              <div
-                className="group relative overflow-hidden p-4 rounded-2xl hover:shadow-lg hover:-translate-y-1 transition-all cursor-pointer"
-                style={{
-                  background: isDark ? 'var(--color-surface)' : action.cardBg,
-                  border: `1.5px solid ${isDark ? 'var(--color-border)' : action.cardBorder}`,
-                }}
-              >
-                <div className="relative z-10 flex items-center gap-3">
-                  <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-300"
-                    style={{ background: `linear-gradient(135deg, ${action.iconBg}, ${action.iconBgTo})` }}
-                  >
-                    <Icon size={18} className="text-white" />
+              <Card className="group overflow-hidden border-border/60 hover:shadow-lg hover:-translate-y-1 transition-all cursor-pointer bg-background">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-300"
+                      style={{ background: `linear-gradient(135deg, ${action.iconBg}, ${action.iconBgTo})` }}
+                    >
+                      <Icon size={18} className="text-white" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-black text-text-main">{action.label}</p>
+                      <p className="text-[8px] font-bold text-text-muted uppercase tracking-widest">{action.desc}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs font-black text-text-main">{action.label}</p>
-                    <p className="text-[8px] font-bold text-text-muted uppercase tracking-widest">{action.desc}</p>
-                  </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             </Link>
           );
         })}
@@ -277,7 +276,7 @@ export default function DashboardPage() {
           {schedule.length > 0 && (
             <Link
               href="/dashboard/classes"
-              className="group flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-primary hover:text-accent-strong transition-colors"
+              className="text-[10px] font-black uppercase tracking-widest text-primary underline-offset-4 hover:underline inline-flex items-center gap-1.5"
             >
               View All <ChevronRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
             </Link>
@@ -287,14 +286,14 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
           {loading ? (
             [1, 2, 3].map((i) => (
-              <div key={i} className="bg-surface border-2 border-border rounded-[32px] overflow-hidden animate-pulse">
-                <div className="h-20 bg-surface-elevated" />
-                <div className="p-5 space-y-3">
-                  <div className="h-5 bg-surface-elevated rounded-xl w-3/4" />
-                  <div className="h-3 bg-surface-elevated rounded-xl w-1/2" />
-                  <div className="h-8 bg-surface-elevated rounded-xl w-full mt-4" />
-                </div>
-              </div>
+              <Card key={i} className="overflow-hidden border-border">
+                <Skeleton className="h-20 w-full rounded-none" />
+                <CardContent className="p-5 space-y-3">
+                  <Skeleton className="h-5 w-3/4" />
+                  <Skeleton className="h-3 w-1/2" />
+                  <Skeleton className="h-8 w-full mt-4" />
+                </CardContent>
+              </Card>
             ))
           ) : confirmedSchedule.length === 0 && pendingSchedule.length === 0 ? (
             <div className="col-span-full flex flex-col items-center justify-center py-12 sm:py-16 text-center space-y-6">
@@ -320,8 +319,8 @@ export default function DashboardPage() {
               </div>
               <Link
                 href="/dashboard/tutors"
-                className="group px-8 py-4 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:shadow-xl hover:scale-105 transition-all flex items-center gap-2.5"
-                style={{ background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)', boxShadow: '0 8px 24px rgba(37,99,235,0.2)' }}
+                className="rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg hover:shadow-xl hover:scale-105 transition-all inline-flex items-center gap-2.5 px-8 py-4"
+                style={{ background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)', color: 'white', boxShadow: '0 8px 24px rgba(37,99,235,0.2)' }}
               >
                 <Users size={14} /> Find Tutors <Rocket size={14} className="group-hover:translate-x-0.5 transition-transform" />
               </Link>
@@ -383,34 +382,18 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      {/* Detail Modal */}
-      <AnimatePresence>
-        {selectedClass && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setSelectedClass(null)}
-              className="absolute inset-0 bg-text-main/20 backdrop-blur-md"
-            />
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="w-full max-w-lg bg-surface rounded-[40px] shadow-[0_40px_100px_rgba(0,0,0,0.08)] border border-border dark:border-[#1e293b] overflow-hidden relative z-10"
-            >
+      {/* Detail Dialog using shadcn Dialog */}
+      <Dialog open={!!selectedClass} onOpenChange={(open) => !open && setSelectedClass(null)}>
+        <DialogContent className="sm:max-w-lg p-0 gap-0 rounded-[40px] border-border overflow-hidden">
+          {selectedClass && (
+            <>
               <div
                 className="h-28 relative"
                 style={{ background: `linear-gradient(135deg, ${isDark ? selectedClass.bannerDarkFrom : selectedClass.bannerFrom}, ${isDark ? selectedClass.bannerDarkTo : selectedClass.bannerTo})` }}
               >
-                <button
-                  onClick={() => setSelectedClass(null)}
-                  className="absolute top-5 right-5 p-2 bg-surface/60 hover:bg-surface rounded-full transition-all text-text-main hover:shadow-md z-10"
-                  aria-label="Close modal"
-                >
-                  <X size={18} />
-                </button>
+                <DialogHeader className="sr-only">
+                  <DialogTitle>{selectedClass.topic}</DialogTitle>
+                </DialogHeader>
                 <div className="absolute -bottom-7 left-8 w-14 h-14 bg-surface rounded-2xl shadow-md border-4 border-surface flex items-center justify-center">
                   <BookOpen size={24} className={selectedClass.iconColor} />
                 </div>
@@ -418,11 +401,9 @@ export default function DashboardPage() {
 
               <div className="p-6 sm:p-8 pt-11 space-y-6">
                 <div className="space-y-1.5">
-                  <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em]">
-                    <span className="text-primary">*</span>
-                    <span className="text-primary">Confirmed Session</span>
-                    <span className="text-primary">*</span>
-                  </div>
+                  <Badge variant="outline" className="text-primary border-primary/30 bg-primary/5 text-[10px] font-black uppercase tracking-[0.2em]">
+                    Confirmed Session
+                  </Badge>
                   <h3 className="text-xl sm:text-2xl font-black tracking-tight text-text-main">{selectedClass.topic}</h3>
                   <p className="text-xs font-bold text-text-muted uppercase tracking-widest">
                     {selectedClass.subject} . {selectedClass.teacher}
@@ -430,39 +411,43 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="p-5 bg-gradient-to-br from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10 rounded-2xl space-y-1.5 border border-border">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-text-muted">Time</p>
-                    <p className="text-sm font-black text-text-main">{selectedClass.time}</p>
-                  </div>
-                  <div className="p-5 bg-gradient-to-br from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/5 rounded-2xl space-y-1.5 border border-border">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-text-muted">Date</p>
-                    <p className="text-sm font-black text-text-main">{selectedClass.date}</p>
-                  </div>
+                  <Card className="bg-gradient-to-br from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10 border-border">
+                    <CardContent className="p-5 space-y-1.5">
+                      <p className="text-[9px] font-black uppercase tracking-widest text-text-muted">Time</p>
+                      <p className="text-sm font-black text-text-main">{selectedClass.time}</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-gradient-to-br from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/5 border-border">
+                    <CardContent className="p-5 space-y-1.5">
+                      <p className="text-[9px] font-black uppercase tracking-widest text-text-muted">Date</p>
+                      <p className="text-sm font-black text-text-main">{selectedClass.date}</p>
+                    </CardContent>
+                  </Card>
                 </div>
 
                 <a
                   href={selectedClass.meetLink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group relative overflow-hidden w-full p-4 rounded-2xl flex items-center justify-between transition-all text-white hover:shadow-xl hover:scale-[1.02]"
+                  className="group relative overflow-hidden w-full p-4 rounded-2xl flex items-center justify-center gap-3 transition-all text-white hover:shadow-xl hover:scale-[1.02] font-black text-xs uppercase tracking-widest"
                   style={{ background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)', boxShadow: '0 8px 24px rgba(37,99,235,0.25)' }}
                 >
                   <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
                   <div className="relative z-10 flex items-center gap-3">
                     <div className="p-2 bg-white/20 rounded-xl"><Video size={17} /></div>
-                    <span className="font-black text-xs uppercase tracking-widest">Join Classroom</span>
+                    <span>Join Classroom</span>
                   </div>
-                  <ExternalLink size={16} className="relative z-10 opacity-60 group-hover:opacity-100 transition-opacity" />
+                  <ExternalLink size={14} className="relative z-10 opacity-60 group-hover:opacity-100 transition-opacity" />
                 </a>
               </div>
 
               <div className="px-8 py-4 bg-gradient-to-r from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/5 border-t border-border text-center">
                 <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Brighton Academic Framework v2.0</p>
               </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

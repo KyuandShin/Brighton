@@ -111,16 +111,18 @@ model TutorSubject {
 }
 
 model Booking {
-  id        String       @id @default(cuid())
-  studentId String
-  tutorId   String
-  date      DateTime
-  meetLink  String?
-  status    String       @default("PENDING")
-  student   Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  tutor     Tutor        @relation(fields: [tutorId], references: [id], onDelete: Cascade)
-  notes     SessionNote?
-  review    Review?
+  id               String       @id @default(cuid())
+  studentId        String
+  tutorId          String
+  date             DateTime
+  meetLink         String?
+  status           String       @default("PENDING")
+  reminderSent     Boolean      @default(false)
+  missedEmailSent  Boolean      @default(false)
+  student          Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  tutor            Tutor        @relation(fields: [tutorId], references: [id], onDelete: Cascade)
+  notes            SessionNote?
+  review           Review?
 
   @@unique([studentId, tutorId, date])
 }

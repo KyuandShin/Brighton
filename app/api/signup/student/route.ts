@@ -7,9 +7,12 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { email, password, fullName, schoolName, age, parentEmail, schoolLevel, image, gradeLevel, subjects } = body;
 
-    console.log('[SIGNUP] Starting student signup for:', email);
+    // Normalize email consistently everywhere
+    const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
 
-    if (!email || !password || !fullName || !age || !schoolLevel) {
+    console.log('[SIGNUP] Starting student signup for:', normalizedEmail);
+
+    if (!normalizedEmail || !password || !fullName || !age || !schoolLevel) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
@@ -28,7 +31,7 @@ export async function POST(req: NextRequest) {
     // 1. Register with Neon Auth
     try {
       const { data: authData, error: authError } = await auth.signUp.email({
-        email: email.trim(),
+        email: normalizedEmail,
         password,
         name: fullName.trim(),
       });
@@ -38,12 +41,10 @@ export async function POST(req: NextRequest) {
         console.warn('[SIGNUP] Neon Auth signUp error:', msg);
         
         if (msg.toLowerCase().includes('already') || msg.toLowerCase().includes('exists')) {
-          // Attempt to continue registration for existing auth user
           authUserId = (authError as any)?.userId || (authError as any)?.user?.id || (authError as any)?.data?.id;
           
           if (!authUserId) {
-            // Check if user exists in our DB at least
-            const existingUser = await prisma.user.findUnique({ where: { email: email.trim() } });
+            const existingUser = await prisma.user.findUnique({ where: { email: normalizedEmail } });
             authUserId = existingUser?.id || null;
           }
           
@@ -61,8 +62,7 @@ export async function POST(req: NextRequest) {
       }
     } catch (authErr) {
       console.error('[SIGNUP] Neon Auth service error:', authErr);
-      // If auth fails, we might still want to check if the user exists in our DB
-      const existingUser = await prisma.user.findUnique({ where: { email: email.trim() } });
+      const existingUser = await prisma.user.findUnique({ where: { email: normalizedEmail } });
       if (existingUser) {
         authUserId = existingUser.id;
       } else {
@@ -74,15 +74,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Could not retrieve auth user ID' }, { status: 500 });
     }
 
-    // Grade level is already a number from the frontend
     const parsedGrade = gradeLevel ?? null;
     
-    // Parse subjects — ensure it's a valid string array
     const parsedSubjects: string[] = Array.isArray(subjects) 
       ? subjects.filter((s: string) => ['Mathematics', 'Science', 'Filipino', 'English'].includes(s))
       : [];
 
-    // 2. Create User + Student profile — isVerified remains false
+    // 2. Create User + Student profile — isVerified remains false until OTP confirmed
     await prisma.user.upsert({
       where: { id: authUserId },
       update: {
@@ -112,7 +110,7 @@ export async function POST(req: NextRequest) {
       },
       create: {
         id: authUserId,
-        email: email.trim(),
+        email: normalizedEmail,
         name: fullName.trim(),
         role: 'STUDENT',
         isVerified: false,
@@ -129,7 +127,7 @@ export async function POST(req: NextRequest) {
         },
       },
     });
-    console.log('[SIGNUP] Student account created successfully:', email);
+    console.log('[SIGNUP] Student account created successfully:', normalizedEmail);
 
     return NextResponse.json({ 
       success: true, 

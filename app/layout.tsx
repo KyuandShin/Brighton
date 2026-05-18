@@ -4,6 +4,7 @@ import { authClient } from '@/lib/auth/client';
 import "./globals.css";
 import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
@@ -11,7 +12,10 @@ export const metadata: Metadata = {
   title: "Brighton",
   description: "Tutor Website built with Next.js and Neon Auth",
   icons: {
-    icon: "/logo.png",
+    icon: [
+      { url: "/logo.png", type: "image/png", sizes: "32x32" },
+      { url: "/logo.png", type: "image/png", sizes: "192x192" },
+    ],
     shortcut: "/logo.png",
     apple: "/logo.png",
   },
@@ -47,7 +51,9 @@ export default function RootLayout({
       </head>
       <body className="antialiased min-h-screen">
         <AuthUIProvider authClient={authClient as any}>
-          {children}
+          <TooltipProvider>
+            {children}
+          </TooltipProvider>
         </AuthUIProvider>
       </body>
     </html>

@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
-import { Star, ChevronRight, GraduationCap, Search, ShieldCheck, Filter, TrendingUp, Zap, Heart } from 'lucide-react';
+import { useState, useEffect, useRef, Suspense } from 'react';
+import { Star, ChevronRight, GraduationCap, Search, ShieldCheck, Filter, TrendingUp, Zap, Heart, ArrowLeft, ArrowRight, RefreshCw, Clock, User } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { useSearchParams } from 'next/navigation';
+import { useCurrentUser } from '@/lib/hooks/useCurrentUser';
 
 interface TutorFromDB {
   id: string;
@@ -67,8 +68,23 @@ export default function TutorsPageWrapper() {
   );
 }
 
+interface PreviousTutorItem {
+  tutor: {
+    id: string;
+    name: string;
+    image: string | null;
+    headline: string | null;
+    subjects: string[];
+    rating: number | null;
+    reviewCount: number;
+  };
+  bookingCount: number;
+  lastBooked: string;
+}
+
 function TutorsPage() {
   const searchParams = useSearchParams();
+  const { user } = useCurrentUser();
   const [tutors, setTutors]           = useState<ReturnType<typeof normalizeTutor>[]>([]);
   const [loading, setLoading]         = useState(true);
   const [search, setSearch]           = useState(searchParams.get('q') ?? '');
@@ -76,6 +92,24 @@ function TutorsPage() {
   const [subjectFilter, setSubjectFilter] = useState('');
   const [activeTab, setActiveTab]     = useState<SortTab>('all');
   const [isDark, setIsDark]           = useState(false);
+  const [previousTutors, setPreviousTutors] = useState<PreviousTutorItem[]>([]);
+  const [previousLoading, setPreviousLoading] = useState(true);
+  const prevScrollRef = useRef<HTMLDivElement>(null);
+
+  // Fetch previously-booked tutors
+  useEffect(() => {
+    if (user?.role !== 'STUDENT') {
+      setPreviousLoading(false);
+      return;
+    }
+    fetch('/api/tutors/previous', { credentials: 'include' })
+      .then(r => r.json())
+      .then((data: PreviousTutorItem[]) => {
+        if (Array.isArray(data)) setPreviousTutors(data);
+      })
+      .catch(console.error)
+      .finally(() => setPreviousLoading(false));
+  }, [user]);
 
   useEffect(() => {
     const checkDark = () => setIsDark(document.documentElement.classList.contains('dark'));
@@ -132,6 +166,135 @@ function TutorsPage() {
           )}
         </div>
       </header>
+
+      {/* Previously Booked Tutors — Carousel */}
+      {!previousLoading && previousTutors.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Heart size={16} className="text-rose-500" fill="currentColor" />
+              <h3 className="font-black text-xs uppercase tracking-widest text-text-main">Previously Booked</h3>
+              <span className="text-[9px] font-bold text-text-muted bg-surface-elevated px-2 py-0.5 rounded-full">
+                {previousTutors.length} tutor{previousTutors.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+            <div className="flex gap-1">
+              <button
+                onClick={() => {
+                  const el = prevScrollRef.current;
+                  if (el) el.scrollBy({ left: -280, behavior: 'smooth' });
+                }}
+                className="p-1.5 bg-surface border border-border rounded-xl hover:bg-p-purple transition-all"
+              >
+                <ArrowLeft size={14} className="text-text-muted" />
+              </button>
+              <button
+                onClick={() => {
+                  const el = prevScrollRef.current;
+                  if (el) el.scrollBy({ left: 280, behavior: 'smooth' });
+                }}
+                className="p-1.5 bg-surface border border-border rounded-xl hover:bg-p-purple transition-all"
+              >
+                <ArrowRight size={14} className="text-text-muted" />
+              </button>
+            </div>
+          </div>
+
+          <div
+            ref={prevScrollRef}
+            className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory -mx-1 px-1"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
+            {previousTutors.map((item) => {
+              const theme = CARD_THEMES[Math.floor(Math.random() * CARD_THEMES.length)];
+              return (
+                <Link
+                  key={item.tutor.id}
+                  href={`/dashboard/tutors/${item.tutor.id}`}
+                  className="snap-start shrink-0"
+                >
+                  <motion.div
+                    whileHover={{ y: -4 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                    className="w-[220px] bg-surface border-2 border-border rounded-[24px] overflow-hidden group"
+                  >
+                    {/* Mini banner */}
+                    <div
+                      className="relative h-14"
+                      style={{ background: `linear-gradient(135deg, ${isDark ? theme.bannerDarkFrom : theme.bannerFrom}, ${isDark ? theme.bannerDarkTo : theme.bannerTo})` }}
+                    >
+                      <div className="absolute -bottom-6 left-4">
+                        <div className="relative w-11 h-11 rounded-xl border-2 border-white shadow-sm overflow-hidden bg-surface">
+                          <Image
+                            src={item.tutor.image ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(item.tutor.name)}`}
+                            alt={item.tutor.name}
+                            fill
+                            sizes="44px"
+                            className="object-cover"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Card body */}
+                    <div className="px-4 pt-8 pb-4 space-y-2">
+                      <div className="space-y-0.5">
+                        <h4 className="font-black text-sm text-text-main group-hover:text-primary transition-colors leading-tight line-clamp-1">
+                          {item.tutor.name}
+                        </h4>
+                        <p className="text-[8px] font-bold text-text-muted uppercase tracking-tight line-clamp-1">
+                          {item.tutor.headline ?? 'Tutor'}
+                        </p>
+                      </div>
+
+                      {/* Booking count badge */}
+                      <div className="flex items-center gap-1.5 px-2 py-1 bg-p-mint/50 rounded-full w-fit">
+                        <RefreshCw size={10} className="text-teal-600" />
+                        <span className="text-[8px] font-black text-teal-700 uppercase tracking-widest">
+                          Booked {item.bookingCount}×
+                        </span>
+                      </div>
+
+                      {/* Subject tags */}
+                      {item.tutor.subjects.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {item.tutor.subjects.slice(0, 2).map((s) => (
+                            <span
+                              key={s}
+                              className={`px-2 py-0.5 ${theme.tagBg} rounded-full text-[7px] font-black uppercase tracking-widest ${theme.tagText}`}
+                            >
+                              {s}
+                            </span>
+                          ))}
+                          {item.tutor.subjects.length > 2 && (
+                            <span className="text-[7px] font-black text-text-muted">+{item.tutor.subjects.length - 2}</span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Rating */}
+                      {item.tutor.rating !== null && (
+                        <div className="flex items-center gap-1">
+                          <Star size={10} fill="currentColor" className="text-[#fcc419]" />
+                          <span className="text-[10px] font-black text-text-main">{item.tutor.rating.toFixed(1)}</span>
+                          <span className="text-[7px] font-bold text-text-muted">({item.tutor.reviewCount})</span>
+                        </div>
+                      )}
+
+                      {/* Book Again CTA */}
+                      <div className="pt-1">
+                        <div className="flex items-center justify-center gap-1.5 py-2 bg-primary/10 text-primary rounded-xl text-[8px] font-black uppercase tracking-widest group-hover:bg-primary group-hover:text-white transition-all">
+                          Book Again <ChevronRight size={11} />
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Tabs: All | Best Rated | Rising Stars */}
       <div className="flex gap-1.5 p-1.5 bg-p-purple/30 rounded-2xl border border-border overflow-x-auto">

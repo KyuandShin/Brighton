@@ -13,11 +13,14 @@ export async function POST(req: NextRequest) {
       photoUrl, subjects
     } = body;
 
-    console.log('[TUTOR SIGNUP] Starting signup for:', email);
+    // Normalize email consistently everywhere
+    const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+
+    console.log('[TUTOR SIGNUP] Starting signup for:', normalizedEmail);
 
     // ── 1. Basic validation ────────────────────────────────────────────
     const missing: string[] = [];
-    if (!email?.trim())    missing.push('email');
+    if (!normalizedEmail)  missing.push('email');
     if (!password)         missing.push('password');
     if (!name?.trim())     missing.push('name');
     if (missing.length > 0) {
@@ -48,8 +51,6 @@ export async function POST(req: NextRequest) {
     }
 
     // ── 2. Construct final bio ─────────────────────────────────────────
-    // If the user filled out the multi-section description (Step 5), join them;
-    // otherwise fall back to the bio written in Step 0 (General Details)
     let finalBio = bio?.trim() || '';
     if (introduction?.trim() || experience?.trim() || motivation?.trim()) {
       finalBio = [
@@ -64,7 +65,7 @@ export async function POST(req: NextRequest) {
     
     try {
       const { data, error } = await auth.signUp.email({
-        email: email.trim(),
+        email: normalizedEmail,
         password,
         name: name.trim(),
       });
@@ -74,7 +75,7 @@ export async function POST(req: NextRequest) {
         console.warn('[TUTOR SIGNUP] Auth signUp error:', msg);
         
         if (msg.toLowerCase().includes('already') || msg.toLowerCase().includes('exists')) {
-          const existingLocalUser = await prisma.user.findUnique({ where: { email: email.trim() } });
+          const existingLocalUser = await prisma.user.findUnique({ where: { email: normalizedEmail } });
           
           if (existingLocalUser) {
             return NextResponse.json(
@@ -102,7 +103,6 @@ export async function POST(req: NextRequest) {
 
     // ── 4. Create/Update User & Tutor in one transaction ───────────────
     const result = await prisma.$transaction(async (tx) => {
-      // 1. Upsert User
       const user = await tx.user.upsert({
         where: { id: authUserId! },
         update: {
@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
         },
         create: {
           id: authUserId!,
-          email: email.trim(),
+          email: normalizedEmail,
           name: name.trim(),
           role: 'TUTOR',
           image: photoUrl || null,
@@ -120,11 +120,9 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // 2. Upsert Tutor profile
       const parsedPrice = price !== undefined && price !== null && price !== '' 
         ? parseFloat(String(price)) 
         : undefined;
-      // Only use default 20 if price was truly not provided (undefined/null), not if it's explicitly 0
       const finalPrice = parsedPrice !== undefined ? parsedPrice : 20;
 
       const tutor = await tx.tutor.upsert({
@@ -146,7 +144,6 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // 3. Handle Education
       if (university?.trim() && degree?.trim()) {
         await tx.education.deleteMany({ where: { tutorId: tutor.id } });
         await tx.education.create({
@@ -160,13 +157,11 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // 4. Handle Availability — use availabilitySlots with time ranges, fallback to defaults
       const slots: { dayOfWeek: number; startTime: string; endTime: string }[] = 
         Array.isArray(availabilitySlots) && availabilitySlots.length > 0
           ? availabilitySlots
           : Array.isArray(availability) 
             ? availability.map((uiDay: number) => ({
-                // UI days: 0=Mon ... 6=Sun — store directly as schema dayOfWeek (0=Mon)
                 dayOfWeek: uiDay,
                 startTime: '09:00',
                 endTime: '17:00',
@@ -185,7 +180,6 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // 5. Handle Certifications
       if (Array.isArray(certifications) && certifications.length > 0) {
         await tx.certification.deleteMany({ where: { tutorId: tutor.id } });
         const validCerts = certifications.filter(
@@ -204,9 +198,7 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // 6. Handle Subjects — ensure they exist in the Subject table, then connect
       if (Array.isArray(subjects) && subjects.length > 0) {
-        // Remove existing subject connections
         await tx.tutorSubject.deleteMany({ where: { tutorId: tutor.id } });
 
         for (const subjectName of subjects) {
@@ -228,7 +220,7 @@ export async function POST(req: NextRequest) {
       return { user, tutor };
     });
 
-    console.log('[TUTOR SIGNUP] Success for:', email);
+    console.log('[TUTOR SIGNUP] Success for:', normalizedEmail);
 
     return NextResponse.json({
       success: true,
@@ -241,4 +233,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
-

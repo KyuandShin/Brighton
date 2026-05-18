@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma';
+import { sendEmail } from '@/lib/email';
 
 // GET /api/session-notes?bookingId=xxx — fetch notes for a booking (student or tutor)
 export async function GET(request: NextRequest) {
@@ -133,12 +134,46 @@ export async function POST(request: NextRequest) {
       await prisma.notification.create({
         data: {
           userId: studentUserId,
-          title: 'Session Notes Available 📝',
+          title: 'Session Notes Available',
           message: `Your tutor has shared session notes for your completed session.`,
           link: `/dashboard/classes`,
           isRead: false,
         },
       });
+
+      // Send email notification too
+      try {
+        const studentUser = await prisma.user.findUnique({
+          where: { id: studentUserId },
+          select: { email: true, name: true },
+        });
+        if (studentUser?.email) {
+          const tutorName = user.tutorProfile ? (await prisma.user.findUnique({ where: { id: user.id }, select: { name: true } }))?.name || 'Your tutor' : 'Your tutor';
+          sendEmail({
+            to: studentUser.email,
+            subject: 'Session Notes Available — Brighton Academic',
+            html: `
+              <div style="max-width:560px;margin:40px auto;background:white;border-radius:32px;overflow:hidden;border:1px solid #f1f3f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+                <div style="background:linear-gradient(135deg,#20c997,#0ca678);padding:40px 48px;">
+                  <p style="font-size:11px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.7);margin:0 0 8px;">Brighton Academic</p>
+                  <h1 style="margin:0;font-size:28px;font-weight:900;color:white;letter-spacing:-0.5px;">Session Notes Ready 📝</h1>
+                </div>
+                <div style="padding:40px 48px;">
+                  <p style="font-size:15px;color:#7f8c8d;line-height:1.6;margin:0 0 16px;">Hi <strong style="color:#2c3e50;">${studentUser.name || 'Student'}</strong>,</p>
+                  <p style="font-size:15px;color:#7f8c8d;line-height:1.6;margin:0 0 16px;">Your tutor has shared session notes for your completed session.</p>
+                  <p style="font-size:15px;color:#7f8c8d;line-height:1.6;margin:0 0 24px;">Log in to view the full notes, homework assignments, and AI-generated feedback tailored to your session.</p>
+                  <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://brighton-jstu.vercel.app'}/dashboard/classes" style="display:block;text-align:center;color:white;text-decoration:none;padding:18px 32px;border-radius:16px;font-weight:900;font-size:13px;letter-spacing:0.15em;text-transform:uppercase;background:#748ffc;">View Session Notes →</a>
+                </div>
+                <div style="padding:24px 48px;background:#f8f9fa;border-top:1px solid #f1f3f5;">
+                  <p style="margin:0;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.2em;color:#adb5bd;text-align:center;">Brighton Academic • 2026</p>
+                </div>
+              </div>
+            `,
+          });
+        }
+      } catch (emailErr) {
+        console.error('[SESSION NOTES] Failed to send email notification:', emailErr);
+      }
     }
 
     return NextResponse.json(note);

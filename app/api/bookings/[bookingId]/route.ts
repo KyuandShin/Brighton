@@ -132,8 +132,9 @@ export async function PATCH(
     }
 
     if (status === 'COMPLETED') {
-      if (!isTutor && !isAdmin) {
-        return NextResponse.json({ error: 'Only tutors can mark sessions as completed' }, { status: 403 });
+      // Both tutors and students can mark as completed when leaving the classroom
+      if (!isTutor && !isStudent && !isAdmin) {
+        return NextResponse.json({ error: 'Not authorized to complete this session' }, { status: 403 });
       }
       if (booking.status !== 'CONFIRMED') {
         return NextResponse.json({ error: 'Only confirmed sessions can be marked as completed' }, { status: 400 });
