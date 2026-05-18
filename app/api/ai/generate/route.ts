@@ -11,13 +11,6 @@ interface GenerateBody {
 
 export async function POST(req: NextRequest) {
   try {
-    const { data } = await auth.getSession({
-      fetchOptions: { headers: req.headers }
-    });
-    if (!data?.user?.id) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-    }
-
     const body: GenerateBody = await req.json();
     const { type, name } = body;
 

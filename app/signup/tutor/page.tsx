@@ -104,6 +104,10 @@ function TutorSignupContent() {
         if (!formData.name.trim())        return 'Full name is required.';
         if (!formData.headline.trim())    return 'A professional headline is required.';
         if (formData.bio.trim().length < 20) return 'Bio must be at least 20 characters.';
+        if (!formData.email.trim())       return 'Email address is required.';
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) return 'Please enter a valid email address.';
+        if (!formData.password)           return 'Password is required.';
+        if (formData.password.length < 8) return 'Password must be at least 8 characters.';
         return '';
       case 1:
         if (formData.subjects.length === 0) return 'Please select at least one subject you can teach.';
@@ -165,12 +169,23 @@ function TutorSignupContent() {
       const data = await res.json();
       if (!res.ok) { setError(data.error || 'Submission failed. Please try again.'); return; }
       // Send Neon Auth OTP for email verification
+      // Wait a moment for Neon Auth to propagate the newly created user
+      await new Promise(resolve => setTimeout(resolve, 2000));
       try {
         const { authClient } = await import('@/lib/auth/client');
-        await authClient.emailOtp.sendVerificationOtp({
+        const { error: otpSendError } = await authClient.emailOtp.sendVerificationOtp({
           email: formData.email,
           type: 'email-verification',
         });
+        if (otpSendError) {
+          // Silently retry after another delay
+          setTimeout(async () => {
+            try {
+              const { authClient: ac } = await import('@/lib/auth/client');
+              await ac.emailOtp.sendVerificationOtp({ email: formData.email, type: 'email-verification' });
+            } catch {}
+          }, 3000);
+        }
       } catch {
         // OTP send failure is non-fatal — we still show the OTP screen
       }
