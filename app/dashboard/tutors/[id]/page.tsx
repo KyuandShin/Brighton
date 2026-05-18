@@ -75,6 +75,7 @@ export default function TutorProfilePage() {
   const [confirmedBookingId, setConfirmedBookingId] = useState('');
   const [bookingsForSlots, setBookingsForSlots] = useState<any[]>([]);
   const [bookingError, setBookingError] = useState('');
+  const [weekOffset, setWeekOffset] = useState(0);
 
   // Fetch tutor on mount (only depends on id, not user to prevent double reload)
   useEffect(() => {
@@ -132,21 +133,36 @@ export default function TutorProfilePage() {
   today.setHours(0, 0, 0, 0);
   const availableDays = tutor?.availability.map(a => a.dayOfWeek) ?? [];
 
-  const next14Days = Array.from({ length: 14 }, (_, i) => {
-    const d = new Date(today);
-    d.setDate(today.getDate() + i);
+  // Compute 7 days (Sun-Sat) for the current week offset
+  const weekDays: { dateObj: Date; dateStr: string; day: number; label: string; dayName: string; num: number; month: string; available: boolean; isPast: boolean }[] = [];
+  const weekStart = new Date(today);
+  weekStart.setDate(today.getDate() + weekOffset * 7);
+  // Go back to Sunday of this week
+  const dayOfWeek = weekStart.getDay();
+  weekStart.setDate(weekStart.getDate() - dayOfWeek);
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(weekStart);
+    d.setDate(weekStart.getDate() + i);
     const day = d.getDay();
-    return {
-      dateObj: d, dateStr: d.toISOString().split('T')[0], day,
-      label: DAY_LABELS[day], dayName: DAY_FULL[day],
-      num: d.getDate(), month: d.toLocaleDateString('en-US', { month: 'short' }),
+    weekDays.push({
+      dateObj: d,
+      dateStr: d.toISOString().split('T')[0],
+      day,
+      label: DAY_LABELS[day],
+      dayName: DAY_FULL[day],
+      num: d.getDate(),
+      month: d.toLocaleDateString('en-US', { month: 'short' }),
       available: availableDays.includes(day),
-    };
-  });
+      isPast: d < today,
+    });
+  }
+  const weekLabel = weekDays.length > 0
+    ? weekDays[0].month + ' ' + weekDays[0].num + ' – ' + weekDays[weekDays.length - 1].month + ' ' + weekDays[weekDays.length - 1].num
+    : '';
 
   const generateTimeSlots = (selectedDateStr: string) => {
     if (!tutor || !selectedDateStr) return [];
-    const selectedDay = next14Days.find(d => d.dateStr === selectedDateStr)?.day;
+    const selectedDay = weekDays.find(d => d.dateStr === selectedDateStr)?.day;
     if (selectedDay === undefined) return [];
     const daySlots = tutor.availability.filter(a => a.dayOfWeek === selectedDay);
     if (daySlots.length === 0) return [];
@@ -366,39 +382,64 @@ export default function TutorProfilePage() {
 
       {/* ── Booking Dialog ───────────────────────────────────── */}
       <Dialog open={showBooking} onOpenChange={(open) => { if (!open) { setShowBooking(false); setBookingError(''); } }}>
-        <DialogContent className="sm:max-w-lg rounded-[32px] max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-md rounded-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader className="pb-1">
             <DialogTitle className="text-lg font-black">Book a Session</DialogTitle>
             <DialogDescription className="text-xs font-bold text-text-muted">
               Pick a date and time with <span className="font-black text-text-main">{tutor.name}</span>
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-5">
-            {/* Date Picker */}
+          <div className="space-y-4">
+            {/* Date Picker — week view with 5 large dates */}
             <div className="space-y-2">
-              <p className="text-[9px] font-black uppercase tracking-widest text-text-muted">Select Date</p>
-              <div className="flex gap-1.5 overflow-x-auto pb-2 -mx-1 px-1">
-                {next14Days.map((d) => (
-                  <button key={d.dateStr} onClick={() => { setSelectedDate(d.dateStr); setSelectedTime(''); setSelectedDayName(d.dayName); }}
-                    disabled={!d.available}
-                    className={cn(
-                      "flex flex-col items-center px-2.5 py-2 rounded-xl border-2 min-w-[58px] transition-all shrink-0",
-                      selectedDate === d.dateStr ? 'border-primary bg-primary/10 text-primary' :
-                      d.available ? 'border-border hover:border-primary/50 text-text-main' :
-                      'border-border/40 text-text-muted/30 cursor-not-allowed'
-                    )}>
-                    <span className="text-[8px] font-black uppercase">{d.label}</span>
-                    <span className="text-sm font-black">{d.num}</span>
-                    <span className="text-[7px] font-bold uppercase">{d.month}</span>
+              <div className="flex items-center justify-between">
+                <p className="text-[9px] font-black uppercase tracking-widest text-text-muted">Select Date</p>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => { setWeekOffset(prev => Math.max(0, prev - 1)); setSelectedDate(''); setSelectedTime(''); }}
+                    disabled={weekOffset === 0}
+                    className="p-1 rounded-lg hover:bg-p-purple disabled:opacity-30 transition-all"
+                  >
+                    <ChevronLeft size={14} className="text-text-muted" />
                   </button>
-                ))}
+                  <span className="text-[10px] font-bold text-text-muted px-1">{weekLabel}</span>
+                  <button
+                    onClick={() => { setWeekOffset(prev => prev + 1); setSelectedDate(''); setSelectedTime(''); }}
+                    className="p-1 rounded-lg hover:bg-p-purple transition-all"
+                  >
+                    <ChevronRight size={14} className="text-text-muted" />
+                  </button>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                {weekDays.map((d) => {
+                  const canSelect = d.available && !d.isPast;
+                  const isSel = selectedDate === d.dateStr;
+                  return (
+                    <button
+                      key={d.dateStr}
+                      onClick={() => { if (canSelect) { setSelectedDate(d.dateStr); setSelectedTime(''); setSelectedDayName(d.dayName); } }}
+                      disabled={!canSelect}
+                      className={cn(
+                        "flex-1 flex flex-col items-center py-2.5 rounded-2xl border-2 transition-all",
+                        isSel ? 'border-primary bg-primary text-white shadow-md shadow-primary/30' :
+                        canSelect ? 'border-border hover:border-primary/50 text-text-main cursor-pointer' :
+                        'border-border/30 text-text-muted/30 cursor-not-allowed'
+                      )}
+                    >
+                      <span className="text-[9px] font-black uppercase">{d.label}</span>
+                      <span className="text-lg font-black">{d.num}</span>
+                      <span className="text-[8px] font-bold uppercase">{d.month}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
             {/* Time Slots */}
             {selectedDate && (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <p className="text-[9px] font-black uppercase tracking-widest text-text-muted">
                   Available Times for {selectedDayName}
                 </p>
@@ -406,18 +447,18 @@ export default function TutorProfilePage() {
                   const slots = generateTimeSlots(selectedDate);
                   if (slots.length === 0) {
                     return (
-                      <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+                      <div className="bg-amber-50 border border-amber-200 rounded-xl p-2.5">
                         <p className="text-[10px] font-bold text-amber-700">No available slots — all booked or outside available hours.</p>
                       </div>
                     );
                   }
                   return (
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-1.5">
                       {slots.map((slot) => (
                         <button key={slot.time} onClick={() => setSelectedTime(slot.time)}
                           disabled={!slot.available}
                           className={cn(
-                            "px-4 py-2.5 rounded-xl border-2 font-black text-[10px] uppercase tracking-widest transition-all",
+                            "px-3 py-1.5 rounded-xl border-2 font-black text-[9px] uppercase tracking-widest transition-all",
                             selectedTime === slot.time ? 'border-primary bg-primary text-white' :
                             'border-border hover:border-primary/50 text-text-main'
                           )}>
@@ -431,14 +472,14 @@ export default function TutorProfilePage() {
             )}
 
             {bookingError && (
-              <div className="bg-red-50 border border-red-200 rounded-xl p-3">
-                <p className="text-[10px] font-bold text-red-700">{bookingError}</p>
+              <div className="bg-red-50 border border-red-200 rounded-xl p-2.5">
+                <p className="text-[9px] font-bold text-red-700">{bookingError}</p>
               </div>
             )}
 
             <Button onClick={handleBook} disabled={booking || !selectedDate || !selectedTime}
-              className="w-full py-3 text-[10px] uppercase tracking-widest font-black gap-2">
-              {booking ? 'Booking...' : <><Send size={14} /> Confirm Booking</>}
+              className="mx-auto w-fit px-6 text-[10px] uppercase tracking-widest font-black gap-1.5">
+              {booking ? 'Booking...' : <><Send size={13} /> Confirm</>}
             </Button>
           </div>
         </DialogContent>

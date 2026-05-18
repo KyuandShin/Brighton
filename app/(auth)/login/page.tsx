@@ -27,7 +27,7 @@ const forgotSchema = z.object({
 
 export default function LoginPage() {
   const router = useRouter();
-  const { user, loading: userLoading } = useCurrentUser(true);
+  const { user, loading: userLoading } = useCurrentUser();
 
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState('');

@@ -205,8 +205,8 @@ function TutorsPage() {
             className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory -mx-1 px-1"
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
-            {previousTutors.map((item) => {
-              const theme = CARD_THEMES[Math.floor(Math.random() * CARD_THEMES.length)];
+            {previousTutors.map((item, idx) => {
+              const theme = CARD_THEMES[idx % CARD_THEMES.length];
               return (
                 <Link
                   key={item.tutor.id}

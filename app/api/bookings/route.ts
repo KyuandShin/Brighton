@@ -202,7 +202,7 @@ export async function POST(req: NextRequest) {
     const sessionDate = bookingDate;
     const formattedDate = sessionDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     const formattedTime = sessionDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-    const origin = req.headers.get('origin') ?? 'https://your-domain.com';
+    const origin = req.headers.get('origin') ?? process.env.NEXT_PUBLIC_APP_URL ?? 'https://brighton-tutoring.vercel.app';
     const classroomUrl = `${origin}${meetLink}`;
 
     const studentName = studentUser.name ?? studentUser.email;

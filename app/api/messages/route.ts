@@ -156,7 +156,7 @@ export async function POST(req: NextRequest) {
           <div style="background:#f3f4f6;border-radius:12px;padding:16px;margin:12px 0;font-size:14px;color:#374151;">
             "${content.trim().substring(0, 200)}${content.trim().length > 200 ? '...' : ''}"
           </div>
-          <a href="${req.headers.get('origin') || 'https://brighton.app'}/dashboard/messages?user=${data.user.id}" 
+          <a href="${req.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || ''}/dashboard/messages?user=${data.user.id}"
              style="display:inline-block;background:#2563eb;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;margin-top:8px;">
             Reply Now
           </a>

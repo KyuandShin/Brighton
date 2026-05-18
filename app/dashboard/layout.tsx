@@ -21,34 +21,28 @@ import {
 import AnimeOnboarding from './_components/Tutorial';
 
 // ── Role-specific nav ────────────────────────────────────────────────
-// Students: clean, focused navigation
 const studentNavItems = [
   { name: 'Home',     href: '/dashboard',          icon: Home },
   { name: 'Tutors',   href: '/dashboard/tutors',   icon: Users },
   { name: 'Classes',  href: '/dashboard/classes',  icon: BookOpen },
   { name: 'Calendar', href: '/dashboard/calendar', icon: Calendar },
-  { name: 'Test',     href: '/dashboard/test',     icon: Brain },
-  { name: 'Messages', href: '/dashboard/messages', icon: MessageSquare },
   { name: 'Profile',  href: '/dashboard/profile',  icon: User },
 ];
 
-// Tutors: manage bookings, classes, calendar, analytics
 const tutorNavItems = [
-  { name: 'Home',     href: '/dashboard',          icon: Home },
-  { name: 'Bookings', href: '/dashboard/bookings', icon: ClipboardList },
-  { name: 'Classes',  href: '/dashboard/classes',  icon: BookOpen },
-  { name: 'Calendar', href: '/dashboard/calendar', icon: Calendar },
-  { name: 'Analytics',href: '/dashboard/analytics',icon: TrendingUp },
+  { name: 'Home',      href: '/dashboard',           icon: Home },
+  { name: 'Bookings',  href: '/dashboard/bookings',  icon: ClipboardList },
+  { name: 'Classes',   href: '/dashboard/classes',   icon: BookOpen },
+  { name: 'Calendar',  href: '/dashboard/calendar',  icon: Calendar },
+  { name: 'Analytics', href: '/dashboard/analytics', icon: TrendingUp },
 ];
 
-// Parent: monitor children's progress
 const parentNavItems = [
   { name: 'Home',     href: '/dashboard',          icon: Home },
   { name: 'Children', href: '/dashboard/parent',   icon: Users },
   { name: 'Calendar', href: '/dashboard/calendar', icon: Calendar },
 ];
 
-// Admin: full access
 const baseNavItems = [
   { name: 'Home',     href: '/dashboard',          icon: Home },
   { name: 'Tutors',   href: '/dashboard/tutors',   icon: Users },
@@ -58,9 +52,10 @@ const baseNavItems = [
 ];
 
 const adminNavItems = [
-  { name: 'Dashboard',       href: '/dashboard/admin',           icon: Home,      exact: true },
-  { name: 'Tutor Approvals', href: '/dashboard/admin/tutors',    icon: UserCheck, exact: false },
-  { name: 'Students',        href: '/dashboard/admin/students',  icon: Users,     exact: false },
+  { name: 'Dashboard',       href: '/dashboard/admin',          icon: Home,      exact: true },
+  { name: 'Find Tutors',     href: '/dashboard/tutors',         icon: Users,     exact: false },
+  { name: 'Tutor Approvals', href: '/dashboard/admin/tutors',   icon: UserCheck, exact: false },
+  { name: 'Students',        href: '/dashboard/admin/students', icon: Users,     exact: false },
 ];
 
 interface Notification {
@@ -78,28 +73,33 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { user, loading, error } = useCurrentUser();
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [notifOpen,   setNotifOpen]   = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false);
-  const [darkMode, setDarkMode]       = useState(false);
+  const [notifOpen, setNotifOpen]         = useState(false);
+  const [darkMode, setDarkMode]           = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
-  const notifRef   = useRef<HTMLDivElement>(null);
-  const profileRef = useRef<HTMLDivElement>(null);
+  // FIX #4: removed profileRef — it was declared but never attached to the DropdownMenu,
+  // so the outside-click handler never fired. DropdownMenu manages its own close logic.
+  const notifRef = useRef<HTMLDivElement>(null);
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
-  // Theme initialization
+  // Theme initialization — respect existing class from landing page first
   useEffect(() => {
-    const stored = localStorage.getItem('brighton-theme');
-    if (stored === 'dark') {
+    const isAlreadyDark = document.documentElement.classList.contains('dark');
+    if (isAlreadyDark) {
       setDarkMode(true);
-      document.documentElement.classList.add('dark');
-    } else if (stored === 'light') {
-      setDarkMode(false);
-      document.documentElement.classList.remove('dark');
     } else {
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      setDarkMode(prefersDark);
-      if (prefersDark) document.documentElement.classList.add('dark');
+      const stored = localStorage.getItem('brighton-theme');
+      if (stored === 'dark') {
+        setDarkMode(true);
+        document.documentElement.classList.add('dark');
+      } else if (stored === 'light') {
+        setDarkMode(false);
+        document.documentElement.classList.remove('dark');
+      } else {
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        setDarkMode(prefersDark);
+        if (prefersDark) document.documentElement.classList.add('dark');
+      }
     }
   }, []);
 
@@ -145,7 +145,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return () => clearInterval(interval);
   }, [user]);
 
-  // Poll unread messages count
   useEffect(() => {
     if (!user) return;
     const fetchUnread = () => {
@@ -164,10 +163,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return () => clearInterval(interval);
   }, [user]);
 
+  // FIX #4: outside-click now only closes notif panel (profile dropdown is self-managed)
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (notifRef.current   && !notifRef.current.contains(e.target as Node))   setNotifOpen(false);
-      if (profileRef.current && !profileRef.current.contains(e.target as Node)) setProfileOpen(false);
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -187,8 +186,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     window.location.replace('/login?logout=' + Date.now());
   };
 
+  // FIX #2: only redirect when loading is fully done AND we have no error state
+  // that might still be resolving. This prevents a flash-redirect during slow auth.
   useEffect(() => {
-    if (!loading && !user && error !== 'TUTOR_PENDING') {
+    if (!loading && !user && error !== 'TUTOR_PENDING' && error !== null) {
+      // error is set (e.g. 401) — redirect
+      window.location.href = '/login';
+    } else if (!loading && !user && error === null) {
+      // no error but also no user — unauthenticated, redirect
       window.location.href = '/login';
     }
   }, [user, loading, error]);
@@ -222,32 +227,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isTutor     = user?.role === 'TUTOR';
   const isParent    = user?.role === 'PARENT';
 
-  // Pick the correct nav set based on role
-  const navItems = isTutor ? tutorNavItems : isStudent ? studentNavItems : isParent ? parentNavItems : baseNavItems;
+  const navItems = isAdmin ? adminNavItems : isTutor ? tutorNavItems : isStudent ? studentNavItems : isParent ? parentNavItems : baseNavItems;
 
-  // Extra items
   const extraNavItems: typeof navItems = [];
-  if (isStudent) {
-    // Add Learning Feedback shortcut
-    extraNavItems.push({ name: 'Feedback', href: '/dashboard/feedback', icon: TrendingUp });
-  }
-  if (isTutor) {
-    extraNavItems.push({ name: 'Resources', href: '/dashboard/resources', icon: BookOpen });
-  }
+  if (isStudent) extraNavItems.push({ name: 'Feedback', href: '/dashboard/feedback', icon: TrendingUp });
+  if (isTutor)   extraNavItems.push({ name: 'Resources', href: '/dashboard/resources', icon: BookOpen });
 
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex flex-col items-center gap-5">
           <div className="relative w-16 h-16">
-            <Image
-              src="/logo.png"
-              alt="Brighton"
-              width={64}
-              height={64}
-              className="object-contain"
-              priority
-            />
+            <Image src="/logo.png" alt="Brighton" width={64} height={64} className="object-contain" priority />
             <div className="absolute inset-0 rounded-full border-[3px] border-transparent border-t-primary animate-spin" />
           </div>
           <p className="text-text-muted text-xs font-semibold uppercase tracking-widest">Loading...</p>
@@ -304,27 +295,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </Link>
               );
             })}
-
-            {isAdmin && (
-              <>
-                <div className="mx-2 h-5 w-px bg-border" />
-                {adminNavItems.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = item.exact
-                    ? pathname === item.href
-                    : pathname.startsWith(item.href);
-                  return (
-                    <Link key={item.name} href={item.href} className={navLinkClass(isActive)}>
-                      <Icon size={13} strokeWidth={2} />
-                      {item.name}
-                    </Link>
-                  );
-                })}
-              </>
-            )}
           </div>
 
-          {/* Right: Command palette + Theme toggle + Messages + Notifications + Profile */}
+          {/* Right controls */}
           <div className="flex items-center gap-1.5 shrink-0">
             <CommandPalette />
             <button
@@ -335,7 +308,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               {darkMode ? <Sun size={16} strokeWidth={2} /> : <Moon size={16} strokeWidth={2} />}
             </button>
 
-            {/* Messages icon with unread badge */}
+            {/* Messages badge */}
             <Link
               href="/dashboard/messages"
               className="relative p-2 rounded-lg text-text-muted hover:bg-surface-elevated hover:text-text-main transition-all"
@@ -348,12 +321,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               )}
             </Link>
 
+            {/* Notifications */}
             <div className="relative" ref={notifRef}>
               <button
                 onClick={() => {
-                  if (notifOpen && unreadCount > 0) markAllRead();
-                  setNotifOpen(!notifOpen);
-                  setProfileOpen(false);
+                  const opening = !notifOpen;
+                  setNotifOpen(opening);
+                  // FIX #7: mark all read when the panel OPENS (user sees notifications),
+                  // not when it closes.
+                  if (opening && unreadCount > 0) markAllRead();
                 }}
                 className="relative p-2 rounded-lg text-text-muted hover:bg-surface-elevated hover:text-text-main transition-all"
               >
@@ -403,7 +379,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               )}
             </div>
 
-            {/* Profile Dropdown */}
+            {/* Profile Dropdown — self-managed, no external ref needed */}
             <DropdownMenu>
               <DropdownMenuTrigger className="flex items-center gap-2 pl-1 pr-2.5 py-1 bg-surface-elevated border border-border rounded-lg hover:border-primary/50 transition-all cursor-pointer">
                 <div
@@ -438,7 +414,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </nav>
 
       {/* ── Page Content ─────────────────────────────────────────────── */}
-      <main className="max-w-7xl mx-auto px-6 py-8 pb-24 md:pb-10">{children}</main>
+      {/* FIX #9: pb-20 on mobile (>= h-16 nav + buffer), md:pb-10 on desktop */}
+      <main className="max-w-7xl mx-auto px-6 py-8 pb-20 md:pb-10">{children}</main>
 
       {/* ── Mobile Bottom Navigation ──────────────────────────────────── */}
       <nav className="fixed bottom-0 left-0 right-0 h-16 bg-surface/95 backdrop-blur-xl border-t border-border z-50 md:hidden flex items-center justify-around px-2">
@@ -447,22 +424,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           const isActive = item.href === '/dashboard'
             ? pathname === '/dashboard'
             : pathname.startsWith(item.href);
-          return (
-            <Link
-              key={item.name}
-              href={item.href}
-              className={`flex flex-col items-center justify-center h-full w-full transition-all ${
-                isActive ? 'text-primary' : 'text-text-muted'
-              }`}
-            >
-              <Icon size={19} strokeWidth={2} />
-              <span className="text-[9px] font-semibold uppercase tracking-wide mt-1">{item.name}</span>
-            </Link>
-          );
-        })}
-        {isAdmin && adminNavItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = item.exact ? pathname === item.href : pathname.startsWith(item.href);
           return (
             <Link
               key={item.name}

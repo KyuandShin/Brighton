@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import { useCurrentUser } from "@/lib/hooks/useCurrentUser"
 import {
   Command,
   CommandDialog,
@@ -38,7 +39,9 @@ const adminRoutes = [
 
 export function CommandPalette() {
   const router = useRouter()
+  const { user } = useCurrentUser()
   const [open, setOpen] = React.useState(false)
+  const isAdmin = user?.role === 'ADMIN'
 
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -88,20 +91,22 @@ export function CommandPalette() {
                 )
               })}
             </CommandGroup>
-            <CommandGroup heading="Admin">
-              {adminRoutes.map((route) => {
-                const Icon = route.icon
-                return (
-                  <CommandItem
-                    key={route.href}
-                    onSelect={() => runCommand(route.href)}
-                  >
-                    <Icon size={16} className="mr-2" />
-                    {route.name}
-                  </CommandItem>
-                )
-              })}
-            </CommandGroup>
+            {isAdmin && (
+              <CommandGroup heading="Admin">
+                {adminRoutes.map((route) => {
+                  const Icon = route.icon
+                  return (
+                    <CommandItem
+                      key={route.href}
+                      onSelect={() => runCommand(route.href)}
+                    >
+                      <Icon size={16} className="mr-2" />
+                      {route.name}
+                    </CommandItem>
+                  )
+                })}
+              </CommandGroup>
+            )}
           </CommandList>
         </Command>
       </CommandDialog>

@@ -224,6 +224,8 @@ export async function PATCH(
           time: formattedTime,
           classroomUrl,
         }),
+      }).catch((emailErr) => {
+        console.error('[PATCH /api/bookings/[bookingId]] Failed to send confirmation email:', emailErr);
       });
     } else if (status === 'COMPLETED') {
       await prisma.notification.create({
@@ -265,6 +267,8 @@ export async function PATCH(
           date: formattedDate,
           time: formattedTime,
         }),
+      }).catch((emailErr) => {
+        console.error('[PATCH /api/bookings/[bookingId]] Failed to send cancellation email:', emailErr);
       });
     }
 

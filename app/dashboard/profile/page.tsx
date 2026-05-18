@@ -562,11 +562,15 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
 
-          {/* Subject Mastery */}
-          {PH_SUBJECTS.map(subject => {
+          {/* Subject Mastery — only shows subjects that have signal data */}
+          {PH_SUBJECTS.filter(subject => {
+            const hasStrength = strengths.some((s: string) => s.toLowerCase().includes(subject.toLowerCase()));
+            const hasWeakness = weaknesses.some((w: string) => w.toLowerCase().includes(subject.toLowerCase()));
+            return hasStrength || hasWeakness;
+          }).map(subject => {
             const subjectWeaknesses = weaknesses.filter((w: string) => w.toLowerCase().includes(subject.toLowerCase()));
             const subjectStrengths = strengths.filter((s: string) => s.toLowerCase().includes(subject.toLowerCase()));
-            const mastery = subjectStrengths.length > 0 ? Math.min(100, (subjectStrengths.length / (subjectStrengths.length + subjectWeaknesses.length)) * 100) : 0;
+            const mastery = Math.min(100, (subjectStrengths.length / (subjectStrengths.length + subjectWeaknesses.length)) * 100);
             return (
               <Card key={subject} className="border-border/60">
                 <CardContent className="p-4 flex items-center gap-4">
@@ -575,7 +579,7 @@ export default function ProfilePage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-black text-text-main">{subject}</p>
-                    <Progress value={mastery || 0} className="h-1.5 mt-2" />
+                    <Progress value={mastery} className="h-1.5 mt-2" />
                   </div>
                   <p className="text-sm font-black text-text-main">{Math.round(mastery)}%</p>
                 </CardContent>

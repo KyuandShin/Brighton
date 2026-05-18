@@ -647,13 +647,13 @@ export default function LandingPage() {
               </Link>
             </div>
           ) : bestTutors.length > 0 ? (
-            bestTutors.map((tutor: any, idx: number) => {
-              const themes = [
-                { bannerFrom: '#ede9fe', bannerTo: '#c4b5fd' },
-                { bannerFrom: '#fce7f3', bannerTo: '#f9a8d4' },
-                { bannerFrom: '#d1fae5', bannerTo: '#6ee7b7' },
-              ];
-              const theme = themes[idx];
+              bestTutors.map((tutor: any, idx: number) => {
+                const cardColors = [
+                  { bannerFrom: '#ede9fe', bannerTo: '#c4b5fd' },
+                  { bannerFrom: '#fce7f3', bannerTo: '#f9a8d4' },
+                  { bannerFrom: '#d1fae5', bannerTo: '#6ee7b7' },
+                ];
+                const cardTheme = cardColors[idx];
               const image = tutor.image ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(tutor.name)}`;
               const subjects = tutor.subjects ?? [];
 
@@ -671,7 +671,7 @@ export default function LandingPage() {
                       {/* Banner */}
                       <div
                         className="relative h-20"
-                        style={{ background: `linear-gradient(135deg, ${theme.bannerFrom}, ${theme.bannerTo})` }}
+                        style={{ background: `linear-gradient(135deg, ${cardTheme.bannerFrom}, ${cardTheme.bannerTo})` }}
                       >
                         <div className="absolute -bottom-6 left-5">
                           <div className="relative w-12 h-12 rounded-lg border-2 border-background shadow-sm overflow-hidden bg-background">
