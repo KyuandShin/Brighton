@@ -97,6 +97,14 @@ export default function LoginPage() {
         }
 
         if (meRes.ok) {
+          const meData = await meRes.json();
+          if (meData.profileIncomplete) {
+            // User authenticated but profile not yet created — redirect to signup
+            try { await authClient.signOut(); } catch {}
+            setLoading(false);
+            setError('Account setup incomplete. Please complete registration.');
+            return;
+          }
           window.location.href = '/dashboard';
           return;
         }
