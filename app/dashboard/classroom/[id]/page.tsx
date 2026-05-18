@@ -165,8 +165,28 @@ export default function ClassroomPage() {
         },
       });
 
-      apiRef.current.addEventListener('videoConferenceJoined', () => setShowLoader(false));
-      apiRef.current.addEventListener('readyToClose', () => router.push('/dashboard'));
+      apiRef.current.addEventListener('videoConferenceJoined', async () => {
+        setShowLoader(false);
+        // Record that this user joined the session
+        try {
+          await fetch(`/api/bookings/${id}/attendance`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ event: 'join' }),
+          });
+        } catch {}
+      });
+      apiRef.current.addEventListener('readyToClose', () => {
+        // Record that this user left
+        fetch(`/api/bookings/${id}/attendance`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ event: 'leave' }),
+        }).catch(() => {});
+        router.push('/dashboard');
+      });
       
       apiRef.current.addEventListener('videoConferenceFailed', (error: any) => {
         console.error('Jitsi conference failed:', error);
@@ -189,8 +209,21 @@ export default function ClassroomPage() {
     }
   }, [scriptReady, roomName, sessionEnded]);
 
+  const recordAttendance = async (event: 'join' | 'leave') => {
+    try {
+      await fetch(`/api/bookings/${id}/attendance`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event }),
+      });
+    } catch {}
+  };
+
   const completeAndRedirect = async (path: string) => {
     setIsLeaving(true);
+    // Record leave before hangup
+    await recordAttendance('leave');
     try { apiRef.current?.executeCommand('hangup'); } catch {}
     apiRef.current?.dispose();
     apiRef.current = null;

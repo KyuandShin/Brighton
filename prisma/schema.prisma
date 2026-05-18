@@ -135,6 +135,15 @@ model Booking {
   notes            SessionNote?
   review           Review?
 
+  // Attendance tracking
+  studentJoined    Boolean      @default(false)
+  tutorJoined      Boolean      @default(false)
+  studentJoinedAt  DateTime?
+  tutorJoinedAt    DateTime?
+  studentLeftAt    DateTime?
+  tutorLeftAt      DateTime?
+  attendanceStatus String       @default("PENDING") // PENDING, PRESENT, ABSENT, LATE, EARLY_ONLY
+
   @@unique([studentId, tutorId, date])
 }
 

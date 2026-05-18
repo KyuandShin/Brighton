@@ -95,11 +95,11 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Block unverified users
+    // Block users who haven't completed email OTP verification
     if (!user.isVerified) {
-      const errorType = user.role === 'TUTOR' ? 'TUTOR_PENDING' : 'STUDENT_UNVERIFIED';
+      const errorType = user.role === 'TUTOR' ? 'TUTOR_UNVERIFIED' : 'STUDENT_UNVERIFIED';
       const errorMessage = user.role === 'TUTOR'
-        ? 'Your tutor account is pending verification. You will be notified once approved.'
+        ? 'Please verify your email address first. Check your inbox for the verification code.'
         : 'Please verify your email address before logging in. Check your inbox for the verification link.';
       return NextResponse.json(
         { error: errorType, message: errorMessage },

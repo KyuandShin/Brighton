@@ -88,6 +88,13 @@ export default function LoginPage() {
             window.location.href = verifyEmail ? `/verify?email=${encodeURIComponent(verifyEmail)}` : '/verify';
             return;
           }
+          if (meData.error === 'TUTOR_UNVERIFIED') {
+            try { await authClient.signOut(); } catch {}
+            setLoading(false);
+            const verifyEmail = loginEmail || lastLoginEmail;
+            window.location.href = verifyEmail ? `/verify?email=${encodeURIComponent(verifyEmail)}` : '/verify';
+            return;
+          }
           if (meData.error === 'TUTOR_PENDING') {
             try { await authClient.signOut(); } catch {}
             setLoading(false);
