@@ -10,6 +10,12 @@ import {
 import Link from 'next/link';
 import { uploadToCloudinary } from '@/lib/cloudinary';
 import { ProfilePhoto, ProfileDescription } from './new-steps';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Card, CardContent } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
 const STEPS = ['General Details', 'Subjects', 'Profile Photo', 'Certifications', 'Education', 'Profile Description', 'Video Intro', 'Availability', 'Pricing'];
 const DAYS  = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -83,13 +89,13 @@ function TutorSignupContent() {
     }
   }, []);
 
-  const [loading,   setLoading]   = useState(false);
-  const [error,     setError]     = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [submitted, setSubmitted] = useState(false);
-  const [otpStep,   setOtpStep]   = useState(false);
-  const [otp,       setOtp]       = useState('');
-  const [otpError,  setOtpError]  = useState('');
-  const [otpLoading,setOtpLoading]= useState(false);
+  const [otpStep, setOtpStep] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [otpError, setOtpError] = useState('');
+  const [otpLoading, setOtpLoading] = useState(false);
 
   // ── Per-step validation ──────────────────────────────────────────────
   const validate = (): string => {
@@ -220,52 +226,41 @@ function TutorSignupContent() {
   if (otpStep && !submitted) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-8">
-        <div className="max-w-md w-full bg-surface rounded-[40px] border border-border shadow-[0_30px_80px_rgba(147,51,234,0.1)] p-12 text-center space-y-6">
-          <div className="w-20 h-20 bg-p-purple rounded-3xl flex items-center justify-center mx-auto">
-            <KeyRound size={40} className="text-primary" />
+        <Card className="w-full max-w-md border-border/60 p-8 text-center space-y-6">
+          <div className="w-20 h-20 bg-p-blue rounded-3xl flex items-center justify-center mx-auto">
+            <Mail size={40} className="text-primary" />
           </div>
           <div className="space-y-2">
             <h2 className="text-3xl font-black text-text-main tracking-tight">Check Your Email</h2>
-            <p className="text-xs font-bold text-text-muted uppercase tracking-widest leading-relaxed">
-              We sent a 6-digit verification code to<br/>
+            <p className="text-xs font-bold text-text-muted leading-relaxed">
+              We sent a 6-digit code to<br/>
               <span className="text-primary font-black">{formData.email}</span>
             </p>
           </div>
           {otpError && (
-            <div className="p-4 bg-p-rose/70 border border-border text-text-main text-[10px] font-black uppercase tracking-widest flex items-start gap-3 rounded-2xl text-left">
-              <AlertCircle size={16} className="shrink-0 mt-0.5 text-red-500" />
-              <span>{otpError}</span>
-            </div>
+            <Alert variant="destructive">
+              <AlertCircle size={16} />
+              <AlertDescription className="text-[10px] font-black uppercase tracking-widest">{otpError}</AlertDescription>
+            </Alert>
           )}
           <form onSubmit={handleVerifyOtp} className="space-y-4">
-            <div className="flex flex-col gap-3">
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted ml-1">Verification Code</label>
-              <input
-                type="text"
-                inputMode="numeric"
-                maxLength={6}
-                value={otp}
+            <div className="flex flex-col gap-2 text-left">
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted">Verification Code</label>
+              <Input type="text" inputMode="numeric" maxLength={6} value={otp}
                 onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, ''))}
                 placeholder="000000"
-                className="w-full bg-surface-elevated border-2 border-border rounded-2xl px-6 py-5 text-3xl font-black text-text-main text-center tracking-[0.5em] focus:outline-none focus:border-primary transition-all"
-              />
+                className="text-3xl font-black text-center tracking-[0.5em] h-14" />
             </div>
-            <button
-              type="submit"
-              disabled={otpLoading || otp.length !== 6}
-              className="w-full py-4 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20 hover:bg-accent-strong transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-            >
+            <Button type="submit" disabled={otpLoading || otp.length !== 6} className="w-full text-[10px] uppercase tracking-widest font-black gap-2">
               {otpLoading ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
               {otpLoading ? 'Verifying...' : 'Verify Email'}
-            </button>
+            </Button>
           </form>
-          <button
-            onClick={handleResendOtp}
-            className="text-[10px] font-black uppercase tracking-widest text-text-muted hover:text-primary transition-colors"
-          >
+          <Button variant="ghost" size="sm" onClick={handleResendOtp}
+            className="text-[10px] font-black uppercase tracking-widest text-text-muted hover:text-primary">
             Didn't receive it? Resend code
-          </button>
-        </div>
+          </Button>
+        </Card>
       </div>
     );
   }
@@ -274,30 +269,28 @@ function TutorSignupContent() {
   if (submitted) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-8">
-        <div className="max-w-md w-full bg-surface rounded-[40px] border border-border shadow-[0_30px_80px_rgba(147,51,234,0.1)] p-12 text-center space-y-6">
-          <div className="w-20 h-20 bg-p-mint rounded-3xl flex items-center justify-center mx-auto">
-            <Mail size={40} className="text-teal-700" />
+        <Card className="w-full max-w-md border-border/60 p-8 text-center space-y-6">
+          <div className="w-20 h-20 bg-p-green rounded-3xl flex items-center justify-center mx-auto">
+            <Check size={40} className="text-teal-700" />
           </div>
           <h2 className="text-3xl font-black text-text-main tracking-tight">Application Submitted!</h2>
-          <p className="text-sm font-bold text-text-muted uppercase tracking-wider leading-relaxed">
+          <p className="text-sm font-bold text-text-muted leading-relaxed">
             Email verified! Your application is now under review.
           </p>
-          <div className="p-4 bg-p-green/20 border border-p-green/30 rounded-2xl flex items-start gap-3 text-left">
-            <Check size={16} className="text-[#27ae60] mt-0.5 shrink-0" />
-            <p className="text-[10px] font-black uppercase tracking-widest text-[#27ae60] leading-relaxed">
-              Email verified successfully!
-            </p>
-          </div>
-          <div className="p-4 bg-p-yellow rounded-2xl border border-[#fcc419]/20 flex items-start gap-3 text-left">
-            <AlertCircle size={16} className="text-[#f08c00] mt-0.5 shrink-0" />
-            <p className="text-[10px] font-black uppercase tracking-widest text-[#f08c00] leading-relaxed">
-              An admin will review and approve your tutor profile. You will be notified once approved.
-            </p>
-          </div>
-          <Link href="/login" className="block w-full py-4 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20 hover:bg-accent-strong transition-all">
-            Back to Login
+          <Alert className="bg-p-green/20 border-p-green/30">
+            <Check size={16} className="text-teal-600" />
+            <AlertDescription className="text-[10px] font-black uppercase tracking-widest text-teal-700">Email verified successfully!</AlertDescription>
+          </Alert>
+          <Alert className="bg-amber-50 border-amber-200">
+            <AlertCircle size={16} className="text-amber-600" />
+            <AlertDescription className="text-[10px] font-black uppercase tracking-widest text-amber-700">
+              An admin will review and approve your profile. You'll be notified once approved.
+            </AlertDescription>
+          </Alert>
+          <Link href="/login">
+            <Button className="w-full text-[10px] uppercase tracking-widest font-black">Back to Login</Button>
           </Link>
-        </div>
+        </Card>
       </div>
     );
   }
@@ -306,7 +299,7 @@ function TutorSignupContent() {
   return (
     <div className="min-h-screen bg-background text-text-main flex flex-col items-center py-12 px-4 relative">
       <div className="absolute top-[-10%] left-[-5%] w-[40%] h-[40%] bg-p-blue blur-[140px] rounded-full opacity-40 pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-5%] w-[40%] h-[40%] bg-p-pink blur-[140px] rounded-full opacity-40 pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-5%] w-[40%] h-[40%] bg-p-sky blur-[140px] rounded-full opacity-40 pointer-events-none" />
 
       <div className="w-full max-w-4xl relative z-10">
         {/* Logo */}
@@ -352,10 +345,10 @@ function TutorSignupContent() {
 
           {/* Error banner */}
           {error && (
-            <div className="mb-8 p-4 bg-p-rose/70 border border-border text-text-main text-[10px] font-black uppercase tracking-widest flex items-start gap-3 rounded-2xl">
-              <AlertCircle size={16} className="shrink-0 mt-0.5 text-red-500" />
-              <span>{error}</span>
-            </div>
+            <Alert variant="destructive" className="mb-8">
+              <AlertCircle size={16} />
+              <AlertDescription className="text-[10px] font-black uppercase tracking-widest">{error}</AlertDescription>
+            </Alert>
           )}
 
           {/* Step content */}
@@ -373,32 +366,24 @@ function TutorSignupContent() {
 
           {/* Navigation */}
           <div className="flex justify-between mt-16 pt-10 border-t border-border">
-            <button
-              onClick={prevStep}
-              disabled={currentStep === 0}
-              className="flex items-center gap-3 px-8 py-4 rounded-xl font-bold text-xs uppercase tracking-widest text-text-muted hover:bg-surface-elevated transition-all disabled:opacity-0 disabled:pointer-events-none"
-            >
+            <Button variant="ghost" onClick={prevStep} disabled={currentStep === 0}
+              className="text-[10px] uppercase tracking-widest font-black gap-2 disabled:opacity-0 disabled:pointer-events-none">
               <ChevronLeft size={16} /> Back
-            </button>
+            </Button>
 
             {currentStep < STEPS.length - 1 ? (
-              <button
-                onClick={nextStep}
-                disabled={loading}
-                className="flex items-center gap-3 px-10 py-4 bg-primary text-white font-black rounded-xl hover:bg-accent-strong transition-all shadow-xl shadow-primary/20 text-xs uppercase tracking-widest disabled:opacity-50"
-              >
-                {loading ? <Loader2 className="animate-spin" size={16} /> : 'Continue'} 
+              <Button onClick={nextStep} disabled={loading}
+                className="text-[10px] uppercase tracking-widest font-black gap-2 shadow-xl shadow-primary/20">
+                {loading ? <Loader2 className="animate-spin" size={16} /> : 'Continue'}
                 {!loading && <ChevronRight size={16} />}
-              </button>
+              </Button>
             ) : (
-              <button
-                onClick={handleSubmit}
-                disabled={loading}
-                className="flex items-center gap-3 px-10 py-4 bg-[#27ae60] text-white font-black rounded-xl hover:bg-[#2b8a3e] transition-all shadow-xl shadow-[#27ae60]/20 text-xs uppercase tracking-widest disabled:opacity-50"
-              >
+              <Button onClick={handleSubmit} disabled={loading}
+                className="text-[10px] uppercase tracking-widest font-black gap-2 shadow-xl shadow-emerald-500/20"
+                style={{ background: 'linear-gradient(135deg, #27ae60, #2b8a3e)' }}>
                 {loading ? 'Submitting...' : 'Submit Application'}
                 {!loading && <Check size={16} />}
-              </button>
+              </Button>
             )}
           </div>
         </div>
@@ -525,9 +510,12 @@ function VideoIntro({ data, set }: StepProps) {
 
   return (
     <div className="space-y-8">
-      <div className="p-4 bg-primary/5 border border-primary/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-primary leading-relaxed">
-        Tutors with video introductions receive 85% more student interest. Record one now or paste a YouTube/Vimeo link.
-      </div>
+        <Alert className="border-primary/10 bg-primary/5">
+          <Sparkles size={14} className="text-primary" />
+          <AlertDescription className="text-[10px] font-black uppercase tracking-widest text-primary">
+            Tutors with video introductions receive 85% more student interest. Record one now or paste a link.
+          </AlertDescription>
+        </Alert>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="space-y-4">

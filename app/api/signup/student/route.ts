@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth/server';
+import { sendEmail, parentNotificationEmail } from '@/lib/email';
 
 export async function POST(req: NextRequest) {
   try {
@@ -80,6 +81,8 @@ export async function POST(req: NextRequest) {
       ? subjects.filter((s: string) => ['Mathematics', 'Science', 'Filipino', 'English'].includes(s))
       : [];
 
+    const normalizedParentEmail = parsedAge < 18 && parentEmail ? parentEmail.trim().toLowerCase() : null;
+
     // 2. Create User + Student profile — isVerified remains false until OTP confirmed
     await prisma.user.upsert({
       where: { id: authUserId },
@@ -128,6 +131,20 @@ export async function POST(req: NextRequest) {
       },
     });
     console.log('[SIGNUP] Student account created successfully:', normalizedEmail);
+
+    // 3. Send parent notification email if student is under 18
+    if (normalizedParentEmail) {
+      const signupUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/parent/join?email=${encodeURIComponent(normalizedParentEmail)}&student=${encodeURIComponent(fullName.trim())}`;
+      sendEmail({
+        to: normalizedParentEmail,
+        subject: `${fullName.trim()} created a Brighton account — Create your parent account`,
+        html: parentNotificationEmail({
+          parentName: normalizedParentEmail,
+          studentName: fullName.trim(),
+          signupUrl,
+        }),
+      });
+    }
 
     return NextResponse.json({ 
       success: true, 

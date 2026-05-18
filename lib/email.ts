@@ -344,6 +344,40 @@ export function bookingReminderEmail({
 }
 
 /**
+ * Sent to a parent when their child creates a Brighton account.
+ */
+export function parentNotificationEmail({
+  parentName,
+  studentName,
+  signupUrl,
+}: {
+  parentName: string;
+  studentName: string;
+  signupUrl: string;
+}) {
+  return wrapHtml(`
+<div class="container">
+  <div style="background:linear-gradient(135deg,#6366f1,#8b5cf6);padding:40px 48px;">
+    <p class="badge">Brighton Academic</p>
+    <h1 class="title">Your Child Joined Brighton! 🎉</h1>
+  </div>
+  <div class="body-padding">
+    <p class="text-body">Hi <strong style="color:#2c3e50;">${parentName}</strong>,</p>
+    <p class="text-body"><strong style="color:#2c3e50;">${studentName}</strong> has created a Brighton Academic account. Brighton connects students with qualified tutors for personalized learning sessions.</p>
+    <p class="text-body">As a parent, you can create your own account to:</p>
+    <ul style="font-size:14px;color:#7f8c8d;line-height:1.8;padding-left:20px;margin:12px 0;">
+      <li>View your child's assessment scores and progress</li>
+      <li>Monitor upcoming tutoring sessions</li>
+      <li>Track learning growth over time</li>
+    </ul>
+    <a href="${signupUrl}" class="btn" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);display:block;text-align:center;color:white;text-decoration:none;padding:18px 32px;border-radius:16px;font-weight:900;font-size:13px;letter-spacing:0.15em;text-transform:uppercase;margin-top:8px;">Create Parent Account →</a>
+    <p class="text-small" style="margin-top:16px;">If you believe this email was sent in error, you can safely ignore it.</p>
+  </div>
+  <div class="footer"><p class="footer-text">Brighton Academic • 2026</p></div>
+</div>`);
+}
+
+/**
  * Sent when a confirmed session passes without being joined (missed).
  */
 export function bookingMissedEmail({

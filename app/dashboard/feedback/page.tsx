@@ -50,10 +50,6 @@ export default function FeedbackHubPage() {
   return (
     <div className="space-y-8">
       <header className="space-y-3">
-        <div className="flex items-center gap-2 px-4 py-1.5 bg-p-mint rounded-full w-fit">
-          <Sparkles size={12} className="text-teal-600" />
-          <span className="text-[9px] font-black uppercase tracking-[0.2em] text-teal-700">Feedback Hub</span>
-        </div>
         <h2 className="text-3xl font-black tracking-tight text-text-main">
           Session <span className="gradient-text">Insights</span>
         </h2>

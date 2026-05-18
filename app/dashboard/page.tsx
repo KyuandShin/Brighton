@@ -5,22 +5,27 @@ import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Calendar as CalendarIcon, Clock, Video, User,
-  ChevronRight, Sparkles, X, BookOpen, ExternalLink, Users,
-  TrendingUp, Sun, Star, GraduationCap, Brain, Rocket
+  ChevronRight, Sparkles, BookOpen, ExternalLink, Users,
+  TrendingUp, Sun, Star, GraduationCap, Brain, Rocket,
+  Hourglass, Award, AlertCircle, CheckCircle, ShieldCheck,
+  Bell, Wallet, School, Mail
 } from 'lucide-react';
 import Link from 'next/link';
 import { useCurrentUser } from '@/lib/hooks/useCurrentUser';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
 
 interface ScheduleItem {
   id: string;
@@ -41,6 +46,26 @@ interface ScheduleItem {
   bannerDarkTo: string;
 }
 
+interface AttemptData {
+  id: string;
+  score: number;
+  total: number;
+  mastery: string | null;
+  grade: string | null;
+  grade_label?: string;
+  strengths: any;
+  weaknesses: any;
+  studyPlan: string | null;
+  timestamp: string;
+  subject_name?: string;
+}
+
+interface PendingTutor {
+  id: string;
+  user: { name: string | null; email: string; createdAt: string };
+  headline: string | null;
+}
+
 const COLORS = [
   { color: 'bg-p-purple', iconColor: 'text-purple-600 dark:text-purple-400', iconBg: 'bg-purple-100 dark:bg-purple-900/50', bannerFrom: '#ede9fe', bannerTo: '#c4b5fd', bannerDarkFrom: '#2a1a45', bannerDarkTo: '#1e1035' },
   { color: 'bg-p-pink',   iconColor: 'text-pink-600 dark:text-pink-400',   iconBg: 'bg-pink-100 dark:bg-pink-900/50',   bannerFrom: '#fce7f3', bannerTo: '#f9a8d4', bannerDarkFrom: '#3d1f3a', bannerDarkTo: '#2d152a' },
@@ -49,20 +74,16 @@ const COLORS = [
   { color: 'bg-p-peach',  iconColor: 'text-orange-600 dark:text-orange-400', iconBg: 'bg-orange-100 dark:bg-orange-900/50', bannerFrom: '#ffedd5', bannerTo: '#fdba74', bannerDarkFrom: '#3d2a1a', bannerDarkTo: '#2d1a0f' },
 ];
 
-const quickActions = [
-  { label: 'Find a Tutor', href: '/dashboard/tutors', icon: Users,        iconBg: '#2563eb', iconBgTo: '#1d4ed8', desc: 'Browse experts'   },
-  { label: 'Take Test',    href: '/dashboard/test',   icon: Brain,        iconBg: '#2563eb', iconBgTo: '#1d4ed8', desc: 'AI assessment'    },
-  { label: 'My Classes',  href: '/dashboard/classes', icon: BookOpen,     iconBg: '#1d4ed8', iconBgTo: '#1e40af', desc: 'View schedule'    },
-  { label: 'Bookings',    href: '/dashboard/bookings', icon: CalendarIcon, iconBg: '#1d4ed8', iconBgTo: '#1e40af', desc: 'Manage sessions'  },
-];
-
 export default function DashboardPage() {
   const { user, loading: userLoading } = useCurrentUser();
   const pathname = usePathname();
-  const [schedule, setSchedule]           = useState<ScheduleItem[]>([]);
-  const [loading, setLoading]             = useState(true);
+  const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedClass, setSelectedClass] = useState<ScheduleItem | null>(null);
-  const [isDark, setIsDark]               = useState(false);
+  const [isDark, setIsDark] = useState(false);
+  const [attempts, setAttempts] = useState<AttemptData[]>([]);
+  const [pendingTutors, setPendingTutors] = useState<PendingTutor[]>([]);
+  const [sysStats, setSysStats] = useState<any>(null);
 
   useEffect(() => {
     const checkDark = () => setIsDark(document.documentElement.classList.contains('dark'));
@@ -72,15 +93,15 @@ export default function DashboardPage() {
     return () => observer.disconnect();
   }, []);
 
+  // Fetch bookings
   useEffect(() => {
     if (userLoading) return;
     if (!user) { setLoading(false); return; }
 
     let cancelled = false;
-
     const fetchBookings = async () => {
       try {
-        const res = await fetch('/api/bookings', { 
+        const res = await fetch('/api/bookings', {
           credentials: 'include',
           headers: {
             'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -95,16 +116,16 @@ export default function DashboardPage() {
         if (!Array.isArray(data)) { setSchedule([]); return; }
 
         const formattedSchedule = data.map((booking: any, index: number) => {
-          const sessionDate   = new Date(booking.date);
-          const isValidDate   = !isNaN(sessionDate.getTime());
+          const sessionDate = new Date(booking.date);
+          const isValidDate = !isNaN(sessionDate.getTime());
           const formattedDate = isValidDate
             ? sessionDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
             : 'Scheduled';
           const formattedTime = isValidDate
             ? sessionDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
             : 'TBD';
-          const tutorName     = booking.tutor?.user?.name || 'Tutor';
-          const tutorHeadline = booking.tutor?.headline   || 'Tutoring Session';
+          const tutorName = booking.tutor?.user?.name || 'Tutor';
+          const tutorHeadline = booking.tutor?.headline || 'Tutoring Session';
 
           return {
             id: booking.id,
@@ -120,7 +141,6 @@ export default function DashboardPage() {
           };
         });
         if (cancelled) return;
-
         setSchedule(formattedSchedule);
       } catch (error) {
         if (!cancelled) console.error('Failed to load schedule:', error);
@@ -128,13 +148,38 @@ export default function DashboardPage() {
         if (!cancelled) setLoading(false);
       }
     };
-
     fetchBookings();
     return () => { cancelled = true; };
   }, [user, userLoading, pathname]);
 
+  // Fetch test history for student
+  useEffect(() => {
+    if (!user?.studentProfile?.id) return;
+    fetch('/api/test-history')
+      .then(r => r.json())
+      .then((data: any[]) => {
+        if (Array.isArray(data)) setAttempts(data.filter((a: any) => a.type === 'ai_assessment'));
+      })
+      .catch(() => {});
+  }, [user?.studentProfile?.id]);
+
+  // Fetch pending tutors for admin
+  useEffect(() => {
+    if (user?.role !== 'ADMIN') return;
+    fetch('/api/admin/tutors')
+      .then(r => r.json())
+      .then((data: any[]) => {
+        if (Array.isArray(data)) setPendingTutors(data.filter((t: any) => t.verificationStatus === 'PENDING'));
+      })
+      .catch(() => {});
+    fetch('/api/admin/dashboard')
+      .then(r => r.json())
+      .then(data => setSysStats(data))
+      .catch(() => {});
+  }, [user?.role]);
+
   const isToday = (isoString: string) => {
-    const today    = new Date();
+    const today = new Date();
     const itemDate = new Date(isoString);
     return itemDate.toDateString() === today.toDateString();
   };
@@ -143,147 +188,344 @@ export default function DashboardPage() {
   const activeSchedule = schedule.filter((item) => item.status !== 'COMPLETED' && item.status !== 'CANCELLED');
   const confirmedSchedule = schedule.filter((item) => item.status === 'CONFIRMED');
   const pendingSchedule = schedule.filter((item) => item.status === 'PENDING');
-  const todaysClasses   = confirmedSchedule.filter((item) => isToday(item.rawDate));
+  const todaysClasses = confirmedSchedule.filter((item) => isToday(item.rawDate));
   const upcomingClasses = confirmedSchedule.filter((item) => new Date(item.rawDate) >= now);
 
-  const stats = [
-    { label: 'Upcoming', value: upcomingClasses.length, icon: TrendingUp, iconColor: '#3b82f6' },
-    { label: 'Today',    value: todaysClasses.length,   icon: Sun,         iconColor: '#2563eb' },
-    { label: 'Total',    value: activeSchedule.length,  icon: BookOpen,    iconColor: '#1d4ed8' },
-  ];
+  const isStudent = user?.role === 'STUDENT';
+  const isTutor = user?.role === 'TUTOR';
+  const isAdmin = user?.role === 'ADMIN';
+
+  const latestAttempt = attempts[0];
+  const prevAttempt = attempts[1];
+  const improved = latestAttempt && prevAttempt ? latestAttempt.score > prevAttempt.score : null;
+
+  const strengths: string[] = latestAttempt?.strengths
+    ? (typeof latestAttempt.strengths === 'string' ? JSON.parse(latestAttempt.strengths) : latestAttempt.strengths)
+    : [];
+  const weaknesses: string[] = latestAttempt?.weaknesses
+    ? (typeof latestAttempt.weaknesses === 'string' ? JSON.parse(latestAttempt.weaknesses) : latestAttempt.weaknesses)
+    : [];
+
+  if (loading && !user) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-40 w-full rounded-[32px]" />
+        <div className="grid grid-cols-3 gap-4">
+          <Skeleton className="h-24 rounded-2xl" />
+          <Skeleton className="h-24 rounded-2xl" />
+          <Skeleton className="h-24 rounded-2xl" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
-      {/* Hero Header */}
+      {/* ── Hero Header ──────────────────────────────────────────── */}
       <header
-        className="relative overflow-hidden rounded-[40px] p-6 sm:p-8 md:p-10"
+        className="relative overflow-hidden rounded-[32px] p-6 sm:p-8"
         style={{
-            background: isDark
-              ? 'linear-gradient(135deg, #0f172a 0%, #1e293b 55%, #0b1120 100%)'
-              : 'linear-gradient(140deg, #f8fafc 0%, #f1f5f9 45%, #f8fafc 75%, #ffffff 100%)',
-            border: isDark ? '1.5px solid #1e293b' : '1.5px solid #e2e8f0',
-            boxShadow: isDark ? '0 4px 32px rgba(0,0,0,0.25)' : '0 4px 32px rgba(0,0,0,0.04)',
+          background: isDark
+            ? 'linear-gradient(135deg, #0f172a 0%, #1e293b 55%, #0b1120 100%)'
+            : 'linear-gradient(140deg, #f8fafc 0%, #f1f5f9 45%, #f8fafc 75%, #ffffff 100%)',
+          border: isDark ? '1.5px solid #1e293b' : '1.5px solid #e2e8f0',
         }}
       >
         <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full blur-3xl pointer-events-none"
           style={{ background: isDark ? 'rgba(59,130,246,0.08)' : 'rgba(37,99,235,0.04)' }} />
         <div className="absolute -bottom-16 -left-16 w-56 h-56 rounded-full blur-3xl pointer-events-none"
           style={{ background: isDark ? 'rgba(59,130,246,0.04)' : 'rgba(37,99,235,0.02)' }} />
-        <div className="absolute top-1/2 left-1/3 w-40 h-40 rounded-full blur-2xl pointer-events-none"
-          style={{ background: isDark ? 'rgba(59,130,246,0.03)' : 'rgba(37,99,235,0.015)' }} />
-        
-        <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-surface/80 rounded-full shadow-sm">
-              <Sparkles size={12} className="text-primary" />
-              <span className="text-[8px] font-black uppercase tracking-[0.2em] text-text-muted">
-                {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-              </span>
-            </div>
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-text-main">
-              Welcome back,{' '}
-              <span className="gradient-text">{user?.name?.split(' ')[0] || 'Friend'}</span>
-            </h2>
-            <p className="text-text-muted font-bold text-[10px] sm:text-xs uppercase tracking-widest">
-              {loading ? 'Loading your academic overview...' :
-               todaysClasses.length === 0 ? 'No sessions scheduled for today -- time to book one!' :
-               `You have ${todaysClasses.length} session${todaysClasses.length > 1 ? 's' : ''} today.`}
-            </p>
-          </div>
-          <Link
-            href="/dashboard/test"
-            className="rounded-2xl font-black text-[10px] uppercase tracking-[0.15em] shadow-lg shadow-primary/20 hover:shadow-xl hover:scale-105 transition-all inline-flex shrink-0 items-center justify-center gap-2.5 px-5 py-3"
-            style={{ background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)', color: 'white' }}
-          >
-            <Brain size={14} />
-            AI Assessment
-            <Sparkles size={10} className="animate-sparkle" />
-          </Link>
-        </div>
 
-        {/* Stats row */}
-        {!loading && (
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="grid grid-cols-3 gap-2 sm:gap-3 mt-8"
-          >
-            {stats.map((s) => {
-              const Icon = s.icon;
-              return (
-                <Card key={s.label} className="border-border/60 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 bg-transparent">
-                  <CardContent className="flex items-center gap-2 sm:gap-4 p-3 sm:p-5">
-                    <div
-                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm"
-                      style={{ background: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.80)' }}
-                    >
-                      <Icon size={16} style={{ color: s.iconColor }} />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xl sm:text-2xl font-black text-text-main leading-none">{s.value}</p>
-                      <p className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-text-muted mt-0.5">{s.label}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </motion.div>
-        )}
+        <div className="relative z-10">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-surface/80 rounded-full shadow-sm">
+                <Sparkles size={12} className="text-primary" />
+                <span className="text-[8px] font-black uppercase tracking-[0.2em] text-text-muted">
+                  {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                </span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-text-main">
+                Welcome back, <span className="gradient-text">{user?.name?.split(' ')[0] || 'Friend'}</span>
+              </h2>
+              <p className="text-text-muted font-bold text-[10px] sm:text-xs uppercase tracking-widest">
+                {isStudent && (todaysClasses.length > 0 ? `${todaysClasses.length} session${todaysClasses.length > 1 ? 's' : ''} today` : 'No sessions today')}
+                {isTutor && `${pendingSchedule.length} pending booking${pendingSchedule.length !== 1 ? 's' : ''}`}
+                {isAdmin && 'System overview'}
+              </p>
+            </div>
+            {isStudent && (
+              <Link href="/dashboard/test"
+                className="rounded-2xl font-black text-[10px] uppercase tracking-[0.15em] shadow-lg shadow-primary/20 hover:shadow-xl hover:scale-105 transition-all inline-flex shrink-0 items-center justify-center gap-2.5 px-5 py-3"
+                style={{ background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)', color: 'white' }}>
+                <Brain size={14} /> AI Assessment <Sparkles size={10} className="animate-sparkle" />
+              </Link>
+            )}
+            {isTutor && (
+              <Link href="/dashboard/bookings"
+                className="rounded-2xl font-black text-[10px] uppercase tracking-[0.15em] shadow-lg shadow-primary/20 hover:shadow-xl hover:scale-105 transition-all inline-flex shrink-0 items-center justify-center gap-2.5 px-5 py-3"
+                style={{ background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)', color: 'white' }}>
+                <Hourglass size={14} /> Review Bookings
+              </Link>
+            )}
+          </div>
+
+          {/* Stats row */}
+          {!loading && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="grid grid-cols-3 gap-2 sm:gap-3 mt-6"
+            >
+              {isStudent && (
+                <>
+                  <StatCard icon={TrendingUp} value={upcomingClasses.length} label="Upcoming" color="#3b82f6" isDark={isDark} />
+                  <StatCard icon={Sun} value={todaysClasses.length} label="Today" color="#2563eb" isDark={isDark} />
+                  <StatCard icon={Brain} value={latestAttempt ? `${Math.round((latestAttempt.score / latestAttempt.total) * 100)}%` : '—'} label="Latest" color="#1d4ed8" isDark={isDark} />
+                </>
+              )}
+              {isTutor && (
+                <>
+                  <StatCard icon={Hourglass} value={pendingSchedule.length} label="Pending" color="#f59e0b" isDark={isDark} />
+                  <StatCard icon={CheckCircle} value={schedule.filter(b => b.status === 'CONFIRMED').length} label="Confirmed" color="#10b981" isDark={isDark} />
+                  <StatCard icon={TrendingUp} value={schedule.filter(b => b.status === 'COMPLETED').length} label="Completed" color="#3b82f6" isDark={isDark} />
+                </>
+              )}
+              {isAdmin && (
+                <>
+                  <StatCard icon={Users} value={sysStats?.totals?.students ?? 0} label="Students" color="#3b82f6" isDark={isDark} />
+                  <StatCard icon={GraduationCap} value={sysStats?.totals?.tutors ?? 0} label="Tutors" color="#10b981" isDark={isDark} />
+                  <StatCard icon={CalendarIcon} value={sysStats?.totals?.bookings ?? 0} label="Bookings" color="#8b5cf6" isDark={isDark} />
+                </>
+              )}
+            </motion.div>
+          )}
+        </div>
       </header>
 
-      {/* Quick Actions */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="grid grid-cols-2 md:grid-cols-4 gap-3"
-      >
-        {quickActions.map((action) => {
-          const Icon = action.icon;
-          return (
-            <Link key={action.label} href={action.href}>
-              <Card className="group overflow-hidden border-border/60 hover:shadow-lg hover:-translate-y-1 transition-all cursor-pointer bg-background">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-300"
-                      style={{ background: `linear-gradient(135deg, ${action.iconBg}, ${action.iconBgTo})` }}
-                    >
-                      <Icon size={18} className="text-white" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-black text-text-main">{action.label}</p>
-                      <p className="text-[8px] font-bold text-text-muted uppercase tracking-widest">{action.desc}</p>
-                    </div>
+      {/* ── STUDENT VIEW ─────────────────────────────────────────── */}
+      {isStudent && (
+        <>
+          {/* Latest Assessment */}
+          {latestAttempt && (
+            <Card className="border-border/60">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                  <Brain size={16} className="text-primary" /> Latest Assessment
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-2xl font-black text-text-main">{latestAttempt.score}/{latestAttempt.total}</p>
+                    <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest mt-1">
+                      {latestAttempt.grade_label || 'Placement Test'}
+                      {improved !== null && (
+                        <span className={`ml-2 ${improved ? 'text-emerald-600' : 'text-red-500'}`}>
+                          {improved ? '↑ Improved' : '↓ Declined'}
+                        </span>
+                      )}
+                    </p>
                   </div>
-                </CardContent>
-              </Card>
-            </Link>
-          );
-        })}
-      </motion.div>
+                  <div className="text-right">
+                    <p className={cn("text-lg font-black", 
+                      (latestAttempt.score / latestAttempt.total) >= 0.8 ? 'text-teal-600' : 
+                      (latestAttempt.score / latestAttempt.total) >= 0.6 ? 'text-amber-600' : 'text-red-500')}>
+                      {Math.round((latestAttempt.score / latestAttempt.total) * 100)}%
+                    </p>
+                    <p className="text-[9px] font-black uppercase tracking-widest text-text-muted mt-1">
+                      {new Date(latestAttempt.timestamp).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
 
-      {/* Schedule Section */}
+                {(strengths.length > 0 || weaknesses.length > 0) && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {strengths.length > 0 && (
+                      <div className="bg-p-green/20 rounded-2xl p-3 border border-p-green/30">
+                        <p className="text-[9px] font-black uppercase tracking-widest text-teal-700 mb-1.5 flex items-center gap-1">
+                          <Award size={12} /> Strengths
+                        </p>
+                        <div className="flex flex-wrap gap-1">
+                          {strengths.slice(0, 3).map((s: string, i: number) => (
+                            <Badge key={i} variant="outline" className="text-[8px] border-teal-300 text-teal-700 bg-teal-50">{s}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {weaknesses.length > 0 && (
+                      <div className="bg-p-rose/20 rounded-2xl p-3 border border-p-rose/30">
+                        <p className="text-[9px] font-black uppercase tracking-widest text-rose-700 mb-1.5 flex items-center gap-1">
+                          <AlertCircle size={12} /> Needs Work
+                        </p>
+                        <div className="flex flex-wrap gap-1">
+                          {weaknesses.slice(0, 3).map((w: string, i: number) => (
+                            <Badge key={i} variant="outline" className="text-[8px] border-rose-300 text-rose-700 bg-rose-50">{w}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="flex gap-2">
+                  <Link href="/dashboard/test" className="flex-1">
+                    <Button className="w-full text-[10px] uppercase tracking-widest font-black">
+                      <Brain size={14} className="mr-1" /> Take New Assessment
+                    </Button>
+                  </Link>
+                  <Link href="/dashboard/test-history">
+                    <Button variant="outline" className="text-[10px] uppercase tracking-widest font-black">
+                      History
+                    </Button>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Subject Mastery Mini */}
+          {weaknesses.length > 0 && (
+            <div className="grid grid-cols-2 gap-3">
+              {['Mathematics', 'Science', 'English', 'Filipino'].map(subject => {
+                const subWeak = weaknesses.filter((w: string) => w.toLowerCase().includes(subject.toLowerCase()));
+                const subStrong = strengths.filter((s: string) => s.toLowerCase().includes(subject.toLowerCase()));
+                const mastery = (subStrong.length + subWeak.length) > 0
+                  ? Math.round((subStrong.length / (subStrong.length + subWeak.length)) * 100)
+                  : 50;
+                return (
+                  <Card key={subject} className="border-border/60">
+                    <CardContent className="p-3 space-y-1.5">
+                      <div className="flex justify-between items-center">
+                        <p className="text-[9px] font-black uppercase tracking-widest text-text-muted">{subject}</p>
+                        <p className="text-[10px] font-black">{mastery}%</p>
+                      </div>
+                      <Progress value={mastery} className="h-1.5" />
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+
+          {/* No sessions CTA */}
+          {!loading && confirmedSchedule.length === 0 && pendingSchedule.length === 0 && (
+            <Alert className="border-dashed border-primary/30 bg-primary/5">
+              <Rocket size={16} className="text-primary" />
+              <AlertDescription className="text-[10px] font-black uppercase tracking-widest">
+                No upcoming sessions.{' '}
+                <Link href="/dashboard/tutors" className="text-primary underline">Find a tutor</Link> to get started.
+              </AlertDescription>
+            </Alert>
+          )}
+        </>
+      )}
+
+      {/* ── TUTOR VIEW ───────────────────────────────────────────── */}
+      {isTutor && (
+        <>
+          {/* Pending Bookings Alert */}
+          {pendingSchedule.length > 0 && (
+            <Alert className="border-amber-200 bg-amber-50/50">
+              <Hourglass size={16} className="text-amber-600" />
+              <AlertDescription className="text-[10px] font-black uppercase tracking-widest text-amber-800">
+                You have {pendingSchedule.length} pending booking request{pendingSchedule.length > 1 ? 's' : ''}.{' '}
+                <Link href="/dashboard/bookings" className="underline">Review now</Link>.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Profile Completion */}
+          {(!user.tutorProfile?.headline || !user.tutorProfile?.bio) && (
+            <Card className="border-border/60 bg-p-sky/10">
+              <CardContent className="p-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <ShieldCheck size={18} className="text-primary" />
+                  <p className="text-[9px] font-bold text-text-muted">Complete your profile to get more bookings</p>
+                </div>
+                <Link href="/dashboard/profile">
+                  <Button size="sm" className="text-[9px] uppercase tracking-widest font-black">Update</Button>
+                </Link>
+              </CardContent>
+            </Card>
+          )}
+        </>
+      )}
+
+      {/* ── ADMIN VIEW ───────────────────────────────────────────── */}
+      {isAdmin && (
+        <>
+          {pendingTutors.length > 0 && (
+            <Card className="border-border/60">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                  <ShieldCheck size={16} className="text-amber-500" /> Pending Tutor Approvals
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {pendingTutors.slice(0, 5).map(t => (
+                  <div key={t.id} className="flex items-center justify-between p-3 bg-surface-elevated rounded-xl">
+                    <div>
+                      <p className="text-xs font-black text-text-main">{t.user.name || 'Unnamed'}</p>
+                      <p className="text-[9px] text-text-muted">{t.user.email}</p>
+                    </div>
+                    <Link href={`/dashboard/admin/tutors/${t.id}`}>
+                      <Button size="sm" variant="outline" className="text-[9px] uppercase tracking-widest font-black">Review</Button>
+                    </Link>
+                  </div>
+                ))}
+                {pendingTutors.length > 5 && (
+                  <Link href="/dashboard/admin/tutors">
+                    <Button variant="link" size="sm" className="text-[10px] w-full">View all {pendingTutors.length} pending</Button>
+                  </Link>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* System Stats */}
+          {sysStats?.totals && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[
+                { label: 'Students', value: sysStats.totals.students, icon: Users, color: '#3b82f6' },
+                { label: 'Tutors', value: sysStats.totals.tutors, icon: GraduationCap, color: '#10b981' },
+                { label: 'Bookings', value: sysStats.totals.bookings, icon: CalendarIcon, color: '#8b5cf6' },
+                { label: 'Admins', value: sysStats.totals.admins, icon: ShieldCheck, color: '#f59e0b' },
+              ].map(s => (
+                <Card key={s.label} className="border-border/60">
+                  <CardContent className="p-4 text-center space-y-1">
+                    <div className="w-8 h-8 rounded-xl flex items-center justify-center mx-auto" style={{ background: `${s.color}15` }}>
+                      <s.icon size={16} style={{ color: s.color }} />
+                    </div>
+                    <p className="text-lg font-black text-text-main">{s.value}</p>
+                    <p className="text-[8px] font-black uppercase tracking-widest text-text-muted">{s.label}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ── SCHEDULE SECTION (shared) ────────────────────────────── */}
       <section className="space-y-5">
         <div className="flex justify-between items-center">
-          <h3 className="text-sm sm:text-base font-black tracking-tight uppercase flex items-center gap-2.5 text-text-main">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)' }}>
+          <h3 className="text-sm font-black tracking-tight uppercase flex items-center gap-2.5 text-text-main">
+            <div className="w-7 h-7 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)' }}>
               <CalendarIcon size={14} className="text-white" />
             </div>
-            Your Academic Schedule
+            {isStudent ? 'Upcoming Sessions' : isTutor ? 'Your Schedule' : 'Recent Bookings'}
           </h3>
           {schedule.length > 0 && (
-            <Link
-              href="/dashboard/classes"
-              className="text-[10px] font-black uppercase tracking-widest text-primary underline-offset-4 hover:underline inline-flex items-center gap-1.5"
-            >
-              View All <ChevronRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
+            <Link href="/dashboard/classes"
+              className="text-[10px] font-black uppercase tracking-widest text-primary underline-offset-4 hover:underline inline-flex items-center gap-1.5">
+              View All <ChevronRight size={12} />
             </Link>
           )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {loading ? (
             [1, 2, 3].map((i) => (
               <Card key={i} className="overflow-hidden border-border">
@@ -295,84 +537,54 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
             ))
-          ) : confirmedSchedule.length === 0 && pendingSchedule.length === 0 ? (
-            <div className="col-span-full flex flex-col items-center justify-center py-12 sm:py-16 text-center space-y-6">
-              <div className="relative">
-                <div
-                  className="w-20 h-20 rounded-3xl flex items-center justify-center shadow-lg"
-                  style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%)' }}
-                >
-                  <BookOpen size={32} className="text-white drop-shadow-sm" />
-                </div>
-                <div
-                  className="absolute -top-2 -right-2 w-8 h-8 rounded-full flex items-center justify-center animate-sparkle shadow-sm"
-                  style={{ background: 'linear-gradient(135deg, #e2e8f0, #cbd5e1)' }}
-                >
-                  <Star size={12} className="text-primary" fill="currentColor" />
-                </div>
+          ) : schedule.filter(b => b.status !== 'CANCELLED').length === 0 ? (
+            <div className="col-span-full flex flex-col items-center justify-center py-12 text-center">
+              <div className="w-16 h-16 rounded-3xl flex items-center justify-center shadow-lg mb-4"
+                style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%)' }}>
+                <CalendarIcon size={28} className="text-white" />
               </div>
-              <div className="space-y-2">
-                <h3 className="text-xl font-black text-text-main">No scheduled classes yet</h3>
-                <p className="text-sm text-text-muted max-w-md leading-relaxed">
-                  Browse available tutors and book your first session to start your learning adventure.
-                </p>
-              </div>
-              <Link
-                href="/dashboard/tutors"
-                className="rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg hover:shadow-xl hover:scale-105 transition-all inline-flex items-center gap-2.5 px-8 py-4"
-                style={{ background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)', color: 'white', boxShadow: '0 8px 24px rgba(37,99,235,0.2)' }}
-              >
-                <Users size={14} /> Find Tutors <Rocket size={14} className="group-hover:translate-x-0.5 transition-transform" />
-              </Link>
+              <h3 className="text-lg font-black text-text-main">No sessions yet</h3>
+              {isStudent && (
+                <Link href="/dashboard/tutors" className="mt-3">
+                  <Button className="text-[10px] uppercase tracking-widest font-black">
+                    <Users size={14} className="mr-1" /> Find a Tutor
+                  </Button>
+                </Link>
+              )}
             </div>
           ) : (
-            confirmedSchedule.filter((item) => new Date(item.rawDate) >= now).map((item) => (
+            schedule.filter(b => b.status !== 'CANCELLED').slice(0, 6).map((item) => (
               <motion.div
                 key={item.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                whileHover={{ y: -6 }}
+                whileHover={{ y: -4 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                 onClick={() => setSelectedClass(item)}
-                className="bg-surface border-2 border-border rounded-[32px] overflow-hidden cursor-pointer group hover:border-primary/30 hover:shadow-xl hover:shadow-primary/10 transition-all"
+                className="bg-surface border-2 border-border rounded-[24px] overflow-hidden cursor-pointer group hover:border-primary/30 hover:shadow-lg transition-all"
               >
-                {/* Colored banner */}
-                <div
-                  className="h-20 relative flex items-end px-5 pb-3"
-                  style={{ background: `linear-gradient(135deg, ${isDark ? item.bannerDarkFrom : item.bannerFrom}, ${isDark ? item.bannerDarkTo : item.bannerTo})` }}
-                >
-                  <div className="absolute -right-4 -top-4 w-24 h-24 rounded-full border-[12px] border-white/20 dark:border-white/5" />
-                  <div className="absolute -left-4 -bottom-4 w-16 h-16 rounded-full border-8 border-white/10 dark:border-white/5" />
-                  <span className="relative px-4 py-1.5 bg-white/70 dark:bg-white/10 dark:text-white backdrop-blur-sm rounded-full text-[9px] font-black uppercase tracking-widest text-text-main shadow-sm">
+                <div className="h-16 relative flex items-end px-4 pb-2"
+                  style={{ background: `linear-gradient(135deg, ${isDark ? item.bannerDarkFrom : item.bannerFrom}, ${isDark ? item.bannerDarkTo : item.bannerTo})` }}>
+                  <span className="relative px-3 py-1 bg-white/70 dark:bg-white/10 backdrop-blur-sm rounded-full text-[8px] font-black uppercase tracking-widest shadow-sm">
                     {item.time}
                   </span>
-                  <div className={`absolute top-4 right-5 p-2 ${item.iconBg} rounded-xl ${item.iconColor} shadow-sm`}>
-                    <Video size={14} />
-                  </div>
+                  <Badge className={`absolute top-2 right-3 text-[7px] py-0.5 ${
+                    item.status === 'CONFIRMED' ? 'bg-emerald-500' :
+                    item.status === 'PENDING' ? 'bg-amber-500' :
+                    item.status === 'COMPLETED' ? 'bg-blue-500' : 'bg-red-500'}`}>
+                    {item.status}
+                  </Badge>
                 </div>
-
-                {/* Body */}
-                <div className="px-5 py-4 space-y-3">
-                  <div className="space-y-0.5">
-                    <h4 className="font-black text-sm text-text-main line-clamp-1 group-hover:text-primary transition-colors">
-                      {item.topic}
-                    </h4>
-                    <p className="text-[10px] font-bold text-text-muted uppercase tracking-tight line-clamp-1">
-                      {item.subject}
-                    </p>
+                <div className="px-4 py-3 space-y-2">
+                  <p className="font-black text-xs text-text-main line-clamp-1">{item.topic}</p>
+                  <div className="flex items-center gap-1.5 text-[9px] font-bold text-text-muted">
+                    <User size={10} /> {item.teacher}
                   </div>
-                  <div className="flex items-center gap-1.5 text-[10px] font-bold text-text-muted">
-                    <User size={11} /> {item.teacher}
-                  </div>
-                  <div className="pt-3 border-t border-border flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-text-muted">
-                      <Clock size={11} /> {item.date}
-                    </div>
-                    <div
-                      className="w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-sm transition-all group-hover:scale-110"
-                      style={{ background: 'linear-gradient(135deg, #2563eb, #1d4ed8)' }}
-                    >
-                      <ChevronRight size={14} />
+                  <div className="pt-2 border-t border-border flex items-center justify-between">
+                    <span className="text-[8px] font-black uppercase tracking-widest text-text-muted">{item.date}</span>
+                    <div className="w-7 h-7 rounded-xl flex items-center justify-center text-white shadow-sm"
+                      style={{ background: 'linear-gradient(135deg, #2563eb, #1d4ed8)' }}>
+                      <ChevronRight size={12} />
                     </div>
                   </div>
                 </div>
@@ -382,72 +594,74 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      {/* Detail Dialog using shadcn Dialog */}
+      {/* ── Session Detail Dialog ────────────────────────────────── */}
       <Dialog open={!!selectedClass} onOpenChange={(open) => !open && setSelectedClass(null)}>
-        <DialogContent className="sm:max-w-lg p-0 gap-0 rounded-[40px] border-border overflow-hidden">
+        <DialogContent className="sm:max-w-lg p-0 gap-0 rounded-[32px] border-border overflow-hidden">
           {selectedClass && (
             <>
-              <div
-                className="h-28 relative"
-                style={{ background: `linear-gradient(135deg, ${isDark ? selectedClass.bannerDarkFrom : selectedClass.bannerFrom}, ${isDark ? selectedClass.bannerDarkTo : selectedClass.bannerTo})` }}
-              >
+              <div className="h-24 relative"
+                style={{ background: `linear-gradient(135deg, ${isDark ? selectedClass.bannerDarkFrom : selectedClass.bannerFrom}, ${isDark ? selectedClass.bannerDarkTo : selectedClass.bannerTo})` }}>
                 <DialogHeader className="sr-only">
                   <DialogTitle>{selectedClass.topic}</DialogTitle>
                 </DialogHeader>
-                <div className="absolute -bottom-7 left-8 w-14 h-14 bg-surface rounded-2xl shadow-md border-4 border-surface flex items-center justify-center">
-                  <BookOpen size={24} className={selectedClass.iconColor} />
+                <div className="absolute -bottom-6 left-6 w-12 h-12 bg-surface rounded-2xl shadow-md border-4 border-surface flex items-center justify-center">
+                  <BookOpen size={20} className={selectedClass.iconColor} />
                 </div>
+                <Badge className={`absolute top-3 right-3 text-[8px] ${
+                  selectedClass.status === 'CONFIRMED' ? 'bg-emerald-500' :
+                  selectedClass.status === 'PENDING' ? 'bg-amber-500' : 'bg-blue-500'}`}>
+                  {selectedClass.status}
+                </Badge>
               </div>
 
-              <div className="p-6 sm:p-8 pt-11 space-y-6">
-                <div className="space-y-1.5">
-                  <Badge variant="outline" className="text-primary border-primary/30 bg-primary/5 text-[10px] font-black uppercase tracking-[0.2em]">
-                    Confirmed Session
-                  </Badge>
-                  <h3 className="text-xl sm:text-2xl font-black tracking-tight text-text-main">{selectedClass.topic}</h3>
-                  <p className="text-xs font-bold text-text-muted uppercase tracking-widest">
-                    {selectedClass.subject} . {selectedClass.teacher}
+              <div className="p-5 pt-8 space-y-4">
+                <div className="space-y-1">
+                  <h3 className="text-lg font-black tracking-tight text-text-main">{selectedClass.topic}</h3>
+                  <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">
+                    {selectedClass.subject} · {selectedClass.teacher}
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <Card className="bg-gradient-to-br from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10 border-border">
-                    <CardContent className="p-5 space-y-1.5">
-                      <p className="text-[9px] font-black uppercase tracking-widest text-text-muted">Time</p>
-                      <p className="text-sm font-black text-text-main">{selectedClass.time}</p>
-                    </CardContent>
-                  </Card>
-                  <Card className="bg-gradient-to-br from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/5 border-border">
-                    <CardContent className="p-5 space-y-1.5">
-                      <p className="text-[9px] font-black uppercase tracking-widest text-text-muted">Date</p>
-                      <p className="text-sm font-black text-text-main">{selectedClass.date}</p>
-                    </CardContent>
-                  </Card>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="p-3 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl border border-border space-y-1">
+                    <p className="text-[8px] font-black uppercase tracking-widest text-text-muted">Time</p>
+                    <p className="text-sm font-black text-text-main">{selectedClass.time}</p>
+                  </div>
+                  <div className="p-3 bg-gradient-to-br from-primary/5 to-primary/10 rounded-xl border border-border space-y-1">
+                    <p className="text-[8px] font-black uppercase tracking-widest text-text-muted">Date</p>
+                    <p className="text-sm font-black text-text-main">{selectedClass.date}</p>
+                  </div>
                 </div>
 
-                <a
-                  href={selectedClass.meetLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group relative overflow-hidden w-full p-4 rounded-2xl flex items-center justify-center gap-3 transition-all text-white hover:shadow-xl hover:scale-[1.02] font-black text-xs uppercase tracking-widest"
-                  style={{ background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)', boxShadow: '0 8px 24px rgba(37,99,235,0.25)' }}
-                >
-                  <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <div className="relative z-10 flex items-center gap-3">
-                    <div className="p-2 bg-white/20 rounded-xl"><Video size={17} /></div>
-                    <span>Join Classroom</span>
-                  </div>
-                  <ExternalLink size={14} className="relative z-10 opacity-60 group-hover:opacity-100 transition-opacity" />
-                </a>
-              </div>
-
-              <div className="px-8 py-4 bg-gradient-to-r from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/5 border-t border-border text-center">
-                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Brighton Academic Framework v2.0</p>
+                {selectedClass.meetLink && (
+                  <a href={selectedClass.meetLink} target="_blank" rel="noopener noreferrer"
+                    className="group relative overflow-hidden w-full p-3 rounded-2xl flex items-center justify-center gap-2 transition-all text-white hover:shadow-lg font-black text-[10px] uppercase tracking-widest"
+                    style={{ background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)' }}>
+                    <Video size={14} /> Join Classroom <ExternalLink size={12} />
+                  </a>
+                )}
               </div>
             </>
           )}
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function StatCard({ icon: Icon, value, label, color, isDark }: { icon: any; value: string | number; label: string; color: string; isDark: boolean }) {
+  return (
+    <Card className="border-border/60 shadow-sm bg-transparent">
+      <CardContent className="flex items-center gap-3 p-3 sm:p-4">
+        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center shrink-0 shadow-sm"
+          style={{ background: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.80)' }}>
+          <Icon size={15} style={{ color }} />
+        </div>
+        <div className="min-w-0">
+          <p className="text-lg sm:text-xl font-black text-text-main leading-none">{value}</p>
+          <p className="text-[7px] sm:text-[8px] font-black uppercase tracking-widest text-text-muted mt-0.5">{label}</p>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

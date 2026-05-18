@@ -48,10 +48,6 @@ export default function FavoritesPage() {
   return (
     <div className="space-y-8">
       <header className="space-y-3">
-        <div className="flex items-center gap-2 px-4 py-1.5 bg-p-pink rounded-full w-fit">
-          <Heart size={12} className="text-pink-500" fill="currentColor" />
-          <span className="text-[9px] font-black uppercase tracking-[0.2em] text-pink-600">Saved Tutors</span>
-        </div>
         <h2 className="text-3xl font-black tracking-tight text-text-main">
           Your <span className="gradient-text">Favorites</span>
         </h2>

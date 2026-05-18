@@ -24,6 +24,16 @@ model User {
   tutorProfile     Tutor?
   savedTutors      SavedTutor[]
   theme            String?        @default("light")
+  parentalProfile  ParentProfile? @relation("ParentProfile")
+}
+
+model ParentProfile {
+  id             String         @id @default(cuid())
+  userId         String         @unique
+  user           User           @relation("ParentProfile", fields: [userId], references: [id], onDelete: Cascade)
+  students       Student[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 }
 
 model Student {
@@ -40,6 +50,7 @@ model Student {
   bookings    Booking[]
   reviews     Review[]
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent      ParentProfile? @relation(fields: [parentId], references: [id])
 }
 
 model Tutor {

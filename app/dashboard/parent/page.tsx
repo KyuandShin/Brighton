@@ -1,0 +1,338 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import {
+  Users, Brain, Calendar, TrendingUp, Star, BookOpen,
+  ChevronRight, Sparkles, AlertCircle, Award, GraduationCap,
+  School, Clock, Check, Loader2
+} from 'lucide-react';
+import { useCurrentUser } from '@/lib/hooks/useCurrentUser';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Progress } from '@/components/ui/progress';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { cn } from '@/lib/utils';
+
+interface ChildData {
+  id: string;
+  name: string;
+  email: string;
+  schoolLevel: string;
+  gradeLevel: number | null;
+  age: number | null;
+  schoolName: string | null;
+  subjects: string[];
+  latestAssessment: {
+    score: number;
+    total: number;
+    mastery: string | null;
+    grade: string | null;
+    strengths: any;
+    weaknesses: any;
+    timestamp: string;
+  } | null;
+  upcomingBookings: Array<{
+    id: string;
+    date: string;
+    status: string;
+    meetLink: string;
+    tutorName: string;
+  }>;
+  recentBookings: Array<{
+    id: string;
+    date: string;
+    status: string;
+    tutorName: string;
+  }>;
+  sessionCount: number;
+}
+
+export default function ParentDashboardPage() {
+  const { user } = useCurrentUser();
+  const [children, setChildren] = useState<ChildData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [expandedChild, setExpandedChild] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchDashboard = async () => {
+      try {
+        const res = await fetch('/api/parent/dashboard');
+        if (!res.ok) {
+          setError('Failed to load dashboard');
+          return;
+        }
+        const data = await res.json();
+        setChildren(data.students || []);
+        if (data.students?.length > 0) {
+          setExpandedChild(data.students[0].id);
+        }
+      } catch {
+        setError('Failed to load dashboard');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDashboard();
+  }, [user]);
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-40 w-full rounded-[32px]" />
+        <div className="grid grid-cols-3 gap-4">
+          <Skeleton className="h-24 rounded-2xl" />
+          <Skeleton className="h-24 rounded-2xl" />
+          <Skeleton className="h-24 rounded-2xl" />
+        </div>
+      </div>
+    );
+  }
+
+  const totalUpcoming = children.reduce((sum, c) => sum + c.upcomingBookings.length, 0);
+  const totalSessions = children.reduce((sum, c) => sum + c.sessionCount, 0);
+  const childrenWithAssessments = children.filter(c => c.latestAssessment);
+
+  return (
+    <div className="space-y-8">
+      {/* ── Hero Header ── */}
+      <header className="relative overflow-hidden rounded-[32px] p-6 sm:p-8"
+        style={{
+          background: 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 50%, #faf5ff 100%)',
+          border: '1.5px solid #e4def7',
+        }}
+      >
+        <div className="relative z-10">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/80 rounded-full shadow-sm">
+                <Sparkles size={12} className="text-primary" />
+                <span className="text-[8px] font-black uppercase tracking-[0.2em] text-text-muted">
+                  Parent Dashboard
+                </span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-text-main">
+                Welcome, <span className="gradient-text">{user?.name?.split(' ')[0] || 'Parent'}</span>
+              </h2>
+              <p className="text-text-muted font-bold text-[10px] sm:text-xs uppercase tracking-widest">
+                {children.length > 0
+                  ? `${children.length} child${children.length > 1 ? 'ren' : ''} · ${totalUpcoming} upcoming session${totalUpcoming !== 1 ? 's' : ''}`
+                  : 'No linked students yet'}
+              </p>
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-3 gap-2 sm:gap-3 mt-6">
+            <StatCard icon={Users} value={children.length} label="Children" />
+            <StatCard icon={Calendar} value={totalUpcoming} label="Upcoming" />
+            <StatCard icon={Award} value={childrenWithAssessments.length > 0 ? `${Math.round(childrenWithAssessments.reduce((s, c) => s + (c.latestAssessment?.score || 0) / (c.latestAssessment?.total || 1), 0) / childrenWithAssessments.length * 100)}%` : '—'} label="Avg Score" />
+          </div>
+        </div>
+      </header>
+
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle size={14} />
+          <AlertDescription className="text-[9px] font-black uppercase tracking-widest">{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* ── No Children ── */}
+      {children.length === 0 && !loading && (
+        <Alert className="border-dashed border-primary/30 bg-primary/5">
+          <Sparkles size={16} className="text-primary" />
+          <AlertDescription className="text-[10px] font-black uppercase tracking-widest">
+            No students linked yet. When your child signs up and enters your email, you'll be notified!
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* ── Children List ── */}
+      {children.map((child) => {
+        const isExpanded = expandedChild === child.id;
+        const score = child.latestAssessment
+          ? Math.round((child.latestAssessment.score / child.latestAssessment.total) * 100)
+          : null;
+        const strengths: string[] = child.latestAssessment?.strengths
+          ? (typeof child.latestAssessment.strengths === 'string' ? JSON.parse(child.latestAssessment.strengths) : child.latestAssessment.strengths)
+          : [];
+        const weaknesses: string[] = child.latestAssessment?.weaknesses
+          ? (typeof child.latestAssessment.weaknesses === 'string' ? JSON.parse(child.latestAssessment.weaknesses) : child.latestAssessment.weaknesses)
+          : [];
+
+        return (
+          <Card key={child.id} className="border-border/60 overflow-hidden">
+            <button
+              onClick={() => setExpandedChild(isExpanded ? null : child.id)}
+              className="w-full text-left p-4 flex items-center justify-between hover:bg-surface-elevated/50 transition-all"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+                  style={{ background: 'linear-gradient(135deg, #7c3aed, #6366f1)' }}>
+                  <Users size={18} className="text-white" />
+                </div>
+                <div>
+                  <p className="text-sm font-black text-text-main">{child.name}</p>
+                  <p className="text-[9px] font-bold text-text-muted uppercase tracking-widest">
+                    {child.schoolLevel === 'ELEMENTARY' ? 'Elementary' : 'High School'}
+                    {child.gradeLevel ? ` · G${child.gradeLevel}` : ''}
+                    {child.schoolName ? ` · ${child.schoolName}` : ''}
+                    {child.age ? ` · Age ${child.age}` : ''}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                {score !== null && (
+                  <div className={cn(
+                    "text-xs font-black px-2.5 py-1 rounded-lg",
+                    score >= 80 ? 'bg-emerald-100 text-emerald-700' :
+                    score >= 60 ? 'bg-amber-100 text-amber-700' :
+                    'bg-rose-100 text-rose-700'
+                  )}>
+                    {score}%
+                  </div>
+                )}
+                <ChevronRight size={16} className={cn(
+                  "text-text-muted transition-transform",
+                  isExpanded && "rotate-90"
+                )} />
+              </div>
+            </button>
+
+            {isExpanded && (
+              <div className="px-4 pb-4 space-y-4 border-t border-border pt-4">
+                {/* Subjects */}
+                {child.subjects.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {child.subjects.map((subject) => (
+                      <Badge key={subject} variant="secondary" className="text-[8px] font-black uppercase tracking-widest">
+                        <BookOpen size={10} className="mr-1" /> {subject}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+
+                {/* Latest Assessment */}
+                {child.latestAssessment && (
+                  <div className="bg-surface-elevated rounded-2xl p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[9px] font-black uppercase tracking-widest text-text-muted flex items-center gap-1.5">
+                        <Brain size={12} /> Latest Assessment
+                      </p>
+                      <p className="text-[8px] font-bold text-text-muted">
+                        {new Date(child.latestAssessment.timestamp).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <p className="text-2xl font-black text-text-main">
+                        {child.latestAssessment.score}<span className="text-text-muted text-lg">/{child.latestAssessment.total}</span>
+                      </p>
+                      <div className="flex-1">
+                        <Progress value={score || 0} className="h-2" />
+                      </div>
+                      <p className={cn(
+                        "text-lg font-black",
+                        (score || 0) >= 80 ? 'text-emerald-600' :
+                        (score || 0) >= 60 ? 'text-amber-600' : 'text-rose-600'
+                      )}>
+                        {score}%
+                      </p>
+                    </div>
+
+                    {/* Strengths & Weaknesses */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {strengths.length > 0 && (
+                        <div className="bg-emerald-50 rounded-xl p-2.5 border border-emerald-200">
+                          <p className="text-[8px] font-black uppercase tracking-widest text-emerald-700 mb-1 flex items-center gap-1">
+                            <Award size={10} /> Strengths
+                          </p>
+                          <div className="flex flex-wrap gap-1">
+                            {strengths.slice(0, 3).map((s: string, i: number) => (
+                              <Badge key={i} variant="outline" className="text-[7px] border-emerald-300 text-emerald-700 bg-emerald-50">{s}</Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {weaknesses.length > 0 && (
+                        <div className="bg-rose-50 rounded-xl p-2.5 border border-rose-200">
+                          <p className="text-[8px] font-black uppercase tracking-widest text-rose-700 mb-1 flex items-center gap-1">
+                            <AlertCircle size={10} /> Needs Work
+                          </p>
+                          <div className="flex flex-wrap gap-1">
+                            {weaknesses.slice(0, 3).map((w: string, i: number) => (
+                              <Badge key={i} variant="outline" className="text-[7px] border-rose-300 text-rose-700 bg-rose-50">{w}</Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Upcoming Bookings */}
+                {child.upcomingBookings.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-text-muted flex items-center gap-1.5">
+                      <Calendar size={12} /> Upcoming Sessions
+                    </p>
+                    {child.upcomingBookings.slice(0, 3).map((booking) => (
+                      <div key={booking.id} className="flex items-center justify-between p-2.5 bg-surface-elevated rounded-xl border border-border">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <Clock size={14} className="text-primary" />
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-black text-text-main">{booking.tutorName}</p>
+                            <p className="text-[8px] font-bold text-text-muted">
+                              {new Date(booking.date).toLocaleDateString('en-US', {
+                                weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                        <Badge className="text-[7px] bg-emerald-500">{booking.status}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Recent Activity Summary */}
+                <div className="flex items-center gap-4 text-[9px] font-bold text-text-muted">
+                  <div className="flex items-center gap-1.5">
+                    <Award size={12} className="text-primary" />
+                    {child.sessionCount} session{child.sessionCount !== 1 ? 's' : ''} completed
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Calendar size={12} className="text-primary" />
+                    {child.upcomingBookings.length} upcoming
+                  </div>
+                </div>
+              </div>
+            )}
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
+
+function StatCard({ icon: Icon, value, label }: { icon: any; value: string | number; label: string }) {
+  return (
+    <Card className="border-border/60 shadow-sm bg-transparent">
+      <CardContent className="flex items-center gap-3 p-3 sm:p-4">
+        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center shrink-0 shadow-sm bg-white/80">
+          <Icon size={15} className="text-primary" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-lg sm:text-xl font-black text-text-main leading-none">{value}</p>
+          <p className="text-[7px] sm:text-[8px] font-black uppercase tracking-widest text-text-muted mt-0.5">{label}</p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

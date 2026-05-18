@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Home, Users, Calendar, BookOpen, Bell, LogOut,
-  User, X, ChevronRight, Sparkles, UserCheck, Moon, Sun, Heart, TrendingUp, ClipboardList, MessageSquare
+  User, X, ChevronRight, Sparkles, UserCheck, Moon, Sun, Heart, TrendingUp, ClipboardList, MessageSquare, Brain
 } from 'lucide-react';
 import { useCurrentUser, getInitials } from '@/lib/hooks/useCurrentUser';
 import { authClient } from '@/lib/auth/client';
@@ -21,23 +21,31 @@ import {
 import AnimeOnboarding from './_components/Tutorial';
 
 // ── Role-specific nav ────────────────────────────────────────────────
-// Students: browse tutors, view their own classes, calendar, favorites
+// Students: clean, focused navigation
 const studentNavItems = [
   { name: 'Home',     href: '/dashboard',          icon: Home },
   { name: 'Tutors',   href: '/dashboard/tutors',   icon: Users },
   { name: 'Classes',  href: '/dashboard/classes',  icon: BookOpen },
   { name: 'Calendar', href: '/dashboard/calendar', icon: Calendar },
-  { name: 'Favorites',href: '/dashboard/favorites',icon: Heart },
-  { name: 'Feedback', href: '/dashboard/feedback', icon: TrendingUp },
+  { name: 'Test',     href: '/dashboard/test',     icon: Brain },
+  { name: 'Messages', href: '/dashboard/messages', icon: MessageSquare },
+  { name: 'Profile',  href: '/dashboard/profile',  icon: User },
 ];
 
-// Tutors: manage booking requests, view their classes, calendar, analytics
+// Tutors: manage bookings, classes, calendar, analytics
 const tutorNavItems = [
   { name: 'Home',     href: '/dashboard',          icon: Home },
   { name: 'Bookings', href: '/dashboard/bookings', icon: ClipboardList },
   { name: 'Classes',  href: '/dashboard/classes',  icon: BookOpen },
   { name: 'Calendar', href: '/dashboard/calendar', icon: Calendar },
   { name: 'Analytics',href: '/dashboard/analytics',icon: TrendingUp },
+];
+
+// Parent: monitor children's progress
+const parentNavItems = [
+  { name: 'Home',     href: '/dashboard',          icon: Home },
+  { name: 'Children', href: '/dashboard/parent',   icon: Users },
+  { name: 'Calendar', href: '/dashboard/calendar', icon: Calendar },
 ];
 
 // Admin: full access
@@ -212,14 +220,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isAdmin     = user?.role === 'ADMIN';
   const isStudent   = user?.role === 'STUDENT';
   const isTutor     = user?.role === 'TUTOR';
+  const isParent    = user?.role === 'PARENT';
 
   // Pick the correct nav set based on role
-  const navItems = isTutor ? tutorNavItems : isStudent ? studentNavItems : baseNavItems;
+  const navItems = isTutor ? tutorNavItems : isStudent ? studentNavItems : isParent ? parentNavItems : baseNavItems;
 
-  // Extra items for student test history
+  // Extra items
   const extraNavItems: typeof navItems = [];
   if (isStudent) {
-    extraNavItems.push({ name: 'Test History', href: '/dashboard/test-history', icon: TrendingUp });
+    // Add Learning Feedback shortcut
+    extraNavItems.push({ name: 'Feedback', href: '/dashboard/feedback', icon: TrendingUp });
   }
   if (isTutor) {
     extraNavItems.push({ name: 'Resources', href: '/dashboard/resources', icon: BookOpen });

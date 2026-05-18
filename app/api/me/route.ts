@@ -34,6 +34,15 @@ export async function GET(req: NextRequest) {
       where: { id: userId },
       include: {
         studentProfile: true,
+        parentalProfile: {
+          include: {
+            students: {
+              include: {
+                user: { select: { name: true } },
+              },
+            },
+          },
+        },
         tutorProfile: {
           include: {
             subjects: { include: { subject: true } },
@@ -51,6 +60,15 @@ export async function GET(req: NextRequest) {
         where: { id: userId },
         include: {
           studentProfile: true,
+          parentalProfile: {
+            include: {
+              students: {
+                include: {
+                  user: { select: { name: true } },
+                },
+              },
+            },
+          },
           tutorProfile: {
             include: {
               subjects: { include: { subject: true } },

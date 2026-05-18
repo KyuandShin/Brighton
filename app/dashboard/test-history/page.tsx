@@ -51,10 +51,6 @@ export default function TestHistoryPage() {
   return (
     <div className="space-y-8">
       <header className="space-y-3">
-        <div className="flex items-center gap-2 px-4 py-1.5 bg-p-purple rounded-full w-fit">
-          <Brain size={12} className="text-primary" />
-          <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary">Test History</span>
-        </div>
         <h2 className="text-3xl font-black tracking-tight text-text-main">
           Your <span className="gradient-text">Assessment Journey</span>
         </h2>
