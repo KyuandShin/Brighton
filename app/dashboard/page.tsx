@@ -245,7 +245,7 @@ export default function DashboardPage() {
                   {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
                 </span>
               </div>
-              <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-text-main">
+              <h2 className="text-3xl sm:text-5xl font-black tracking-tight text-text-main leading-tight">
                 Welcome back, <span className="gradient-text">{user?.name?.split(' ')[0] || 'Friend'}</span>
               </h2>
               <p className="text-text-muted font-bold text-[10px] sm:text-xs uppercase tracking-widest">
@@ -270,21 +270,14 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {/* Stats row */}
-          {!loading && (
+          {/* Stats row — visible for tutors and admins only */}
+          {!loading && (isTutor || isAdmin) && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
               className="grid grid-cols-3 gap-2 sm:gap-3 mt-6"
             >
-              {isStudent && (
-                <>
-                  <StatCard icon={TrendingUp} value={upcomingClasses.length} label="Upcoming" color="#3b82f6" isDark={isDark} />
-                  <StatCard icon={Sun} value={todaysClasses.length} label="Today" color="#2563eb" isDark={isDark} />
-                  <StatCard icon={Brain} value={latestAttempt ? `${Math.round((latestAttempt.score / latestAttempt.total) * 100)}%` : '—'} label="Latest" color="#1d4ed8" isDark={isDark} />
-                </>
-              )}
               {isTutor && (
                 <>
                   <StatCard icon={Hourglass} value={pendingSchedule.length} label="Pending" color="#f59e0b" isDark={isDark} />

@@ -457,15 +457,16 @@ function TutorsPage() {
 
                     {/* Avatar overlapping banner */}
                     <div className="absolute -bottom-8 left-6">
-                      <div className="relative w-16 h-16 rounded-2xl border-4 border-white shadow-md overflow-hidden bg-surface">
-                        <Image
-                          src={tutor.image}
-                          alt={tutor.name}
-                          fill
-                          sizes="64px"
-                          className="object-cover"
-                        />
-                      </div>
+                        <div className="relative w-16 h-16 rounded-2xl border-4 border-white shadow-md overflow-hidden bg-surface">
+                          <Image
+                            src={tutor.image}
+                            alt={tutor.name}
+                            fill
+                            sizes="64px"
+                            className="object-cover"
+                            priority
+                          />
+                        </div>
                     </div>
                   </div>
 

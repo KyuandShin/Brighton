@@ -36,7 +36,16 @@ export default function MessagesPage() {
   const [error, setError] = useState<string | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const conversationWith = searchParams.get('user');
+  // Use state instead of URL param so conversation switching is instant (no navigation/re-fetch)
+  const initialUser = searchParams.get('user');
+  const [conversationWith, setConversationWith] = useState<string | null>(initialUser);
+
+  // Keep URL in sync without navigation re-render
+  useEffect(() => {
+    if (conversationWith && conversationWith !== searchParams.get('user')) {
+      router.replace(`/dashboard/messages?user=${conversationWith}`, { scroll: false });
+    }
+  }, [conversationWith, router, searchParams]);
 
   // Fetch conversations
   useEffect(() => {
@@ -56,7 +65,7 @@ export default function MessagesPage() {
       .finally(() => setLoading(false));
   }, [user?.id]);
 
-  // Fetch conversation messages
+  // Fetch conversation messages — only the first time a user is selected (cached after)
   useEffect(() => {
     if (!conversationWith || !user?.id) return;
     setChatLoading(true);
@@ -144,7 +153,7 @@ export default function MessagesPage() {
               conversations.map((conv) => (
                 <button
                   key={conv.userId}
-                  onClick={() => router.push(`/dashboard/messages?user=${conv.userId}`)}
+                  onClick={() => setConversationWith(conv.userId)}
                   className={`w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-p-purple/30 transition-all border-b border-border/50 ${
                     conversationWith === conv.userId ? 'bg-p-purple/50' : ''
                   }`}

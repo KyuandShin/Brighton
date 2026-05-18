@@ -366,7 +366,7 @@ export default function TutorProfilePage() {
 
       {/* ── Booking Dialog ───────────────────────────────────── */}
       <Dialog open={showBooking} onOpenChange={(open) => { if (!open) { setShowBooking(false); setBookingError(''); } }}>
-        <DialogContent className="sm:max-w-lg rounded-[32px]">
+        <DialogContent className="sm:max-w-lg rounded-[32px] max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-lg font-black">Book a Session</DialogTitle>
             <DialogDescription className="text-xs font-bold text-text-muted">
@@ -378,18 +378,18 @@ export default function TutorProfilePage() {
             {/* Date Picker */}
             <div className="space-y-2">
               <p className="text-[9px] font-black uppercase tracking-widest text-text-muted">Select Date</p>
-              <div className="flex gap-2 overflow-x-auto pb-2">
+              <div className="flex gap-1.5 overflow-x-auto pb-2 -mx-1 px-1">
                 {next14Days.map((d) => (
                   <button key={d.dateStr} onClick={() => { setSelectedDate(d.dateStr); setSelectedTime(''); setSelectedDayName(d.dayName); }}
                     disabled={!d.available}
                     className={cn(
-                      "flex flex-col items-center px-3 py-2.5 rounded-2xl border-2 min-w-[68px] transition-all shrink-0",
+                      "flex flex-col items-center px-2.5 py-2 rounded-xl border-2 min-w-[58px] transition-all shrink-0",
                       selectedDate === d.dateStr ? 'border-primary bg-primary/10 text-primary' :
                       d.available ? 'border-border hover:border-primary/50 text-text-main' :
                       'border-border/40 text-text-muted/30 cursor-not-allowed'
                     )}>
                     <span className="text-[8px] font-black uppercase">{d.label}</span>
-                    <span className="text-base font-black">{d.num}</span>
+                    <span className="text-sm font-black">{d.num}</span>
                     <span className="text-[7px] font-bold uppercase">{d.month}</span>
                   </button>
                 ))}
