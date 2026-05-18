@@ -144,19 +144,8 @@ export default function SignupPage() {
       const data = await res.json();
       if (!res.ok) { setError(data.error || 'Signup failed'); return; }
 
-      // Wait a moment for Neon Auth to propagate the newly created user
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      try {
-        const { error: otpSendError } = await authClient.emailOtp.sendVerificationOtp({ email, type: 'email-verification' });
-        setOtpSent(!otpSendError);
-        if (otpSendError) {
-          // Silently queue a retry — the resend button will still work
-          setTimeout(async () => {
-            try { await authClient.emailOtp.sendVerificationOtp({ email, type: 'email-verification' }); } catch {}
-          }, 2000);
-        }
-      } catch { setOtpSent(false); }
+      // Neon Auth may already send a verification email from signUp.
+      // We show the OTP screen and let the user click "Resend" if needed.
       setOtpStep(true);
     } catch { setError('An unexpected error occurred'); }
     finally { setLoading(false); }

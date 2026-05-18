@@ -168,27 +168,8 @@ function TutorSignupContent() {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || 'Submission failed. Please try again.'); return; }
-      // Send Neon Auth OTP for email verification
-      // Wait a moment for Neon Auth to propagate the newly created user
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      try {
-        const { authClient } = await import('@/lib/auth/client');
-        const { error: otpSendError } = await authClient.emailOtp.sendVerificationOtp({
-          email: formData.email,
-          type: 'email-verification',
-        });
-        if (otpSendError) {
-          // Silently retry after another delay
-          setTimeout(async () => {
-            try {
-              const { authClient: ac } = await import('@/lib/auth/client');
-              await ac.emailOtp.sendVerificationOtp({ email: formData.email, type: 'email-verification' });
-            } catch {}
-          }, 3000);
-        }
-      } catch {
-        // OTP send failure is non-fatal — we still show the OTP screen
-      }
+      // Neon Auth may already send a verification email from signUp.
+      // We show the OTP screen and let the user click "Resend" if needed.
       setOtpStep(true);
     } catch {
       setError('Network error — please check your connection and try again.');
@@ -203,14 +184,14 @@ function TutorSignupContent() {
     setOtpLoading(true);
     setOtpError('');
     try {
-      // Use Neon Auth client to verify the email OTP
+      // Use Neon Auth client to verify the email OTP (not signIn — that would conflict with existing session)
       const { authClient } = await import('@/lib/auth/client');
-      const { error: verifyError } = await authClient.signIn.emailOtp({
+      const result = await authClient.emailOtp.verifyEmail({
         email: formData.email,
         otp,
       });
-      if (verifyError) {
-        setOtpError(verifyError.message || 'Invalid code. Please check and try again.');
+      if ((result as any)?.error) {
+        setOtpError((result as any).error.message || 'Invalid code. Please check and try again.');
         return;
       }
       // Mark verified in our DB too
@@ -696,9 +677,20 @@ function VideoRecorder({ onUpload }: { onUpload: (url: string) => void }) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [timeLeft, setTimeLeft] = useState(120);
-  const liveVideoRef = React.useRef<HTMLVideoElement | null>(null);
+  const liveVideoRef = useRef<HTMLVideoElement | null>(null);
   const stopRecordingRef = useRef<() => void>(() => {});
+  const chunksRef = useRef<Blob[]>([]);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
+  // Attach stream to video element via effect — prevents blinking from inline ref callbacks
+  useEffect(() => {
+    if (liveVideoRef.current && streamRef.current) {
+      liveVideoRef.current.srcObject = streamRef.current;
+    }
+  }, [recording]);
+
+  // Timer countdown
   useEffect(() => {
     let timer: any;
     if (recording && timeLeft > 0) {
@@ -709,15 +701,35 @@ function VideoRecorder({ onUpload }: { onUpload: (url: string) => void }) {
     return () => clearInterval(timer);
   }, [recording, timeLeft]);
 
+  // Cleanup stream on unmount
+  useEffect(() => {
+    return () => {
+      streamRef.current?.getTracks().forEach(t => t.stop());
+    };
+  }, []);
+
   const startRecording = async () => {
     try {
+      // Clean up any previous stream first
+      streamRef.current?.getTracks().forEach(t => t.stop());
+      chunksRef.current = [];
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+      setVideoBlob(null);
+
       const s = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      streamRef.current = s;
       setStream(s);
+      
       const mr = new MediaRecorder(s);
-      const chunks: Blob[] = [];
-      mr.ondataavailable = (e) => chunks.push(e.data);
+      mediaRecorderRef.current = mr;
+      chunksRef.current = [];
+      
+      mr.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+      };
       mr.onstop = () => {
-        const blob = new Blob(chunks, { type: 'video/webm' });
+        const blob = new Blob(chunksRef.current, { type: 'video/webm' });
         setVideoBlob(blob);
         setPreviewUrl(URL.createObjectURL(blob));
       };
@@ -731,13 +743,13 @@ function VideoRecorder({ onUpload }: { onUpload: (url: string) => void }) {
   };
 
   const stopRecording = () => {
-    mediaRecorder?.stop();
-    stream?.getTracks().forEach(t => t.stop());
+    mediaRecorderRef.current?.stop();
+    streamRef.current?.getTracks().forEach(t => t.stop());
     setRecording(false);
     setStream(null);
+    streamRef.current = null;
   };
 
-  // Keep the ref updated with the latest stopRecording
   stopRecordingRef.current = stopRecording;
 
   const handleUpload = async () => {
@@ -764,11 +776,9 @@ function VideoRecorder({ onUpload }: { onUpload: (url: string) => void }) {
           <video
             autoPlay
             muted
+            playsInline
             className="w-full h-full object-cover mirror"
-            ref={(v) => {
-              liveVideoRef.current = v;
-              if (v && stream) v.srcObject = stream;
-            }}
+            ref={liveVideoRef}
           />
         ) : previewUrl ? (
           <video src={previewUrl} controls className="w-full h-full object-cover" />

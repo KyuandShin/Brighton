@@ -81,15 +81,17 @@ export async function GET(req: NextRequest) {
     }
 
     if (!user) {
-      // User is authed but no DB record yet — return basic info from session
+      // User authenticated but no profile created yet — signal incomplete profile
       return NextResponse.json({
         id: userId,
         email: session.user.email,
         name: session.user.name ?? session.user.email,
-        role: 'STUDENT',
-        isVerified: false,
-        studentProfile: null,
-        tutorProfile: null,
+        profileIncomplete: true,
+      }, {
+        headers: {
+          'Cache-Control': 'no-store, max-age=0',
+          'Retry-After': '0'
+        }
       });
     }
 

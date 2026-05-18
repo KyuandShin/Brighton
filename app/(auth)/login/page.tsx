@@ -91,8 +91,7 @@ export default function LoginPage() {
           if (meData.error === 'TUTOR_PENDING') {
             try { await authClient.signOut(); } catch {}
             setLoading(false);
-            setMode('reverify');
-            setReVerifySent(false);
+            setError('Your tutor account is pending admin approval. You will be notified once approved.');
             return;
           }
         }
