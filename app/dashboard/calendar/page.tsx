@@ -78,7 +78,7 @@ export default function CalendarPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Calendar Grid */}
-        <div className="lg:col-span-2 bg-surface border-2 border-border rounded-[40px] p-8 space-y-6">
+        <div className="lg:col-span-2 bg-surface border-2 border-border rounded-[40px] p-4 sm:p-8 space-y-4 sm:space-y-6 overflow-hidden">
           <div className="flex justify-between items-center">
           <button onClick={() => setViewDate(new Date(year, month - 1, 1))} className="p-3 bg-p-purple rounded-2xl hover:bg-primary hover:text-white transition-all text-text-muted">
               <ChevronLeft size={18} />
@@ -89,13 +89,13 @@ export default function CalendarPage() {
             </button>
           </div>
 
-          <div className="grid grid-cols-7 gap-1">
+          <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
             {WEEKDAYS.map((d) => (
-              <div key={d} className="text-center text-[9px] font-black uppercase tracking-widest text-text-muted py-2">{d}</div>
+              <div key={d} className="text-center text-[9px] font-black uppercase tracking-widest text-text-muted py-1.5 sm:py-2">{d}</div>
             ))}
           </div>
 
-          <div className="grid grid-cols-7 gap-1">
+          <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
             {cells.map((date, idx) => {
               if (!date) return <div key={`empty-${idx}`} />;
               const dayBookings = getBookingsForDate(date);
@@ -109,22 +109,22 @@ export default function CalendarPage() {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setSelectedDay(date)}
-                  className={`relative aspect-square flex flex-col items-center justify-center rounded-2xl transition-all text-sm font-black
+                  className={`relative flex flex-col items-center justify-center rounded-xl sm:rounded-2xl transition-all text-sm font-black min-h-[40px] sm:min-h-[52px] w-full overflow-hidden
                     ${sel ? 'bg-primary text-white shadow-lg shadow-primary/30' : ''}
                     ${todayDay && !sel ? 'bg-primary/10 text-primary border-2 border-primary/30' : ''}
                     ${!todayDay && !sel ? 'hover:bg-surface-elevated text-text-main' : ''}
                   `}
                 >
-                  {date.getDate()}
+                  <span className="text-xs sm:text-sm">{date.getDate()}</span>
                   {hasBookings && (
-                    <div className="absolute bottom-1.5 flex gap-0.5">
-                      {dayBookings.slice(0, 4).map((b, i) => {
+                    <div className="flex gap-0.5 mt-0.5">
+                      {dayBookings.slice(0, 3).map((b, i) => {
                         let dotColor = 'bg-primary';
                         if (b.status === 'CANCELLED') dotColor = 'bg-rose-400';
                         else if (b.status === 'COMPLETED') dotColor = 'bg-teal-400';
                         else if (b.status === 'PENDING') dotColor = 'bg-amber-400';
                         return (
-                          <div key={i} className={`w-1.5 h-1.5 rounded-full ${sel ? 'bg-white' : dotColor}`} />
+                          <div key={i} className={`w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full ${sel ? 'bg-white' : dotColor}`} />
                         );
                       })}
                     </div>

@@ -76,33 +76,25 @@ export default function TutorProfilePage() {
   const [bookingsForSlots, setBookingsForSlots] = useState<any[]>([]);
   const [bookingError, setBookingError] = useState('');
 
+  // Fetch tutor on mount (only depends on id, not user to prevent double reload)
   useEffect(() => {
     let cancelled = false;
     setLoadingTutor(true);
-    fetch('/api/tutors')
-      .then((r) => r.json())
-      .then((data: TutorFromDB[]) => {
+    fetch(`/api/tutors/${id}`)
+      .then((r) => {
+        if (!r.ok) throw new Error('Tutor not found');
+        return r.json();
+      })
+      .then((found: TutorFromDB & { userId: string }) => {
         if (cancelled) return;
-        const found = Array.isArray(data) ? data.find((t) => t.id === id) : null;
-        if (found) {
-          setTutor({
-            dbId: found.id, userId: found.userId,
-            name: found.name, headline: found.headline ?? 'Tutor',
-            bio: found.bio ?? '', introVideoUrl: found.introVideoUrl ?? null,
-            price: found.pricingPerHour, subjects: found.subjects,
-            rating: found.rating, image: found.image || '',
-            level: 'BOTH', availability: found.availability ?? [],
-          });
-          if (user?.id) {
-            fetch('/api/favorites')
-              .then((r) => r.json())
-              .then((favs) => { if (!cancelled && Array.isArray(favs)) setIsFavorite(favs.some((f: any) => f.tutor.id === found.id)); })
-              .catch(() => {});
-          }
-        } else if (!cancelled) {
-          const mock = MOCK_TUTORS.find((t) => t.id === id);
-          if (mock) setTutor({ dbId: null, userId: null, name: mock.name, headline: mock.headline, bio: mock.bio, introVideoUrl: null, price: mock.price, subjects: mock.subjects, rating: mock.rating, image: mock.image, level: mock.level, availability: [] });
-        }
+        setTutor({
+          dbId: found.id, userId: found.userId,
+          name: found.name, headline: found.headline ?? 'Tutor',
+          bio: found.bio ?? '', introVideoUrl: found.introVideoUrl ?? null,
+          price: found.pricingPerHour, subjects: found.subjects,
+          rating: found.rating, image: found.image || '',
+          level: 'BOTH', availability: found.availability ?? [],
+        });
       })
       .catch(() => {
         if (!cancelled) {
@@ -112,7 +104,18 @@ export default function TutorProfilePage() {
       })
       .finally(() => { if (!cancelled) setLoadingTutor(false); });
     return () => { cancelled = true; };
-  }, [id, user?.id]);
+  }, [id]);
+
+  // Fetch favorites separately (only when user is ready, avoids re-fetching tutor)
+  useEffect(() => {
+    if (!user?.id || !tutor?.dbId) return;
+    let cancelled = false;
+    fetch('/api/favorites')
+      .then((r) => r.json())
+      .then((favs) => { if (!cancelled && Array.isArray(favs)) setIsFavorite(favs.some((f: any) => f.tutor.id === tutor.dbId)); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [user?.id, tutor?.dbId]);
 
   const toggleFavorite = async () => {
     if (!user?.id || !tutor?.dbId) return;
