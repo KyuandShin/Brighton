@@ -288,23 +288,23 @@ export default function DashboardPage() {
             >
               {isStudent && (
                 <>
-                  <MiniStats icon={CalendarIcon} value={todaysClasses.length} label="Today" gradient="bg-gradient-to-br from-sky-400 to-blue-500" />
-                  <MiniStats icon={TrendingUp} value={upcomingClasses.length} label="Upcoming" gradient="bg-gradient-to-br from-emerald-400 to-teal-500" />
-                  <MiniStats icon={CheckCircle} value={schedule.filter(b => b.status === 'COMPLETED').length} label="Completed" gradient="bg-gradient-to-br from-violet-400 to-purple-500" />
+                  <MiniStats icon={CalendarIcon} value={todaysClasses.length} label="Today" />
+                  <MiniStats icon={TrendingUp} value={upcomingClasses.length} label="Upcoming" />
+                  <MiniStats icon={CheckCircle} value={schedule.filter(b => b.status === 'COMPLETED').length} label="Completed" />
                 </>
               )}
               {isTutor && (
                 <>
-                  <MiniStats icon={CalendarIcon} value={todaysClasses.length} label="Today" gradient="bg-gradient-to-br from-sky-400 to-blue-500" />
-                  <MiniStats icon={TrendingUp} value={upcomingClasses.length} label="Upcoming" gradient="bg-gradient-to-br from-emerald-400 to-teal-500" />
-                  <MiniStats icon={CheckCircle} value={schedule.filter(b => b.status === 'COMPLETED').length} label="Completed" gradient="bg-gradient-to-br from-violet-400 to-purple-500" />
+                  <MiniStats icon={CalendarIcon} value={todaysClasses.length} label="Today" />
+                  <MiniStats icon={TrendingUp} value={upcomingClasses.length} label="Upcoming" />
+                  <MiniStats icon={CheckCircle} value={schedule.filter(b => b.status === 'COMPLETED').length} label="Completed" />
                 </>
               )}
               {isAdmin && (
                 <>
-                  <MiniStats icon={Users} value={sysStats?.totals?.students ?? 0} label="Students" gradient="bg-gradient-to-br from-sky-400 to-blue-500" />
-                  <MiniStats icon={GraduationCap} value={sysStats?.totals?.tutors ?? 0} label="Tutors" gradient="bg-gradient-to-br from-emerald-400 to-teal-500" />
-                  <MiniStats icon={CalendarIcon} value={sysStats?.totals?.bookings ?? 0} label="Bookings" gradient="bg-gradient-to-br from-violet-400 to-purple-500" />
+                  <MiniStats icon={Users} value={sysStats?.totals?.students ?? 0} label="Students" />
+                  <MiniStats icon={GraduationCap} value={sysStats?.totals?.tutors ?? 0} label="Tutors" />
+                  <MiniStats icon={CalendarIcon} value={sysStats?.totals?.bookings ?? 0} label="Bookings" />
                 </>
               )}
             </motion.div>
@@ -651,13 +651,14 @@ export default function DashboardPage() {
   );
 }
 
-// ── Richer stat card with gradient icon ──────────────────────────────
-function MiniStats({ icon: Icon, value, label, gradient }: { icon: any; value: string | number; label: string; gradient: string }) {
+// ── Clean stat card with white icon background ───────────────────────
+function MiniStats({ icon: Icon, value, label }: { icon: any; value: string | number; label: string }) {
   return (
-    <Card className="border-border/60 shadow-sm bg-transparent">
+    <Card className="border-border/60 shadow-sm bg-transparent dark:bg-transparent">
       <CardContent className="flex items-center gap-2.5 p-2.5 sm:p-3">
-        <div className={`w-7 h-7 sm:w-8 sm:h-8 ${gradient} rounded-lg flex items-center justify-center shrink-0 shadow-sm`}>
-          <Icon size={13} className="text-white" />
+        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm"
+          style={{ background: 'rgba(255, 255, 255, 0.8)' }}>
+          <Icon size={16} className="text-primary" />
         </div>
         <div className="min-w-0">
           <p className="text-base sm:text-lg font-black text-text-main leading-none">{value}</p>
