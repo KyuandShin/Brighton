@@ -437,7 +437,7 @@ export default function TutorProfilePage() {
             )}
 
             <Button onClick={handleBook} disabled={booking || !selectedDate || !selectedTime}
-              className="w-full text-[10px] uppercase tracking-widest font-black gap-2">
+              className="w-full py-3 text-[10px] uppercase tracking-widest font-black gap-2">
               {booking ? 'Booking...' : <><Send size={14} /> Confirm Booking</>}
             </Button>
           </div>

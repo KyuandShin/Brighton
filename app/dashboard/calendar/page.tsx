@@ -78,7 +78,7 @@ export default function CalendarPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Calendar Grid */}
-        <div className="lg:col-span-2 bg-surface border-2 border-border rounded-[40px] p-4 sm:p-8 space-y-4 sm:space-y-6 overflow-hidden">
+        <div className="lg:col-span-2 bg-surface border-2 border-border rounded-[40px] p-3 sm:p-5 space-y-3 sm:space-y-4 overflow-hidden">
           <div className="flex justify-between items-center">
           <button onClick={() => setViewDate(new Date(year, month - 1, 1))} className="p-3 bg-p-purple rounded-2xl hover:bg-primary hover:text-white transition-all text-text-muted">
               <ChevronLeft size={18} />
@@ -218,10 +218,10 @@ export default function CalendarPage() {
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="w-full max-w-md bg-surface rounded-[40px] shadow-[0_40px_100px_rgba(147,51,234,0.12)] border border-border overflow-hidden relative z-10"
+              className="w-full max-w-md bg-surface rounded-[40px] shadow-[0_40px_100px_rgba(147,51,234,0.12)] border border-border relative z-10"
             >
-              <div className="h-28 bg-p-blue relative">
-                <button onClick={() => setSelectedBooking(null)} className="absolute top-5 right-5 p-2 bg-white/50 hover:bg-white rounded-full transition-all">
+              <div className="h-28 bg-p-blue rounded-t-[40px] relative overflow-hidden">
+                <button onClick={() => setSelectedBooking(null)} className="absolute top-5 right-5 p-2 bg-white/50 hover:bg-white rounded-full transition-all z-20">
                   <X size={18} />
                 </button>
                 <div className="absolute -bottom-7 left-8 w-14 h-14 bg-white rounded-2xl shadow-md border-4 border-white flex items-center justify-center">
